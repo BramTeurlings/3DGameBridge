@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 3.23)
+
+project (GameBridgeApi VERSION 0.1)
+message("Game Bridge Api Version: ${GameBridgeApi_VERSION}")
+
+set(CMAKE_DEBUG_POSTFIX d)
+
+add_library(GameBridgeApi SHARED
+src/gamebridge.h
+src/gamebridge.cpp
+)
+
+target_compile_definitions(GameBridgeApi PUBLIC GAME_BRIDGE_API_EXPORTS)
+set_target_properties(GameBridgeApi PROPERTIES LINKER_LANGUAGE CXX)
+
+set_target_properties(GameBridgeApi PROPERTIES PUBLIC_HEADER src/gamebridge.h)
+
+install(TARGETS GameBridgeApi
+        EXPORT GameBridgeApiTargets
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        PUBLIC_HEADER DESTINATION include)
+
+install(EXPORT GameBridgeApiTargets
+		FILE GameBridgeApiTargets.cmake
+		DESTINATION lib/cmake/GameBridgeApi
+)
+
+target_include_directories(GameBridgeApi INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+	$<INSTALL_INTERFACE:include>
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeApiConfig.cmake
+    INSTALL_DESTINATION lib/cmake/GameBridgeApi
+)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/GameBridgeApiConfigVersion.cmake"
+  VERSION "${GameBridgeApi_VERSION}"
+  COMPATIBILITY AnyNewerVersion
+)
+
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeConfigVersion.cmake
+  DESTINATION lib/cmake/GameBridgeApi
+)
