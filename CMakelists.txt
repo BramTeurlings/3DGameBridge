@@ -8,6 +8,8 @@ set(CMAKE_DEBUG_POSTFIX d)
 add_library(3DGameBridge SHARED
 src/gamebridge.h
 src/gamebridge.cpp
+src/event_manager.h
+src/event_manager.cpp
 )
 
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
