@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.23)
+project (unit_tests VERSION 0.1)
+
+add_executable(unit_tests
+main.cpp
+)
+
+set_target_properties(unit_tests PROPERTIES LINKER_LANGUAGE CXX)
+
+target_link_libraries(unit_tests PRIVATE 3DGameBridge)
+
+# Copy all linked dlls to build executable directory
+add_custom_command(
+    TARGET unit_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:unit_tests> $<TARGET_FILE_DIR:unit_tests>
+)

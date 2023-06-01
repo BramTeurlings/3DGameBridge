@@ -6,6 +6,6 @@
 #define GAME_BRIDGE_API __declspec(dllimport)
 #endif
 
-namespace srreshade {
+namespace gamebridge {
     extern "C" GAME_BRIDGE_API void init_api();
 }

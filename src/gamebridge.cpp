@@ -1,7 +1,7 @@
 #include "gamebridge.h"
 #include <iostream>
 
-namespace srreshade {
+namespace gamebridge {
 
     GAME_BRIDGE_API void init_api()
     {
