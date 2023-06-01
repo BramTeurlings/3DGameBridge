@@ -22,3 +22,5 @@ You should now be able to load the generated project inside the created folder n
 ## Additional information
 If you want to get an understanding of the underlying SR SDK, you can view the documentation and samples at the link below:
 https://developer.srappstore.com/
+
+For any questions or contributions you may have, please refer to our Discord server.
