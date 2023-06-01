@@ -13,7 +13,7 @@ The class diagram of the wrapper project can be seen below:
 ### Build instructions:
 1. Install the SR SDK from Dimenco's website (you will need to make an account): https://www.srappstore.com/develop/sdk/sr
 2. Download CMAKE
-3. Download a C++ compiler (Visual studio 2019 or up)
+3. Download Visual studio 2019 or up and install the C++ compiler
 4. Open a terminal (like git bash) 
 5. ``"cmake . -B build"``
 
