@@ -10,7 +10,7 @@ src/gamebridge.h
 src/gamebridge.cpp
 )
 
-target_compile_definitions(3DGameBridge PUBLIC 3D_GAME_BRIDGE_EXPORTS)
+target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
 set_target_properties(3DGameBridge PROPERTIES LINKER_LANGUAGE CXX)
 
 set_target_properties(3DGameBridge PROPERTIES PUBLIC_HEADER src/gamebridge.h)
