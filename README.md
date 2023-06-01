@@ -24,3 +24,10 @@ If you want to get an understanding of the underlying SR SDK, you can view the d
 https://developer.srappstore.com/
 
 For any questions or contributions you may have, please refer to our Discord server.
+
+### Related Projects
+3D Game Bridge Projects:
+https://github.com/JoeyAnthony/3DGameBridgeProjects
+
+3D Game Bridge GUI/API:
+https://github.com/BramTeurlings/3DGameBridgeGUI
