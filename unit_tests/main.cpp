@@ -1,6 +1,6 @@
-#include <gamebridge.h>
+#include "../src/game_bridge.h"
 
 int main() {
-    gamebridge::init_api();
+    game_bridge::init_api();
     return 0;
 }
