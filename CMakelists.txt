@@ -10,7 +10,7 @@ add_library(3DGameBridge SHARED
         src/game_bridge.cpp
 		src/event_system/event_manager.h
 		src/event_system/event_manager.cpp
-		src/event_system/game_event_manager_interface.h src/game_bridge.h unit_tests/main.cpp)
+		src/event_system/game_event_manager_interface.h src/game_bridge.h unit_tests/main.cpp src/hotkey_system/hotkey_manager.h src/hotkey_system/hotkeys_interface.h src/platform_system/SRPlatformManager.h)
 
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
 set_target_properties(3DGameBridge PROPERTIES LINKER_LANGUAGE CXX)
@@ -33,6 +33,9 @@ target_include_directories(3DGameBridge INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 	$<INSTALL_INTERFACE:include>
 )
+
+find_package(simulatedreality REQUIRED)
+find_package(srDirectX REQUIRED)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
@@ -58,3 +61,8 @@ if(BUILD_UNIT_TESTS)
 	message("Building unit tests")
 	add_subdirectory(unit_tests)
 endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+		simulatedreality
+		srDirectX::srDirectX
+		)

@@ -11,12 +11,12 @@ enum class GameBridgeManagerType {
     SRGB_MANAGER_PLATFORM
 };
 
-class IGameEventManager {
+class IGameBridgeManager {
 public:
     GameBridgeManagerType game_bridge_manager_type = GameBridgeManagerType::SRGB_MANAGER_HOTKEY;
 
-    IGameEventManager() = default;
-    virtual ~IGameEventManager() = default;
+    IGameBridgeManager() = default;
+    virtual ~IGameBridgeManager() = default;
 
     virtual GameBridgeManagerType GetEventManagerType() = 0;
 };

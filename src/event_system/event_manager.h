@@ -104,7 +104,7 @@ public:
 // When event should be recorded again, the EventManager should be put back in a recording/submitting state
 // If we need more in the future we could use a producer/consumer strategy
 
-class EventManager : IGameEventManager {
+class EventManager : IGameBridgeManager {
 public:
     std::vector<void*> event_streams = {};
 
@@ -126,16 +126,16 @@ public:
 typedef uint32_t GameBridgeEvents;
 
 // 0 Should be reserved for null event
-enum class HotKeyEvent {
+enum class HotKeyEvent : GameBridgeEvents {
     GB_EVENT_HOTKEY_TURN_ON_LENS = 1,
     GB_EVENT_HOTKEY_TURN_OFF_LENS
 };
 
-enum class  PlatformEvent {
+enum class  PlatformEvent : GameBridgeEvents {
     SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED = 1
 };
 
-enum class WeaverEvent {
+enum class WeaverEvent : GameBridgeEvents {
     SRGB_EVENT_WEAVER_WEAVING_ENABLED = 1
 };
 

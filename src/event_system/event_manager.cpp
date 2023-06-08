@@ -10,20 +10,20 @@ void ProcessEvents() {
         while (reader.GetNextEvent(event_type, data_size, event_data)) {
 
             switch (event_type) {
-                //Todo: Is this right?
+                // Todo: Is this right?
                 case (uint32_t)HotKeyEvent::GB_EVENT_HOTKEY_TURN_OFF_LENS:
                 {
-                    //Do something with event_data....
+                    // Do something with event_data....
                     break;
                 }
                 case GB_EVENT_NULL: //(optional..)
                     {
-                        //No event generated this frame...
+                        // No event generated this frame...
                         break;
                     }
                 default:
                 {
-                    //No event generated this frame...
+                    // No event generated this frame...
                     break;
                 }
             }
