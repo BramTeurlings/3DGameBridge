@@ -110,10 +110,10 @@ public:
 
     //Todo: These methods are not implemented.
     //Returns an EventStreamReader for the given "event_manager_type".
-    EventStreamReader GetEventStream(EventManagerType event_manager_type) { return {}; };
+    EventStreamReader* GetEventStream(EventManagerType event_manager_type) { return {}; };
 
     //Returns the EventStreamWriter object for the given event_stream and event_manager_type.
-    EventStreamWriter CreateEventStream(EventManagerType event_manager_type, void* event_stream) { return nullptr; };
+    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, void* event_stream) { return nullptr; };
 
     void PrepareForEventStreamReading() {};
     void PrepareForEventStreamWriting() {};

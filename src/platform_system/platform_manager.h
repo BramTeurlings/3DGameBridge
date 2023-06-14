@@ -22,14 +22,16 @@ enum class WeaverType {
     SRGB_WEAVER_DIRECTX_12
 };
 
+// Todo: Do we want this outwards facing code to use a struct too? Won't it be nicer for developers to call the constructor directly? We need to remember that this software's purpose is to very quickly add a simple SR implementation to an existing codebase.
 struct SRPlatformManagerInitialize {
     //sr_context_params
+    SR::SRContext *sr_context = nullptr; //Optional
     SRPlatformManagerInitializeFlags flags;
     GameBridge game_bridge;
     WeaverType weaver_type;
 };
 
-class SRPlatformManager {
+class platform_manager {
 public:
     void* active_weaver;
     SR::SRContext contexts[2] = {{}, {}};
@@ -39,7 +41,7 @@ public:
     EventStreamWriter* event_writer;
     void* event_stream_buffer;
 
-    SRPlatformManager(SRPlatformManagerInitialize init) : game_bridge(init.game_bridge) {
+    platform_manager(SRPlatformManagerInitialize init) : game_bridge(init.game_bridge) {
         // Initialize
     }
 
