@@ -4,6 +4,14 @@
 #include <vector>
 #include "game_event_manager_interface.h"
 
+struct EventHeader {
+    // Contains size of the event data and type
+    size_t size;
+    uint32_t event_type;
+};
+
+typedef uint32_t GameBridgeEvents;
+
 enum class EventManagerInitialize {
     PROCESS_EVENTS_AT_THE_END_OF_CURRENT_FRAME,
     PROCESS_EVENTS_ON_THE_NEXT_FRAME
@@ -15,12 +23,18 @@ enum class EventManagerType {
     SRGB_EVENT_MANAGER_TYPE_WEAVER
 };
 
+// 0 Should be reserved for null event
+enum class HotKeyEvent : GameBridgeEvents {
+    GB_EVENT_HOTKEY_TURN_ON_LENS = 1,
+    GB_EVENT_HOTKEY_TURN_OFF_LENS
+};
 
-// Events implementation ----------------------------------
-struct EventHeader {
-	// Contains size of the event data and type
-	size_t size;
-	uint32_t event_type;
+enum class  PlatformEvent : GameBridgeEvents {
+    SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED = 1
+};
+
+enum class WeaverEvent : GameBridgeEvents {
+    SRGB_EVENT_WEAVER_WEAVING_ENABLED = 1
 };
 
 // Reserve 0 as the NULL EVENT
@@ -38,32 +52,9 @@ public:
 	* size = size of the next event
 	* data = pointer to the data of the event
 	*/
-	int GetNextEvent(uint32_t& event_type, size_t& size, void* data) {
-		EventHeader const* header = reinterpret_cast<EventHeader*>(next);
-		size = header->size;
-		event_type = header->event_type;
-        //Todo: Data is never read after assignment here.
-		data = next + sizeof(EventHeader);
-		next = next + sizeof(EventHeader) + size;
+	int GetNextEvent(uint32_t& event_type, size_t& size, void* data);
 
-		// Reset the next pointer back to the start of the array
-		// Maybe use modulo to reset the pointer back? Does that work?
-		if (event_type == GB_EVENT_NULL) {
-			ResetEventIndexPointer();
-            //Todo: Return 0 if the event is invalid/does not exist at this index?
-            return 0;
-		}
-        //Todo: Return 1 if the next even has been retrieved?
-        return 1;
-	}
-
-	void ResetEventIndexPointer() {
-		// Puts the next pointer back to the start of the stream buffer
-		// This will be called automatically by GetNextEvent when the last event was returned
-		// If the fill buffer wasn't processed by the user, this needs to be called explicitly.
-
-		next = event_stream;
-	}
+	void ResetEventIndexPointer();
 
 	// Not entirely sure about the consts....
 	const void* const GetEventStream();
@@ -75,28 +66,11 @@ class EventStreamWriter {
 
 public:
 
-	EventStreamWriter(void* const stream) : event_stream((char*)stream) {
-		// Initialize the constant stream variable so it cannot be changed in here.
-	}
+	EventStreamWriter(void* const stream);
 
-	void ClearStream() {
-		// This function will always put a NULL_EVENT in the case no events are generated.
-		// The first event that is generated, will overwrite the NULL_EVENT
-		// This way we don't have to check if the first event is ok in an EventStreamReader
-		// The null event will always process to the default case in a switch case (or NULL_EVENT case when a case is explicitly made for it)
+	void ClearStream();
 
-		// Clearing memory is not required, we just overwrite it
-		SubmitEvent(GB_EVENT_NULL, 0, 0);
-		used_bytes = 0; // Set bytes to 0 after submitting so when no events are generated, only the null event is processed.
-	}
-
-	void SubmitEvent(uint32_t event_type, uint64_t size, void* data) {
-		// Add event header and data to the stream
-		EventHeader header{ size, event_type };
-		memcpy(event_stream + used_bytes, &header, sizeof(EventHeader));
-		memcpy(event_stream + used_bytes + sizeof(EventHeader), data, size);
-		used_bytes += sizeof(EventHeader) + size;
-	}
+	void SubmitEvent(uint32_t event_type, uint64_t size, void* data);
 };
 
 // When events are being submitted, processing should never be done
@@ -104,40 +78,23 @@ public:
 // When event should be recorded again, the EventManager should be put back in a recording/submitting state
 // If we need more in the future we could use a producer/consumer strategy
 
-class EventManager : IGameBridgeManager {
+class EventManager : private IGameBridgeManager {
 public:
     std::vector<void*> event_streams = {};
 
     //Todo: These methods are not implemented.
     //Returns an EventStreamReader for the given "event_manager_type".
-    EventStreamReader* GetEventStream(EventManagerType event_manager_type) { return {}; };
+    EventStreamReader* GetEventStream(EventManagerType event_manager_type);;
 
     //Returns the EventStreamWriter object for the given event_stream and event_manager_type.
-    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, void* event_stream) { return nullptr; };
+    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, void* event_stream);;
 
-    void PrepareForEventStreamReading() {};
-    void PrepareForEventStreamWriting() {};
+    void PrepareForEventStreamReading();;
+    void PrepareForEventStreamWriting();;
 
-    GameBridgeManagerType GetEventManagerType() override {
-        return this->game_bridge_manager_type;
-    }
+    GameBridgeManagerType GetEventManagerType() override;
 };
 
-typedef uint32_t GameBridgeEvents;
-
-// 0 Should be reserved for null event
-enum class HotKeyEvent : GameBridgeEvents {
-    GB_EVENT_HOTKEY_TURN_ON_LENS = 1,
-    GB_EVENT_HOTKEY_TURN_OFF_LENS
-};
-
-enum class  PlatformEvent : GameBridgeEvents {
-    SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED = 1
-};
-
-enum class WeaverEvent : GameBridgeEvents {
-    SRGB_EVENT_WEAVER_WEAVING_ENABLED = 1
-};
 
 
 // How to process events:

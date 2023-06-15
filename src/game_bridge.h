@@ -16,7 +16,7 @@ namespace game_bridge {
 }
 
 class GameBridge {
-    std::vector<IGameBridgeManager> game_bridge_managers;
+    std::vector<IGameBridgeManager*> game_bridge_managers;
     EventManager event_manager;
 
 public:

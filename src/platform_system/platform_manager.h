@@ -31,7 +31,7 @@ struct SRPlatformManagerInitialize {
     WeaverType weaver_type;
 };
 
-class platform_manager {
+class PlatformManager : private IGameBridgeManager {
 public:
     void* active_weaver;
     SR::SRContext contexts[2] = {{}, {}};
@@ -41,27 +41,23 @@ public:
     EventStreamWriter* event_writer;
     void* event_stream_buffer;
 
-    platform_manager(SRPlatformManagerInitialize init) : game_bridge(init.game_bridge) {
-        // Initialize
-    }
+    explicit PlatformManager(SRPlatformManagerInitialize init);
+
+    GameBridgeManagerType GetEventManagerType() override;
 
     // Returns the SRContext that is currently being used.
-    SR::SRContext* GetContext() {
-        return &contexts[sr_context_index];
-    }
+    SR::SRContext* GetContext();
 
     // Returns the currently used. Use the weaver_type to determine what graphics API the weaver is implementing.
-    void* GetWeaver() {
-        return active_weaver;
-    }
+    void* GetWeaver();
 
-    void* GetEventBuffer() {
-        return event_stream_buffer;
-    }
+    void* GetEventBuffer();
 
 private:
-    //InitializeSRContext(sr_context_params)
-    void* InitializeWeaver(WeaverType weaver_type) {};
-    void SwitchLens(bool enable) {}
+    // Todo: Implement sr_context_params
+    //void InitializeSRContext(sr_context_params)
     //void ReinitializeContext(sr_context_params);
+
+    void* InitializeWeaver(WeaverType weaver_type);
+    void SwitchLens(bool enable);
 };

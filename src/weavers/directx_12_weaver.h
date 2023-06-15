@@ -43,7 +43,7 @@ class DirectX12Weaver : private IGameBridgeManager {
 
 public:
     GameBridgeManagerType GetEventManagerType() override {
-        return GameBridgeManagerType::SRGB_MANAGER_WEAVER_DX11;
+        return GameBridgeManagerType::SRGB_MANAGER_WEAVER_DX12;
     }
 
     DirectX12Weaver(DX12WeaverInitialize dx12_weaver_initialize) {
