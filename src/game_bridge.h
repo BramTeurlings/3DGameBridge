@@ -20,19 +20,13 @@ class GameBridge {
     EventManager event_manager;
 
 public:
-    explicit GameBridge(EventManager eventManager) : event_manager(std::move(eventManager)) {}
+    explicit GameBridge(EventManager eventManager);
 
     // Registers the provided manager on the event_manager and saves the IGameBridgeManager inside the game_bridge_manager list.
-    bool RegisterManager(IGameBridgeManager* manager) {
-        //Todo: Implement this.
-    }
+    bool RegisterManager(IGameBridgeManager* manager);
 
-    EventManager GetEventManager() {
-        return event_manager;
-    }
+    EventManager GetEventManager();
 
     // Unregisters the current event_manager.
-    bool DeregisterManager() {
-        //Todo: Implement this.
-    }
+    bool DeregisterManager();
 };
