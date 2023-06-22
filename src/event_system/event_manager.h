@@ -70,7 +70,7 @@ public:
 
 	void ClearStream();
 
-	void SubmitEvent(uint32_t event_type, uint64_t size, void* data);
+	void SubmitEvent(uint32_t event_type, uint32_t size, void* data);
 };
 
 // When events are being submitted, processing should never be done
@@ -82,15 +82,15 @@ class EventManager : private IGameBridgeManager {
 public:
     std::vector<void*> event_streams = {};
 
-    //Todo: These methods are not implemented.
-    //Returns an EventStreamReader for the given "event_manager_type".
-    EventStreamReader* GetEventStream(EventManagerType event_manager_type);;
+    // Todo: These methods are not implemented.
+    // Returns an EventStreamReader for the given "event_manager_type".
+    EventStreamReader* GetEventStream(EventManagerType event_manager_type);
 
-    //Returns the EventStreamWriter object for the given event_stream and event_manager_type.
-    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, void* event_stream);;
+    // Returns the EventStreamWriter object for the given event_stream and event_manager_type.
+    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, void* event_stream);
 
-    void PrepareForEventStreamReading();;
-    void PrepareForEventStreamWriting();;
+    void PrepareForEventStreamReading();
+    void PrepareForEventStreamWriting();
 
     GameBridgeManagerType GetEventManagerType() override;
 };
@@ -100,7 +100,7 @@ public:
 // How to process events:
 //EventStreamReader reader;
 //void* event_data = nullptr;
-//uint64_t event_type;
+//uint32_t event_type;
 //while (reader.GetNextEvent(event_type, event_data)) {
 //
 //	switch (event_type) {

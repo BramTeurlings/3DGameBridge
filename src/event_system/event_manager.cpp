@@ -35,6 +35,7 @@ int EventStreamReader::GetNextEvent(uint32_t &event_type, size_t &size, void *da
     EventHeader const* header = reinterpret_cast<EventHeader*>(next);
     size = header->size;
     event_type = header->event_type;
+
     //Todo: Data is never read after assignment here.
     data = next + sizeof(EventHeader);
     next = next + sizeof(EventHeader) + size;
@@ -79,7 +80,7 @@ void EventStreamWriter::ClearStream() {
     used_bytes = 0; // Set bytes to 0 after submitting so when no events are generated, only the null event is processed.
 }
 
-void EventStreamWriter::SubmitEvent(uint32_t event_type, uint64_t size, void *data) {
+void EventStreamWriter::SubmitEvent(uint32_t event_type, uint32_t size, void *data) {
     // Add event header and data to the stream
     EventHeader header{ size, event_type };
     memcpy(event_stream + used_bytes, &header, sizeof(EventHeader));

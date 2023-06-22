@@ -26,15 +26,16 @@ struct HotkeyManagerInitialize {
 class HotkeyManager : private IGameBridgeManager {
 public:
     std::map<uint32_t, GameBridgeEvents> key_combo;
-    EventStreamWriter event_stream_writer;
-    void* event_stream_buffer;
+    EventStreamWriter* event_stream_writer;
+    void* event_stream_buffer{};
+    IHotkeys* implementation;
 
-    explicit HotkeyManager(const EventStreamWriter &event_stream_writer, void* const event_stream);
+    explicit HotkeyManager(HotkeyManagerInitialize initialize);
 
     GameBridgeManagerType GetEventManagerType() override;
 
     // Checks if the specified hotkeys are being pressed or not.
-    std::map<uint32_t, GameBridgeEvents> PollHotkeys();
+    void PollHotkeys();
 
     // Adds the specified hotkey to the list of registered hotkeys.
     void AddHotkey(uint32_t key_bits, GameBridgeEvents event_type);

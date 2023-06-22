@@ -3,13 +3,27 @@
 //
 
 #include "hotkey_manager.h"
+#include "impl_hotkeys_windows.cpp"
 
-HotkeyManager::HotkeyManager(const EventStreamWriter &event_stream_writer, void *const event_stream) : event_stream_writer(event_stream_writer), event_stream_buffer(event_stream) {}
+HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
+    void* event_stream;
+    event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
+    event_stream_buffer = event_stream;
+}
 
-std::map<uint32_t, GameBridgeEvents> HotkeyManager::PollHotkeys() {
-    // Not yet implemented, relies on IHotKeys interface.
-    // Todo: Implement mechanism that takes key bits from the IHotkeys interface for every registered hotkey and returns which ones are being pressed based on the key_combo map.
-    return {};
+void HotkeyManager::PollHotkeys() {
+    // Polls the hotkeys using the current implementation of the IHotkeys interface. (Statically defined as Windows at present).
+
+    //Windows Implementation:
+    WindowsHotkeyImplementation hotkey_manager;
+
+    std::vector<uint32_t> hotkeys;
+    for(uint32_t i = 0; i < key_combo.size();) {
+        hotkeys.push_back(key_combo[i]);
+    }
+
+    //Let the IHotkeys interface check the hotkeys, they can be retrieved from its "hotkey_states" member.
+    std::vector<std::map<uint32_t, bool>> checkedHotkeys = hotkey_manager.CheckHotkeys(hotkeys);
 }
 
 void HotkeyManager::AddHotkey(uint32_t key_bits, GameBridgeEvents event_type) {
@@ -21,10 +35,13 @@ void HotkeyManager::RemoveHotkey(uint32_t key_bits) {
 }
 
 void HotkeyManager::SendHotkeyEvents() {
-    std::map<uint32_t, GameBridgeEvents> pressed_keys = PollHotkeys();
-    for(std::map<uint32_t, GameBridgeEvents>::iterator it = pressed_keys.begin(); it != pressed_keys.end(); it++){
-        // Todo: Assuming the uint32_t is always 4 bytes, we use that as the size of the payload. (This is probably wrong?)
-        event_stream_writer.SubmitEvent(it->second, 4, reinterpret_cast<void *>((uintptr_t) it->first));
+    for(int i = 0; i < implementation->hotkey_states.size(); i++){
+        auto it = implementation->hotkey_states[i].begin();
+        if(it->second) {
+            // Todo: Assuming the uint32_t is always 4 bytes, we use that as the size of the payload. (This is probably wrong?)
+            event_stream_writer->SubmitEvent(it->second, 4, reinterpret_cast<void *>((uintptr_t) it->first));
+        }
+        it++;
     }
 }
 

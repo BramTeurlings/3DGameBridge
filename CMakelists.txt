@@ -21,7 +21,7 @@ add_library(3DGameBridge SHARED
 		src/hotkey_system/hotkey_manager.cpp
 		src/platform_system/platform_manager.cpp
 		src/weavers/directx_11_weaver.cpp src/weavers/directx_12_weaver.cpp
-		)
+		src/hotkey_system/impl_hotkeys_windows.cpp)
 
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
 set_target_properties(3DGameBridge PROPERTIES LINKER_LANGUAGE CXX)
