@@ -1,17 +1,20 @@
 cmake_minimum_required(VERSION 3.23)
 
+set (CMAKE_CXX_STANDARD 17)
+
 project (3DGameBridge VERSION 0.1)
 message("3D Game Bridge Version: ${3DGameBridge_VERSION}")
 
 set(CMAKE_DEBUG_POSTFIX d)
 
+# Source files
 add_library(3DGameBridge SHARED
 		src/game_bridge.h
         src/game_bridge.cpp
 		src/event_system/event_manager.h
 		src/event_system/event_manager.cpp
 		src/event_system/game_event_manager_interface.h
-		src/game_bridge.h unit_tests/main.cpp
+		src/game_bridge.h
 		src/hotkey_system/hotkey_manager.h
 		src/hotkey_system/hotkeys_interface.h
 		src/platform_system/platform_manager.h
@@ -23,6 +26,7 @@ add_library(3DGameBridge SHARED
 		src/weavers/directx_11_weaver.cpp src/weavers/directx_12_weaver.cpp
 		src/hotkey_system/impl_hotkeys_windows.cpp)
 
+# Library exporting
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
 set_target_properties(3DGameBridge PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -44,14 +48,6 @@ target_include_directories(3DGameBridge INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 	$<INSTALL_INTERFACE:include>
 )
-
-# Todo: Check if this is correct
-set(TARGET_DXHEADERS DirectX-Headers)
-add_subdirectory(third-party/DirectX-Headers)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
-
-find_package(simulatedreality REQUIRED)
-find_package(srDirectX REQUIRED)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
@@ -77,6 +73,14 @@ if(BUILD_UNIT_TESTS)
 	message("Building unit tests")
 	add_subdirectory(unit_tests)
 endif()
+
+# Link dependancies
+set(TARGET_DXHEADERS DirectX-Headers)
+add_subdirectory(third-party/DirectX-Headers)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
+
+find_package(simulatedreality REQUIRED)
+find_package(srDirectX REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
