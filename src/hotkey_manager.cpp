@@ -7,8 +7,8 @@
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
     void* event_stream;
-    event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
-    event_stream_buffer = event_stream;
+    //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
+    //event_stream_buffer = event_stream;
 }
 
 void HotkeyManager::PollHotkeys() {

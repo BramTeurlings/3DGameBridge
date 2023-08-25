@@ -2,8 +2,8 @@
 
 #include <utility>
 #include <vector>
-#include "event_system/game_event_manager_interface.h"
-#include "event_system/event_manager.h"
+#include "manager_interface.h"
+#include "event_manager.h"
 
 #ifdef GAME_BRIDGE_API_EXPORTS
 #define GAME_BRIDGE_API __declspec(dllexport)

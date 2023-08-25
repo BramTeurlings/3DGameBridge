@@ -5,7 +5,7 @@
 #include <vector>
 #include <sr/management/srcontext.h>
 #include <d3d12.h>
-#include "../game_bridge.h"
+#include "game_bridge.h"
 
 #ifndef INC_3DGAMEBRIDGE_SRPLATFORMMANAGER_H
 #define INC_3DGAMEBRIDGE_SRPLATFORMMANAGER_H

@@ -2,49 +2,33 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "game_event_manager_interface.h"
+#include "manager_interface.h"
+#include "gb_structs.h"
+
+#define DEFAULT_MESSAGE_SIZE 4
+#define DEFAULT_MESSAGE_COUNT 300
 
 struct EventHeader {
     // Contains size of the event data and type
-    size_t size;
-    uint32_t event_type;
+    const size_t size;
+    const uint32_t event_type;
 };
 
-typedef uint32_t GameBridgeEvents;
-
-enum class EventManagerInitialize {
-    PROCESS_EVENTS_AT_THE_END_OF_CURRENT_FRAME,
-    PROCESS_EVENTS_ON_THE_NEXT_FRAME
+struct EventStream {
+	const size_t stream_size;
+	const uint32_t max_event_count;
+	char* const stream;
+	uint32_t stream_id; // Used for event type for now, later used as actual id
 };
-
-enum class EventManagerType {
-    SRGB_EVENT_MANAGER_TYPE_HOTKEY,
-    SRGB_EVENT_MANAGER_TYPE_PLATFORM,
-    SRGB_EVENT_MANAGER_TYPE_WEAVER
-};
-
-// 0 Should be reserved for null event
-enum class HotKeyEvent : GameBridgeEvents {
-    GB_EVENT_HOTKEY_TURN_ON_LENS = 1,
-    GB_EVENT_HOTKEY_TURN_OFF_LENS
-};
-
-enum class  PlatformEvent : GameBridgeEvents {
-    SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED = 1
-};
-
-enum class WeaverEvent : GameBridgeEvents {
-    SRGB_EVENT_WEAVER_WEAVING_ENABLED = 1
-};
-
 // Reserve 0 as the NULL EVENT
 constexpr size_t GB_EVENT_NULL = 0;
 
 class EventStreamReader {
-	char* const event_stream = nullptr;
+	const EventStream event_stream;
 	char* next = nullptr;
 
 public:
+	EventStreamReader(EventStream stream);
 
 	/*
 	* Gets the next event for the user to process
@@ -61,12 +45,11 @@ public:
 };
 
 class EventStreamWriter {
-	char* const event_stream = nullptr;
+	const EventStream event_stream;
 	size_t used_bytes = 0;
 
 public:
-
-	EventStreamWriter(void* const stream);
+	EventStreamWriter(EventStream stream);
 
 	void ClearStream();
 
@@ -79,23 +62,27 @@ public:
 // If we need more in the future we could use a producer/consumer strategy
 
 class EventManager : private IGameBridgeManager {
-public:
-    std::vector<void*> event_streams = {};
+private:
+    std::vector<EventStream> event_streams = {};
 
-    // Todo: These methods are not implemented.
+public:
+    std::vector<EventStreamReader> stream_readers = {};
+    std::vector<EventStreamWriter> stream_writers = {};
+	// Use indirection array to get stream readers and writers
+
+	//TODO need some way to tell when the frame begins and ends to every stream reader and writer
+	//TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
     // Returns an EventStreamReader for the given "event_manager_type".
     EventStreamReader* GetEventStream(EventManagerType event_manager_type);
 
     // Returns the EventStreamWriter object for the given event_stream and event_manager_type.
-    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, void* event_stream);
+    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, size_t message_size = DEFAULT_MESSAGE_SIZE, uint32_t max_message_count = DEFAULT_MESSAGE_COUNT);
 
     void PrepareForEventStreamReading();
     void PrepareForEventStreamWriting();
 
     GameBridgeManagerType GetEventManagerType() override;
 };
-
-
 
 // How to process events:
 //EventStreamReader reader;

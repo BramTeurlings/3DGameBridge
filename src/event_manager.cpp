@@ -1,5 +1,5 @@
 #include "event_manager.h"
-#include "game_event_manager_interface.h"
+#include "gb_structs.h"
 
 // How to process events:
 void ProcessEvents() {
@@ -29,6 +29,10 @@ void ProcessEvents() {
             }
         }
 };
+
+EventStreamReader::EventStreamReader(EventStream stream) : event_stream((stream)) {
+
+}
 
 // EventStreamReader
 int EventStreamReader::GetNextEvent(uint32_t &event_type, size_t &size, void *data) {
@@ -65,7 +69,7 @@ const void *const EventStreamReader::GetEventStream() {
 // End EventStreamReader
 
 // EventStreamWriter
-EventStreamWriter::EventStreamWriter(void *const stream) : event_stream((char*)stream) {
+EventStreamWriter::EventStreamWriter(EventStream stream) : event_stream((stream)) {
     // Initialize the constant stream variable so that it cannot be changed in here.
 }
 
@@ -90,9 +94,33 @@ void EventStreamWriter::SubmitEvent(uint32_t event_type, uint32_t size, void *da
 // End EventStreamReader
 
 // EventManager
-EventStreamReader *EventManager::GetEventStream(EventManagerType event_manager_type) { return {}; }
+EventStreamReader *EventManager::GetEventStream(EventManagerType event_manager_type) { 
+    size_t size = event_streams.size();
+    uint32_t stream_idx = 0;
+    bool found = false;
+    for (int i = 0; i < size; i++) {
+        if (event_streams[i].stream_id == (uint32_t)event_manager_type) {
+            stream_idx = i;
+            found = true;
+        }
+    }
 
-EventStreamWriter *EventManager::CreateEventStream(EventManagerType event_manager_type, void *event_stream) { return nullptr; }
+    if (found) {
+        EventStreamReader reader (event_streams[stream_idx]);
+        stream_readers.push_back(reader);
+        return 
+    }
+
+    return {}; 
+}
+
+EventStreamWriter *EventManager::CreateEventStream(EventManagerType event_manager_type, size_t message_size, uint32_t max_message_count) {
+    EventStream stream{ message_size, max_message_count, new char[message_size * max_message_count], (uint32_t)event_manager_type };
+    event_streams.push_back(stream);
+
+    stream_writers.push_back(EventStreamWriter(stream));
+    return nullptr;
+}
 
 void EventManager::PrepareForEventStreamReading() {}
 

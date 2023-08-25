@@ -4,8 +4,8 @@
 
 #include <map>
 #include "hotkeys_interface.h"
-#include "../event_system/event_manager.h"
-#include "../game_bridge.h"
+#include "event_manager.h"
+#include "game_bridge.h"
 
 #ifndef INC_3DGAMEBRIDGE_HOTKEYMANAGER_H
 #define INC_3DGAMEBRIDGE_HOTKEYMANAGER_H

@@ -11,20 +11,23 @@ set(CMAKE_DEBUG_POSTFIX d)
 add_library(3DGameBridge SHARED
 		src/game_bridge.h
         src/game_bridge.cpp
-		src/event_system/event_manager.h
-		src/event_system/event_manager.cpp
-		src/event_system/game_event_manager_interface.h
+		src/event_manager.h
+		src/event_manager.cpp
+		src/manager_interface.h
 		src/game_bridge.h
-		src/hotkey_system/hotkey_manager.h
-		src/hotkey_system/hotkeys_interface.h
-		src/platform_system/platform_manager.h
-		src/weavers/directx_11_weaver.h
-		src/weavers/weaver_flags.h
-		src/weavers/directx_12_weaver.h
-		src/hotkey_system/hotkey_manager.cpp
-		src/platform_system/platform_manager.cpp
-		src/weavers/directx_11_weaver.cpp src/weavers/directx_12_weaver.cpp
-		src/hotkey_system/impl_hotkeys_windows.cpp)
+		src/gb_structs.h
+		src/hotkey_manager.h
+		src/hotkeys_interface.h
+		src/platform_manager.h
+		src/weaver_flags.h
+		src/directx_11_weaver.h
+		src/directx_11_weaver.cpp
+		src/directx_12_weaver.h
+		src/directx_12_weaver.cpp
+		src/hotkey_manager.cpp
+		src/platform_manager.cpp
+		src/impl_hotkeys_windows.cpp
+)
 
 # Library exporting
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)

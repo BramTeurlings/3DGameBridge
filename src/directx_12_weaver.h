@@ -5,9 +5,9 @@
 // Context
 #include <sr/management/srcontext.h>
 
-#include "../event_system/game_event_manager_interface.h"
-#include "../event_system/event_manager.h"
-#include "../game_bridge.h"
+#include "manager_interface.h"
+#include "event_manager.h"
+#include "game_bridge.h"
 #include "weaver_flags.h"
 
 // Weaver

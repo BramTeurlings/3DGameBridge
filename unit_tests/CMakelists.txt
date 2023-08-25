@@ -3,7 +3,6 @@ project (unit_tests VERSION 0.1)
 
 add_executable(unit_tests
 main.cpp
-tests_event_manager.h
 )
 
 set_target_properties(unit_tests PROPERTIES LINKER_LANGUAGE CXX)

@@ -17,10 +17,10 @@ DirectX12Weaver::DirectX12Weaver(DX12WeaverInitialize dx12_weaver_initialize) {
 
     // Initialize event stream writer and reader.
     // Get the event stream reader.
-    this->event_stream_reader = dx12_weaver_initialize.game_bridge->GetEventManager().GetEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_WEAVER);
+    //this->event_stream_reader = dx12_weaver_initialize.game_bridge->GetEventManager().GetEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_WEAVER);
 
     // Get the event stream writer.
-    dx12_weaver_initialize.game_bridge->GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_WEAVER, &event_stream_writer);
+    //dx12_weaver_initialize.game_bridge->GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_WEAVER, &event_stream_writer);
 }
 
 // Todo: D3D12_COMMAND_QUEUE_DESC could be the wrong type
