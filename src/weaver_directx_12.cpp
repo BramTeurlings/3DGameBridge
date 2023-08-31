@@ -32,6 +32,6 @@ void DirectX12Weaver::SetLatency(int latency_in_microseconds) {
 
 void DirectX12Weaver::ReinitializeWeaver(DX12WeaverInitialize weaver_init_stuct) {}
 
-const void *DirectX12Weaver::GetEventBuffer() {
-    return event_stream_reader->GetEventStream();
-}
+//const void *DirectX12Weaver::GetEventBuffer() {
+//    return event_stream_reader->GetEventStream();
+//}

@@ -102,5 +102,6 @@ public:
 
     void ReinitializeWeaver(DX11WeaverInitialize weaver_init_stuct);
 
-    const void* GetEventBuffer();
+    // Not sure we want this
+    //const void* GetEventBuffer();
 };

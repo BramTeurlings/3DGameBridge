@@ -31,6 +31,6 @@ void DirectX11Weaver::SetLatency(int latency_in_microseconds) {
 
 void DirectX11Weaver::ReinitializeWeaver(DX11WeaverInitialize weaver_init_stuct) {}
 
-const void *DirectX11Weaver::GetEventBuffer() {
-    return event_stream_reader->GetEventStream();
-}
+//const void *DirectX11Weaver::GetEventBuffer() {
+//    return event_stream_reader->GetEventStream();
+//}

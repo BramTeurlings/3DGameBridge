@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include <memory>
 #include "game_bridge_manager_interface.h"
 #include "game_bridge_structs.h"
 
@@ -17,7 +19,7 @@ struct EventHeader {
 struct EventStream {
 	const size_t stream_size;
 	const uint32_t max_event_count;
-	char* const stream;
+	std::shared_ptr<char[]> const stream;
 	uint32_t stream_id; // Used for event type for now, later used as actual id
 };
 // Reserve 0 as the NULL EVENT
@@ -41,7 +43,8 @@ public:
 	void ResetEventIndexPointer();
 
 	// Not entirely sure about the consts....
-	const void* const GetEventStream();
+	// TODO Also not sure we still want this
+	// const void* const GetEventStream();
 };
 
 class EventStreamWriter {
@@ -63,23 +66,28 @@ public:
 
 class EventManager : private IGameBridgeManager {
 private:
-    std::vector<EventStream> event_streams = {};
+    std::unordered_map<EventManagerType, EventStream> event_streams = {};
 
 public:
-    std::vector<EventStreamReader> stream_readers = {};
-    std::vector<EventStreamWriter> stream_writers = {};
+	// Probably not necessary anymore
+    //std::vector<EventStreamReader> stream_readers = {};
+    //std::vector<EventStreamWriter> stream_writers = {};
 	// Use indirection array to get stream readers and writers
 
 	//TODO need some way to tell when the frame begins and ends to every stream reader and writer
 	//TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
     // Returns an EventStreamReader for the given "event_manager_type".
-    EventStreamReader* GetEventStream(EventManagerType event_manager_type);
+	bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader);
 
     // Returns the EventStreamWriter object for the given event_stream and event_manager_type.
-    EventStreamWriter* CreateEventStream(EventManagerType event_manager_type, size_t message_size = DEFAULT_MESSAGE_SIZE, uint32_t max_message_count = DEFAULT_MESSAGE_COUNT);
+    EventStreamWriter CreateEventStream(EventManagerType event_manager_type, size_t message_size = DEFAULT_MESSAGE_SIZE, uint32_t max_message_count = DEFAULT_MESSAGE_COUNT);
 
     void PrepareForEventStreamReading();
     void PrepareForEventStreamWriting();
+
+	// TODO implement this later, remove the event stream from the event manager.
+	// An END OF STREAM message should be sent and all reader should theb be discarded. The shared pointer of the stream will be discarded then too.
+	//void EndEventStream(EventStreamWriter writer);
 
     GameBridgeManagerType GetEventManagerType() override;
 };

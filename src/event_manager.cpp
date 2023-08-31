@@ -1,34 +1,36 @@
 #include "event_manager.h"
 #include "game_bridge_structs.h"
+#include <stdexcept>
+#include <iostream>
 
-// How to process events:
-void ProcessEvents() {
-        EventStreamReader reader;
-        void* event_data = nullptr;
-        uint32_t event_type = 1;
-        size_t data_size = 0;
-        while (reader.GetNextEvent(event_type, data_size, event_data)) {
-
-            switch (event_type) {
-                // Todo: Is this right?
-                case (uint32_t)HotKeyEvent::GB_EVENT_HOTKEY_TURN_OFF_LENS:
-                {
-                    // Do something with event_data....
-                    break;
-                }
-                case GB_EVENT_NULL: //(optional..)
-                    {
-                        // No event generated this frame...
-                        break;
-                    }
-                default:
-                {
-                    // No event generated this frame...
-                    break;
-                }
-            }
-        }
-};
+// How to process events example:
+//void ProcessEvents() {
+//        EventStreamReader reader;
+//        void* event_data = nullptr;
+//        uint32_t event_type = 1;
+//        size_t data_size = 0;
+//        while (reader.GetNextEvent(event_type, data_size, event_data)) {
+//
+//            switch (event_type) {
+//                // Todo: Is this right?
+//                case (uint32_t)HotKeyEvent::GB_EVENT_HOTKEY_TURN_OFF_LENS:
+//                {
+//                    // Do something with event_data....
+//                    break;
+//                }
+//                case GB_EVENT_NULL: //(optional..)
+//                    {
+//                        // No event generated this frame...
+//                        break;
+//                    }
+//                default:
+//                {
+//                    // No event generated this frame...
+//                    break;
+//                }
+//            }
+//        }
+//};
 
 EventStreamReader::EventStreamReader(EventStream stream) : event_stream((stream)) {
 
@@ -60,12 +62,12 @@ void EventStreamReader::ResetEventIndexPointer() {
     // This will be called automatically by GetNextEvent when the last event was returned
     // If the fill buffer wasn't processed by the user, this needs to be called explicitly.
 
-    next = event_stream;
+    next = event_stream.stream.get();
 }
 
-const void *const EventStreamReader::GetEventStream() {
-    return event_stream;
-}
+//const void *const EventStreamReader::GetEventStream() {
+//    return event_stream;
+//}
 // End EventStreamReader
 
 // EventStreamWriter
@@ -87,39 +89,32 @@ void EventStreamWriter::ClearStream() {
 void EventStreamWriter::SubmitEvent(uint32_t event_type, uint32_t size, void *data) {
     // Add event header and data to the stream
     EventHeader header{ size, event_type };
-    memcpy(event_stream + used_bytes, &header, sizeof(EventHeader));
-    memcpy(event_stream + used_bytes + sizeof(EventHeader), data, size);
+    memcpy(event_stream.stream.get() + used_bytes, &header, sizeof(EventHeader));
+    memcpy(event_stream.stream.get() + used_bytes + sizeof(EventHeader), data, size);
     used_bytes += sizeof(EventHeader) + size;
 }
 // End EventStreamReader
 
 // EventManager
-EventStreamReader *EventManager::GetEventStream(EventManagerType event_manager_type) { 
-    size_t size = event_streams.size();
-    uint32_t stream_idx = 0;
-    bool found = false;
-    for (int i = 0; i < size; i++) {
-        if (event_streams[i].stream_id == (uint32_t)event_manager_type) {
-            stream_idx = i;
-            found = true;
-        }
+bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader) {
+    try {
+        EventStream& stream = event_streams.at(event_manager_type);
+        EventStreamReader reader(stream);
+        return true;
     }
-
-    if (found) {
-        EventStreamReader reader (event_streams[stream_idx]);
-        stream_readers.push_back(reader);
-        return 
+    catch (std::runtime_error& error){
+        std::cout << "Couldn't find existing stream" << "\n";
+        return false;
     }
-
-    return {}; 
 }
 
-EventStreamWriter *EventManager::CreateEventStream(EventManagerType event_manager_type, size_t message_size, uint32_t max_message_count) {
-    EventStream stream{ message_size, max_message_count, new char[message_size * max_message_count], (uint32_t)event_manager_type };
-    event_streams.push_back(stream);
+EventStreamWriter EventManager::CreateEventStream(EventManagerType event_manager_type, size_t message_size, uint32_t max_message_count) {
+    // Create shared pointer array, give it to the stream struct
+    std::shared_ptr<char[]> ptr(new char[message_size * max_message_count]);
+    EventStream stream{ message_size, max_message_count, ptr, (uint32_t)event_manager_type};
+    event_streams.insert({ event_manager_type, stream });
 
-    stream_writers.push_back(EventStreamWriter(stream));
-    return nullptr;
+    return EventStreamWriter(stream);
 }
 
 void EventManager::PrepareForEventStreamReading() {}
