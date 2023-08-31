@@ -2,7 +2,7 @@
 // Created by Bram on 07/06/2023.
 //
 #pragma once
-#include "gb_structs.h"
+#include "game_bridge_structs.h"
 
 class IGameBridgeManager {
 public:

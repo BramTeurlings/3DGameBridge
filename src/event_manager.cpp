@@ -1,5 +1,5 @@
 #include "event_manager.h"
-#include "gb_structs.h"
+#include "game_bridge_structs.h"
 
 // How to process events:
 void ProcessEvents() {

@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "directx_12_weaver.h"
+#include "weaver_directx_12.h"
 
 GameBridgeManagerType DirectX12Weaver::GetEventManagerType() {
     return GameBridgeManagerType::SRGB_MANAGER_WEAVER_DX12;

@@ -5,10 +5,10 @@
 // Context
 #include <sr/management/srcontext.h>
 
-#include "manager_interface.h"
+#include "game_bridge_manager_interface.h"
 #include "event_manager.h"
 #include "game_bridge.h"
-#include "weaver_flags.h"
+#include "game_bridge_structs.h"
 
 // Weaver
 #include <sr/weaver/dx11weaver.h> // Weaver

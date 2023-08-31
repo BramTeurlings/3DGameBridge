@@ -3,7 +3,7 @@
 //
 
 #include <map>
-#include "hotkeys_interface.h"
+#include "hotkey_interface.h"
 #include "event_manager.h"
 #include "game_bridge.h"
 

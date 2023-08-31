@@ -3,7 +3,7 @@
 //
 
 #include "hotkey_manager.h"
-#include "impl_hotkeys_windows.cpp"
+#include "hotkey_windows_impl.cpp"
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
     void* event_stream;

@@ -13,20 +13,19 @@ add_library(3DGameBridge SHARED
         src/game_bridge.cpp
 		src/event_manager.h
 		src/event_manager.cpp
-		src/manager_interface.h
+		src/game_bridge_manager_interface.h
 		src/game_bridge.h
-		src/gb_structs.h
+		src/game_bridge_structs.h
 		src/hotkey_manager.h
-		src/hotkeys_interface.h
+		src/hotkey_interface.h
 		src/platform_manager.h
-		src/weaver_flags.h
-		src/directx_11_weaver.h
-		src/directx_11_weaver.cpp
-		src/directx_12_weaver.h
-		src/directx_12_weaver.cpp
+		src/weaver_directx_11.h
+        src/weaver_directx_11.cpp
+		src/weaver_directx_12.h
+		src/weaver_directx_12.cpp
 		src/hotkey_manager.cpp
 		src/platform_manager.cpp
-		src/impl_hotkeys_windows.cpp
+		src/hotkey_windows_impl.cpp
 )
 
 # Library exporting

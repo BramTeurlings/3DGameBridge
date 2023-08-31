@@ -38,3 +38,10 @@ enum class  PlatformEvent : GameBridgeEvents {
 enum class WeaverEvent : GameBridgeEvents {
     SRGB_EVENT_WEAVER_WEAVING_ENABLED = 1
 };
+
+enum class WeaverFlags {
+    SRGB_ENABLE_DEBUG_OVERLAY_OR_WHATEVER,
+    SRGB_MANUAL_SET_CAMERA_LATENCY_VALUE,
+    SRGB_MANUAL_SET_CAMERA_LATENCY_IN_FRAMES__VALUE
+};
+

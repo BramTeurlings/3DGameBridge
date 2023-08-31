@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "manager_interface.h"
-#include "gb_structs.h"
+#include "game_bridge_manager_interface.h"
+#include "game_bridge_structs.h"
 
 #define DEFAULT_MESSAGE_SIZE 4
 #define DEFAULT_MESSAGE_COUNT 300

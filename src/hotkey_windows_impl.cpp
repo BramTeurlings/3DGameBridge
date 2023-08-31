@@ -2,7 +2,7 @@
 // Created by Bram on 22/06/2023.
 //
 
-#include "hotkeys_interface.h"
+#include "hotkey_interface.h"
 
 #include <iostream>
 #include <vector>

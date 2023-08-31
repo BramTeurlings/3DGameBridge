@@ -2,7 +2,7 @@
 
 #include <utility>
 #include <vector>
-#include "manager_interface.h"
+#include "game_bridge_manager_interface.h"
 #include "event_manager.h"
 
 #ifdef GAME_BRIDGE_API_EXPORTS
