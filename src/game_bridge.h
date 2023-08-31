@@ -4,6 +4,7 @@
 #include <vector>
 #include "game_bridge_manager_interface.h"
 #include "event_manager.h"
+#include "game_bridge_structs.h"
 
 #ifdef GAME_BRIDGE_API_EXPORTS
 #define GAME_BRIDGE_API __declspec(dllexport)
