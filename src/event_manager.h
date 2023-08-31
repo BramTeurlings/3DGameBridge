@@ -2,13 +2,12 @@
 
 #include <cstdint>
 #include <memory>
-#include <vector>
 #include <unordered_map>
 #include <memory>
 #include "game_bridge_manager_interface.h"
 #include "game_bridge_structs.h"
 
-#define DEFAULT_MESSAGE_SIZE 4
+#define DEFAULT_MESSAGE_SIZE 0
 #define DEFAULT_MESSAGE_COUNT 300
 
 struct EventHeader {
@@ -74,8 +73,8 @@ private:
 
 public:
 	// Probably not necessary anymore
-    //std::vector<EventStreamReader> stream_readers = {};
-    //std::vector<EventStreamWriter> stream_writers = {};
+    // std::vector<EventStreamReader> stream_readers = {};
+    // std::vector<EventStreamWriter> stream_writers = {};
 	// Use indirection array to get stream readers and writers
 
 	//TODO need some way to tell when the frame begins and ends to every stream reader and writer
@@ -84,6 +83,7 @@ public:
 	bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader);
 
     // Returns the EventStreamWriter object for the given event_stream and event_manager_type.
+	// TODO message size calculation is wrong. Is message size the extra data after the header? And header is always included
     EventStreamWriter CreateEventStream(EventManagerType event_manager_type, size_t message_size = DEFAULT_MESSAGE_SIZE, uint32_t max_message_count = DEFAULT_MESSAGE_COUNT);
 
     void PrepareForEventStreamReading();
