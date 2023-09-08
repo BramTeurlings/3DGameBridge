@@ -2,16 +2,12 @@
 // Created by Bram on 08/06/2023.
 //
 
+#pragma once
+
 #include <vector>
 #include <sr/management/srcontext.h>
 #include <d3d12.h>
 #include "game_bridge.h"
-
-#ifndef INC_3DGAMEBRIDGE_SRPLATFORMMANAGER_H
-#define INC_3DGAMEBRIDGE_SRPLATFORMMANAGER_H
-
-#endif //INC_3DGAMEBRIDGE_SRPLATFORMMANAGER_H
-#pragma once
 
 enum class SRPlatformManagerInitializeFlags {
     SRGB_DISABLE_SERVICE_RECONNECTION,

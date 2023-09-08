@@ -98,7 +98,7 @@ void EventStreamWriter::SubmitEvent(uint32_t event_type, uint32_t size, void *da
 // EventManager
 bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader) {
     try {
-        EventStream& stream = event_streams.at(event_manager_type);
+        EventStream const& stream = event_streams.at(event_manager_type);
         EventStreamReader reader(stream);
         return true;
     }
@@ -112,9 +112,9 @@ EventStreamWriter EventManager::CreateEventStream(EventManagerType event_manager
     // Create shared pointer array, give it to the stream struct
     std::shared_ptr<char[]> ptr(new char[message_size * max_message_count]);
     EventStream stream{ message_size, max_message_count, ptr, (uint32_t)event_manager_type};
-    event_streams.insert({ event_manager_type, stream });
+    event_streams.try_emplace(event_manager_type, stream);
 
-    return EventStreamWriter(stream);
+    return {stream};
 }
 
 void EventManager::PrepareForEventStreamReading() {}
