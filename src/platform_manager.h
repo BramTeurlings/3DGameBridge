@@ -57,7 +57,7 @@ public:
     SR::SRContext contexts[2] = {{}, {}};
     int sr_context_index = 0;
 
-    EventStreamWriter* event_writer;
+    //EventStreamWriter* event_writer;
     void* event_stream_buffer;
 
     SRContextParameters sr_context_parameters;

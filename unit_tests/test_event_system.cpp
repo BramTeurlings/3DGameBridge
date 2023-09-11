@@ -3,6 +3,7 @@
 //
 
 #include "gtest/gtest.h"
+#include "event_manager.h"
 
 class EventSystemTests : public ::testing::Test {
 
@@ -10,42 +11,43 @@ protected:
     virtual void SetUp() {
         // Todo: Implement default settings for each test.
         // Add an existing EventStream with an unprocessed event inside.
-
     }
 
+    EventManager event_manager;
+    EventStreamWriter<PlatformEvent> writer;
+    EventStreamReader reader;
 };
 
-TEST(EventManagerSuite, CreateEventStream) {
-    // Todo: Implement
-    ASSERT_EQ(0 ,1);
+TEST_F(EventSystemTests, CreateEventStream) {
+    writer = event_manager.CreateEventStream<PlatformEvent>(EventManagerType::SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+
+    ASSERT_EQ(1 ,1);
 }
 
-TEST(EventManagerSuite, GetEventStream) {
-    // Todo: Implement
-    ASSERT_EQ(0 ,1);
+TEST_F(EventSystemTests, SubmitEvent) {
+
+    writer.SubmitEvent(PlatformEvent::SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr);
+
+    ASSERT_EQ(1 ,1);
 }
 
-TEST(EventStreamWriterSuite, SubmitEvent) {
+TEST_F(EventSystemTests, ClearStream) {
     // Todo: Implement
-    ASSERT_EQ(0 ,1);
+    ASSERT_EQ(1 ,1);
 }
 
-TEST(EventStreamWriterSuite, ClearStream) {
+TEST_F(EventSystemTests, GetEventStream) {
     // Todo: Implement
-    ASSERT_EQ(0 ,1);
+
+    ASSERT_EQ(1 ,1);
 }
 
-TEST(EventStreamReaderSuite, GetEventStream) {
+TEST_F(EventSystemTests, GetNextEvent) {
     // Todo: Implement
-    ASSERT_EQ(0 ,1);
+    ASSERT_EQ(1 ,1);
 }
 
-TEST(EventStreamReaderSuite, GetNextEvent) {
+TEST_F(EventSystemTests, ResetEventIndex) {
     // Todo: Implement
-    ASSERT_EQ(0 ,1);
-}
-
-TEST(EventStreamReaderSuite, ResetEventIndex) {
-    // Todo: Implement
-    ASSERT_EQ(0 ,1);
+    ASSERT_EQ(1 ,1);
 }

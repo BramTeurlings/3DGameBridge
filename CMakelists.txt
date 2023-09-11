@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD 20)
 
 project (3DGameBridge VERSION 0.1)
 message("3D Game Bridge Version: ${3DGameBridge_VERSION}")

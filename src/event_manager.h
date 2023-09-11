@@ -10,29 +10,31 @@
 #define DEFAULT_MESSAGE_SIZE 0
 #define DEFAULT_MESSAGE_COUNT 300
 
+class EventSystemTests;
+
 struct EventHeader {
     // Contains size of the event data and type
-    const size_t size;
-    const uint32_t event_type;
+    size_t size;
+    uint32_t event_type;
 };
 
+// const data members makes the struct only copy constructable, not copy assignable
 struct EventStream {
-    //Todo: Removed const here due to construction problems with the event_streams object. Check if this is ok.
-	size_t stream_size;
-    //Todo: Removed const here due to construction problems with the event_streams object. Check if this is ok.
-    uint32_t max_event_count;
-    //Todo: Removed const here due to construction problems with the event_streams object. Check if this is ok.
-    std::shared_ptr<char[]> stream;
-	uint32_t stream_id; // Used for event type for now, later used as actual id
+	size_t buffer_size;
+	size_t max_event_count;
+	size_t current_event_count;
+	size_t stream_id; // Used for event type for now, later used as actual id
+	std::shared_ptr<char[]> buffer;
 };
 // Reserve 0 as the NULL EVENT
 constexpr size_t GB_EVENT_NULL = 0;
 
 class GAME_BRIDGE_API EventStreamReader {
-	const EventStream event_stream;
+	EventStream event_stream;
 	char* next = nullptr;
 
 public:
+	EventStreamReader();
 	EventStreamReader(EventStream stream);
 
 	/*
@@ -50,16 +52,18 @@ public:
 	// const void* const GetEventStream();
 };
 
+template<typename T> requires std::is_enum<T>::value
 class GAME_BRIDGE_API EventStreamWriter {
-	const EventStream event_stream;
+	EventStream event_stream;
 	size_t used_bytes = 0;
 
 public:
+	EventStreamWriter();
 	EventStreamWriter(EventStream stream);
 
 	void ClearStream();
 
-	void SubmitEvent(uint32_t event_type, uint32_t size, void* data);
+	void SubmitEvent(T event_type, uint32_t size, void* data);
 };
 
 // When events are being submitted, processing should never be done
@@ -80,11 +84,12 @@ public:
 	//TODO need some way to tell when the frame begins and ends to every stream reader and writer
 	//TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
     // Returns an EventStreamReader for the given "event_manager_type".
-	bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader);
+	bool GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader);
 
-    // Returns the EventStreamWriter object for the given event_stream and event_manager_type.
-	// TODO message size calculation is wrong. Is message size the extra data after the header? And header is always included
-    EventStreamWriter CreateEventStream(EventManagerType event_manager_type, size_t message_size = DEFAULT_MESSAGE_SIZE, uint32_t max_message_count = DEFAULT_MESSAGE_COUNT);
+    // Creates an the EventStreamWriter object with an underlying EvenStream for the given event_manager_type.
+	//
+	template<typename T> requires std::is_enum<T>::value
+    EventStreamWriter<T> CreateEventStream(EventManagerType event_manager_type, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT);
 
     void PrepareForEventStreamReading();
     void PrepareForEventStreamWriting();

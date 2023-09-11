@@ -32,6 +32,10 @@
 //        }
 //};
 
+EventStreamReader::EventStreamReader(): event_stream({})
+{
+}
+
 EventStreamReader::EventStreamReader(EventStream stream) : event_stream((stream)) {
 
 }
@@ -62,7 +66,7 @@ void EventStreamReader::ResetEventIndexPointer() {
     // This will be called automatically by GetNextEvent when the last event was returned
     // If the fill buffer wasn't processed by the user, this needs to be called explicitly.
 
-    next = event_stream.stream.get();
+    next = event_stream.buffer.get();
 }
 
 //const void *const EventStreamReader::GetEventStream() {
@@ -70,12 +74,19 @@ void EventStreamReader::ResetEventIndexPointer() {
 //}
 // End EventStreamReader
 
+template <typename T> requires std::is_enum<T>::value
+EventStreamWriter<T>::EventStreamWriter(): event_stream({})
+{
+}
+
 // EventStreamWriter
-EventStreamWriter::EventStreamWriter(EventStream stream) : event_stream((stream)) {
+template <typename T> requires std::is_enum<T>::value
+EventStreamWriter<T>::EventStreamWriter(EventStream stream) : event_stream(stream) {
     // Initialize the constant stream variable so that it cannot be changed in here.
 }
 
-void EventStreamWriter::ClearStream() {
+template <typename T> requires std::is_enum<T>::value
+void EventStreamWriter<T>::ClearStream() {
     // This function will always put a NULL_EVENT in the case no events are generated.
     // The first event that is generated, will overwrite the NULL_EVENT
     // This way we don't have to check if the first event is ok in an EventStreamReader
@@ -86,13 +97,15 @@ void EventStreamWriter::ClearStream() {
     used_bytes = 0; // Set bytes to 0 after submitting so when no events are generated, only the null event is processed.
 }
 
-void EventStreamWriter::SubmitEvent(uint32_t event_type, uint32_t size, void *data) {
+template <typename T> requires std::is_enum<T>::value
+void EventStreamWriter<T>::SubmitEvent(T event_type, uint32_t size, void* data) {
     // Add event header and data to the stream
     EventHeader header{ size, event_type };
-    memcpy(event_stream.stream.get() + used_bytes, &header, sizeof(EventHeader));
-    memcpy(event_stream.stream.get() + used_bytes + sizeof(EventHeader), data, size);
+    memcpy(event_stream.buffer.get() + used_bytes, &header, sizeof(EventHeader));
+    memcpy(event_stream.buffer.get() + used_bytes + sizeof(EventHeader), data, size);
     used_bytes += sizeof(EventHeader) + size;
 }
+
 // End EventStreamReader
 
 // EventManager
@@ -108,15 +121,19 @@ bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStre
     }
 }
 
-EventStreamWriter EventManager::CreateEventStream(EventManagerType event_manager_type, size_t message_size, uint32_t max_message_count) {
-    // Create shared pointer array, give it to the stream struct
-    std::shared_ptr<char[]> ptr(new char[message_size * max_message_count]);
-    EventStream stream{ message_size, max_message_count, ptr, (uint32_t)event_manager_type};
-    event_streams.try_emplace(event_manager_type, stream);
+template<typename T> requires std::is_enum<T>::value
+EventStreamWriter<T> EventManager::CreateEventStream(EventManagerType event_manager_type, size_t extra_event_data_size,
+    uint32_t max_event_count)
+{
+    size_t message_size = sizeof(EventHeader) + extra_event_data_size;
+    size_t buffer_size = message_size * max_event_count;
 
-    return {stream};
+    std::shared_ptr<char[]> ptr(new char[buffer_size]);
+    EventStream stream{ buffer_size, max_event_count, 0, static_cast<uint32_t>(event_manager_type), ptr };
+    event_streams.insert({ event_manager_type, stream });
+
+    return EventStreamWriter<T>(stream);
 }
-
 void EventManager::PrepareForEventStreamReading() {}
 
 void EventManager::PrepareForEventStreamWriting() {}
