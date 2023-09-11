@@ -74,18 +74,18 @@ void EventStreamReader::ResetEventIndexPointer() {
 //}
 // End EventStreamReader
 
-template <typename T> requires std::is_enum<T>::value
-EventStreamWriter<T>::EventStreamWriter(): event_stream({})
+template <typename T>
+EventStreamWriter<T>::EventStreamWriter()
 {
 }
 
 // EventStreamWriter
-template <typename T> requires std::is_enum<T>::value
+template <typename T>
 EventStreamWriter<T>::EventStreamWriter(EventStream stream) : event_stream(stream) {
     // Initialize the constant stream variable so that it cannot be changed in here.
 }
 
-template <typename T> requires std::is_enum<T>::value
+template <typename T>
 void EventStreamWriter<T>::ClearStream() {
     // This function will always put a NULL_EVENT in the case no events are generated.
     // The first event that is generated, will overwrite the NULL_EVENT
@@ -97,7 +97,7 @@ void EventStreamWriter<T>::ClearStream() {
     used_bytes = 0; // Set bytes to 0 after submitting so when no events are generated, only the null event is processed.
 }
 
-template <typename T> requires std::is_enum<T>::value
+template <typename T>
 void EventStreamWriter<T>::SubmitEvent(T event_type, uint32_t size, void* data) {
     // Add event header and data to the stream
     EventHeader header{ size, event_type };
@@ -107,6 +107,10 @@ void EventStreamWriter<T>::SubmitEvent(T event_type, uint32_t size, void* data) 
 }
 
 // End EventStreamReader
+
+EventManager::EventManager()
+{
+}
 
 // EventManager
 bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader) {
@@ -121,7 +125,7 @@ bool EventManager::GetEventStream(EventManagerType event_manager_type, EventStre
     }
 }
 
-template<typename T> requires std::is_enum<T>::value
+template<typename T>
 EventStreamWriter<T> EventManager::CreateEventStream(EventManagerType event_manager_type, size_t extra_event_data_size,
     uint32_t max_event_count)
 {

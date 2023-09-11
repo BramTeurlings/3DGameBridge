@@ -10,16 +10,14 @@
 #define DEFAULT_MESSAGE_SIZE 0
 #define DEFAULT_MESSAGE_COUNT 300
 
-class EventSystemTests;
-
-struct EventHeader {
+struct GAME_BRIDGE_API EventHeader {
     // Contains size of the event data and type
     size_t size;
     uint32_t event_type;
 };
 
 // const data members makes the struct only copy constructable, not copy assignable
-struct EventStream {
+struct GAME_BRIDGE_API EventStream {
 	size_t buffer_size;
 	size_t max_event_count;
 	size_t current_event_count;
@@ -52,9 +50,9 @@ public:
 	// const void* const GetEventStream();
 };
 
-template<typename T> requires std::is_enum<T>::value
+template<typename T>
 class GAME_BRIDGE_API EventStreamWriter {
-	EventStream event_stream;
+	EventStream event_stream {};
 	size_t used_bytes = 0;
 
 public:
@@ -76,6 +74,9 @@ private:
     std::unordered_map<EventManagerType, EventStream, ClassHash> event_streams = {};
 
 public:
+
+	EventManager();
+
 	// Probably not necessary anymore
     // std::vector<EventStreamReader> stream_readers = {};
     // std::vector<EventStreamWriter> stream_writers = {};
@@ -88,7 +89,7 @@ public:
 
     // Creates an the EventStreamWriter object with an underlying EvenStream for the given event_manager_type.
 	//
-	template<typename T> requires std::is_enum<T>::value
+	template<typename T>
     EventStreamWriter<T> CreateEventStream(EventManagerType event_manager_type, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT);
 
     void PrepareForEventStreamReading();
