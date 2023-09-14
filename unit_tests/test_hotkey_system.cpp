@@ -2,15 +2,15 @@
 // Created by Bram on 31/08/2023.
 //
 
+#include <algorithm>
 #include "gtest/gtest.h"
 #include "hotkey_manager.h"
-#include "hotkey_windows_impl.cpp"
+#include "hotkey_windows_impl.h"
 
 class HotkeySystemTests : public ::testing::Test {
 
 protected:
     virtual void SetUp() {
-        // Todo: Implement default settings for each test.
         // Add hotkeys in the queue. Set up event buffer.
         // Add mock implementation for Windows implementation of interface.
 
@@ -60,11 +60,11 @@ TEST_F(HotkeySystemTests, Intialize) {
 
     hotkeyManager = HotkeyManager(init);
 
-    ASSERT_NE(originalHotkeyImplementationPointer.get(), hotkeyManager.implementation.get());
+    ASSERT_NE(originalHotkeyImplementationPointer.get(), hotkeyManager.implementation.get()) << "Original hotkey implementation pointer shouldn't match the new hotkey implementation pointer";
 }
 
 TEST_F(HotkeySystemTests, PollHotkeys) {
-    IHotkeys::HotkeyCombination testCombo;
+    HotkeyCombination testCombo;
     testCombo.separatedStrokes[0] = 0x11;
     testCombo.separatedStrokes[1] = 0x30;
     testCombo.separatedStrokes[2] = 0;
@@ -76,42 +76,78 @@ TEST_F(HotkeySystemTests, PollHotkeys) {
     // Set a hotkey to true, we can verify that it will switch to false upon checking.
     hotkeyManager.implementation->hotkey_states.insert(std::make_pair(testCombo, true));
 
-    // Check the hotkeys to fill
-    if(hotkeyManager.PollHotkeys()){
-        // Hotkeys are now polled. Check which buttons are pressed.
-        ASSERT_EQ(hotkeyManager.implementation->hotkey_states[testCombo], 0);
-    } else {
-        // Polling of hotkeys failed.
-        ASSERT_EQ("Polling of hotkeys has failed" ,"");
-    }
+    // Poll the hotkeys, it should return true as at least one hotkey is registered.
+    ASSERT_EQ(hotkeyManager.PollHotkeys(), 1) << "PollHotkeys() should return true when at least one hotkey is registered.";
+
+    // Hotkeys are now polled. Check which buttons are pressed.
+    ASSERT_EQ(hotkeyManager.implementation->hotkey_states[testCombo], 0) << "Hotkey state shouldn't be pressed.";
+
+    // Clear the list of registered hotkeys
+    hotkeyManager.registered_hotkeys.clear();
+
+    // List of registered hotkeys is empty, the PollHotkeys() function should now return false;
+    ASSERT_EQ(hotkeyManager.PollHotkeys(), 0) << "PollHotkeys() should return false when no hotkeys are registered.";
 }
 
-TEST(HotkeyManagerSuite, AddHotkey) {
-    // Todo: Implement
-    ASSERT_EQ(0 ,1);
+TEST_F(HotkeySystemTests, AddHotkey) {
+    // First see if the amount of registered hotkeys is equal to 1.
+    ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size());
+
+    // Add a new hotkey.
+    hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x31);
+
+    // Assert that the hotkey was added.
+    ASSERT_EQ(2, hotkeyManager.registered_hotkeys.size()) << "Hotkey was not added to registered_hotkeys after calling AddHotkey()";
+
+    // Check all the separate strokes to see if they match.
+    // The first two values are NULL because they are not filled in and sorted to the front in the AddHotkey() method.
+    ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[0]) << "Keystroke [0] does not match expected keycode.";
+    ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[1]) << "Keystroke [1] does not match expected keycode.";
+    ASSERT_EQ(0x12, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[2]) << "Keystroke [2] does not match expected keycode.";
+    ASSERT_EQ(0x31, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[3]) << "Keystroke [3] does not match expected keycode.";
 }
 
-TEST(HotkeyManagerSuite, RemoveHotkey) {
-    // Todo: Implement
-    ASSERT_EQ(0 ,1);
+TEST_F(HotkeySystemTests, RemoveHotkey) {
+    // First see if the amount of registered hotkeys is equal to 1.
+    ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size()) << "No hotkeys initially registered.";
+
+    // Test removing a hotkey that doesn't exist.
+    hotkeyManager.RemoveHotkey(0x1, hotkeyManager.registered_hotkeys.begin()->hotkeyEvent);
+    ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size()) << "Removing a hotkey that isn't in the list shouldn't change registered_hotkey's size.";
+
+    // Test removing a hotkey that does exist.
+    hotkeyManager.RemoveHotkey(hotkeyManager.registered_hotkeys.begin()->hotkeyCombination.combinedNumber, hotkeyManager.registered_hotkeys.begin()->hotkeyEvent);
+    ASSERT_EQ(0, hotkeyManager.registered_hotkeys.size()) << "Removing a hotkey that exists en registered_hotkeys should decrement its size by one.";
 }
 
-TEST(HotkeyManagerSuite, SendHotkeyEvents) {
+TEST_F(HotkeySystemTests, SendHotkeyEvents) {
     // Todo: Implement, make sure to test sending one and multiple hotkeys
-    ASSERT_EQ(0 ,1);
+    ASSERT_EQ(0 ,1) << "Not implemented.";
 }
 
-TEST(HotkeyManagerSuite, GetEventBuffer) {
+TEST_F(HotkeySystemTests, GetEventBuffer) {
     // Todo: Implement, make sure to test if the buffer is usable and not empty.
-    ASSERT_EQ(0 ,1);
+    ASSERT_EQ(0 ,1) << "Not implemented.";
 }
 
-TEST(HotkeyInterfaceWindowsSuite, CheckHotkeys) {
-    // Todo: Implement, test if no keys are pressed unless you can test for pressed keys in gtest somehow?
-    ASSERT_EQ(0 ,1);
+TEST_F(HotkeySystemTests, CheckHotkeys) {
+    // Adds all registered hotkeys to the list of hotkeys.
+    std::vector<HotkeyCombination> hotkeys;
+    for(auto it = hotkeyManager.registered_hotkeys.begin(); it != hotkeyManager.registered_hotkeys.end(); it++) {
+        hotkeys.push_back(it->hotkeyCombination);
+    }
+
+    //Let the IHotkeys interface check the hotkeys, they can be retrieved from its "hotkey_states" member.
+    std::map<HotkeyCombination, bool, IHotkeys::UnionComparator> checkedHotkeys = hotkeyManager.implementation->CheckHotkeys(hotkeys);
+
+    ASSERT_EQ(checkedHotkeys.size(), 1) << "Checked hotkeys should only contain one hotkey.";
+    ASSERT_EQ(checkedHotkeys.begin()->second, 0) << "Checked hotkey should not be pressed.";
 }
 
-TEST(HotkeyInterfaceWindowsSuite, GetKeysPressed) {
-    // Todo: Implement, test if no keys are pressed unless you can test for pressed keys in gtest somehow?
-    ASSERT_EQ(0 ,1);
+TEST_F(HotkeySystemTests, GetKeysPressed) {
+    // Test if no keys are pressed unless you can emulate pressed keys in gtest somehow?
+    std::vector<uint32_t> pressedKeys;
+    pressedKeys = hotkeyManager.implementation->GetKeysPressed();
+
+    ASSERT_EQ(pressedKeys.size(), 0) << "No hotkeys should be pressed at this stage. Make sure no one is pressing hotkeys on the keyboard if one is attached.";
 }

@@ -26,6 +26,7 @@ add_library(3DGameBridge SHARED
 		src/hotkey_manager.cpp
 		src/platform_manager.cpp
 		src/hotkey_windows_impl.cpp
+        src/hotkey_windows_impl.h
 )
 
 # Library exporting
