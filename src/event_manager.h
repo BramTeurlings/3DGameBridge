@@ -6,12 +6,14 @@
 #include <memory>
 #include "game_bridge_manager_interface.h"
 #include "game_bridge_structs.h"
+#include <variant>
 
 #define DEFAULT_MESSAGE_SIZE 0
 #define DEFAULT_MESSAGE_COUNT 300
 
 struct GAME_BRIDGE_API EventHeader {
     // Contains size of the event data and type
+	// TODO lower amount of bytes stored
     size_t size;
     uint32_t event_type;
 };
@@ -20,7 +22,6 @@ struct GAME_BRIDGE_API EventHeader {
 struct GAME_BRIDGE_API EventStream {
 	size_t buffer_size;
 	size_t max_event_count;
-	size_t current_event_count;
 	size_t stream_id; // Used for event type for now, later used as actual id
 	std::shared_ptr<char[]> buffer;
 };
@@ -50,10 +51,10 @@ public:
 	// const void* const GetEventStream();
 };
 
-template<typename T>
 class GAME_BRIDGE_API EventStreamWriter {
 	EventStream event_stream {};
 	size_t used_bytes = 0;
+	size_t current_event_count = 0;
 
 public:
 	EventStreamWriter();
@@ -61,7 +62,9 @@ public:
 
 	void ClearStream();
 
-	void SubmitEvent(T event_type, uint32_t size, void* data);
+	bool SubmitEvent(GB_EVENT event_type, uint32_t size, void* data);
+	EventStream GetEventStream();
+	size_t GetUsedBytes();
 };
 
 // When events are being submitted, processing should never be done
@@ -71,7 +74,7 @@ public:
 
 class GAME_BRIDGE_API EventManager : private IGameBridgeManager {
 private:
-    std::unordered_map<EventManagerType, EventStream, ClassHash> event_streams = {};
+    std::unordered_map<uint32_t, EventStream, ClassHash> event_streams = {};
 
 public:
 
@@ -85,12 +88,12 @@ public:
 	//TODO need some way to tell when the frame begins and ends to every stream reader and writer
 	//TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
     // Returns an EventStreamReader for the given "event_manager_type".
-	bool GetEventStream(EventManagerType event_manager_type, EventStreamReader& stream_reader);
+	bool GetEventStreamReader(EventManagerType event_manager_type, EventStreamReader& stream_reader);
 
     // Creates an the EventStreamWriter object with an underlying EvenStream for the given event_manager_type.
 	//
-	template<typename T>
-    EventStreamWriter<T> CreateEventStream(EventManagerType event_manager_type, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT);
+	
+    EventStreamWriter CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
 
     void PrepareForEventStreamReading();
     void PrepareForEventStreamWriting();
@@ -101,28 +104,3 @@ public:
 
     GameBridgeManagerType GetEventManagerType() override;
 };
-
-// How to process events:
-//EventStreamReader reader;
-//void* event_data = nullptr;
-//uint32_t event_type;
-//while (reader.GetNextEvent(event_type, event_data)) {
-//
-//	switch (event_type) {
-//	case SOME_EVENT_ENUM:
-//	{
-//		Do something with event_data....
-//			break;
-//	}
-//	case NULL_EVENT: (optional..)
-//	{
-//		No event generated this frame...
-//			break;
-//	}
-//	default:
-//	{
-//		No event generated this frame...
-//			break;
-//	}
-//	}
-//}
