@@ -19,10 +19,22 @@ struct GAME_BRIDGE_API EventHeader {
 };
 
 // const data members makes the struct only copy constructable, not copy assignable
+/*
+ * Struct holding the underlying event stream
+ *
+ */
 struct GAME_BRIDGE_API EventStream {
-	size_t buffer_size;
-	size_t max_event_count;
-	size_t stream_id; // Used for event type for now, later used as actual id
+	// Size of the entire buffer
+    size_t buffer_size;
+
+	// Size of the buffer used for user events.
+	// This will be (buffer_size - sizeof(EventHeader)) so the event manager has space to write an end of stream message 
+	size_t user_buffer_size;
+
+	// Used for event type for now, later used as actual id
+    uint32_t stream_id;
+
+	// Underlying event buffer
 	std::shared_ptr<char[]> buffer;
 };
 // Reserve 0 as the NULL EVENT
@@ -42,7 +54,7 @@ public:
 	* size = size of the next event
 	* data = pointer to the data of the event
 	*/
-	int GetNextEvent(uint32_t& event_type, size_t& size, void* data);
+	GB_EVENT GetNextEvent(uint32_t& event_type, size_t& size, void* data);
 
 	void ResetEventIndexPointer();
 
@@ -54,7 +66,6 @@ public:
 class GAME_BRIDGE_API EventStreamWriter {
 	EventStream event_stream {};
 	size_t used_bytes = 0;
-	size_t current_event_count = 0;
 
 public:
 	EventStreamWriter();
@@ -62,7 +73,7 @@ public:
 
 	void ClearStream();
 
-	bool SubmitEvent(GB_EVENT event_type, uint32_t size, void* data);
+	bool SubmitEvent(GB_EVENT event_type, uint32_t size = 0, void* data = nullptr);
 	EventStream GetEventStream();
 	size_t GetUsedBytes();
 };
@@ -75,25 +86,24 @@ public:
 class GAME_BRIDGE_API EventManager : private IGameBridgeManager {
 private:
     std::unordered_map<uint32_t, EventStream, ClassHash> event_streams = {};
+    std::vector<std::shared_ptr<EventStreamReader>> stream_readers = {};
+    std::vector<std::shared_ptr<EventStreamWriter>> stream_writers = {};
 
 public:
+	// Use indirection array to get stream readers and writers
 
 	EventManager();
 
-	// Probably not necessary anymore
-    // std::vector<EventStreamReader> stream_readers = {};
-    // std::vector<EventStreamWriter> stream_writers = {};
-	// Use indirection array to get stream readers and writers
-
-	//TODO need some way to tell when the frame begins and ends to every stream reader and writer
-	//TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
+	// TODO need some way to tell when the frame begins and ends to every stream reader and writer
+	// TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
+	// TODO Make EventStreamReaders an writers a shared pointer managed from the event manager for example
     // Returns an EventStreamReader for the given "event_manager_type".
-	bool GetEventStreamReader(EventManagerType event_manager_type, EventStreamReader& stream_reader);
+	std::shared_ptr<EventStreamReader> GetEventStreamReader(EventManagerType event_manager_type);
 
     // Creates an the EventStreamWriter object with an underlying EvenStream for the given event_manager_type.
 	//
 	
-    EventStreamWriter CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
+	std::shared_ptr<EventStreamWriter> CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
 
     void PrepareForEventStreamReading();
     void PrepareForEventStreamWriting();
