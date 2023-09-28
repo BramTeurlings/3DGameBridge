@@ -6,14 +6,16 @@ message("3D Game Bridge Version: ${3DGameBridge_VERSION}")
 set(CMAKE_DEBUG_POSTFIX d)
 
 add_library(3DGameBridge SHARED
-src/gamebridge.h
-src/gamebridge.cpp
-)
+		src/game_bridge.h
+        src/game_bridge.cpp
+		src/event_system/event_manager.h
+		src/event_system/event_manager.cpp
+		src/event_system/game_event_manager_interface.h src/game_bridge.h unit_tests/main.cpp)
 
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
 set_target_properties(3DGameBridge PROPERTIES LINKER_LANGUAGE CXX)
 
-set_target_properties(3DGameBridge PROPERTIES PUBLIC_HEADER src/gamebridge.h)
+set_target_properties(3DGameBridge PROPERTIES PUBLIC_HEADER src/game_bridge.h)
 
 install(TARGETS 3DGameBridge
         EXPORT 3DGameBridgeTargets

@@ -6,6 +6,6 @@
 #define GAME_BRIDGE_API __declspec(dllimport)
 #endif
 
-namespace gamebridge {
+namespace game_bridge {
     extern "C" GAME_BRIDGE_API void init_api();
 }
