@@ -4,7 +4,6 @@
 
 #include "gtest/gtest.h"
 #include "event_manager.h"
-#include "../../../Program Files/Simulated Reality/SDK/third_party/OpenCV/include/opencv2/core/hal/interface.h"
 
 #define TEST_EVENT_COUNT 500
 
@@ -91,25 +90,25 @@ TEST_F(EventSystemTests, GetUsedBytes)
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), 0);
 
     for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_FALSE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
+        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
     }
 
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5);
 
     for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_FALSE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
+        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
     }
 
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 10);
 
     for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_FALSE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
+        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
     }
 
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 15);
 
     for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_FALSE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
+        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
     }
 
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 20);
@@ -360,6 +359,8 @@ TEST_F(EventSystemTests, FullTest)
     event_manager.PrepareForEventStreamWriting();
 
     // Write 499 mock events to stream
+    // Try 50 more the make sure only 500 are written, and the other 50 did not write to the stream.
+
     for (uint32_t i = 0; i < TEST_EVENT_COUNT + 50; i++) {
         int used_event = i % 8;
 
@@ -453,7 +454,7 @@ TEST_F(EventSystemTests, FullTest)
         default:
         {
             // 0 was already returned by GetNextEvent so the while loop quits before coming here
-????            ASSERT_EQ(event_type, TEST_NULL);
+            ASSERT_EQ(event_type, TEST_NULL);
             break;
         }
         }

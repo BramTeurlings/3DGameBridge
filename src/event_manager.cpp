@@ -111,10 +111,12 @@ std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManag
     }
 }
 
-std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
+//TODO maybe use error codes?
+std::shared_ptr<EventStreamWriter> EventManager::
+CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
 {
     size_t message_size = sizeof(EventHeader) + extra_event_data_size;
-    size_t buffer_size = message_size * max_event_count;
+    size_t buffer_size = message_size * (max_event_count + 1); // +1 to event count for end of buffer message
 
     std::shared_ptr<char[]> ptr(new char[buffer_size]);
     EventStream stream{ buffer_size, buffer_size - sizeof(EventHeader),static_cast<uint32_t>(event_manager_type), ptr};
