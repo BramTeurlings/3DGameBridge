@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 3.23)
 project (unit_tests VERSION 0.1)
+add_subdirectory(lib/googletest-1.14.0)
+include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 add_executable(unit_tests
-main.cpp
+        test_event_system.cpp
+        test_hotkey_system.cpp
+        test_game_bridge_system.cpp
+        test_platform_system.cpp
 )
 
 set_target_properties(unit_tests PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(unit_tests PRIVATE 3DGameBridge)
 
+# Gtest
+target_link_libraries(unit_tests PRIVATE gtest gtest_main)
+
 # Copy all linked dlls to build executable directory
 add_custom_command(
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:3DGameBridge>" $<TARGET_FILE_DIR:unit_tests>
     TARGET unit_tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:unit_tests> $<TARGET_FILE_DIR:unit_tests>
 )

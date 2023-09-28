@@ -10,3 +10,19 @@ namespace game_bridge {
     GAME_BRIDGE_API void init_api();
 #endif
 }
+
+GameBridge::GameBridge(EventManager eventManager) : event_manager(std::move(eventManager)) {}
+
+bool GameBridge::RegisterManager(IGameBridgeManager *manager) {
+    //Todo: Implement this.
+    return false;
+}
+
+EventManager GameBridge::GetEventManager() {
+    return event_manager;
+}
+
+bool GameBridge::DeregisterManager() {
+    //Todo: Implement this.
+    return false;
+}
