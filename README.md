@@ -14,8 +14,11 @@ The class diagram of the wrapper project can be seen below:
 1. Install the SR SDK from Dimenco's website (you will need to make an account): https://www.srappstore.com/develop/sdk/sr
 2. Download CMAKE
 3. Download Visual studio 2019 or up and install the C++ compiler
-4. Open a terminal (like git bash) 
-5. ``"cmake . -B build"``
+4. Download googletest from the official repository and copy googletest-{version} into "unit_test/lib/"
+5. Open a terminal (like git bash) 
+6. ``git submodule sync --recursive``
+7. ``git submodule update --init --recursive``
+8. ``"cmake . -B build"``
 
 You should now be able to load the generated project inside the created folder named "build".
 
