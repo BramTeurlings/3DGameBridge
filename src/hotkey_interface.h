@@ -14,9 +14,6 @@
 union HotkeyCombination {
     uint32_t combinedNumber;
     uint8_t separatedStrokes[4];
-
-    HotkeyCombination() {};
-    ~HotkeyCombination() {};
 };
 
 class IHotkeys {
