@@ -2,12 +2,13 @@
 // Created by Bram on 15/06/2023.
 //
 
-#include <algorithm>
-#include "hotkey_manager.h"
 #include "hotkey_windows_impl.h"
+#include "hotkey_manager.h"
+#include <algorithm>
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
-void* event_stream;
+    // Todo: Implement
+    void* event_stream;
     //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
     //event_stream_buffer = event_stream;
 }

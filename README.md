@@ -34,3 +34,16 @@ https://github.com/JoeyAnthony/3DGameBridgeProjects
 
 3D Game Bridge GUI/API:
 https://github.com/BramTeurlings/3DGameBridgeGUI
+
+## Code conventions
+
+### Include statements
+
+Include statements should be ordered in the following way:
+* Matching header file
+* C++ standard headers
+* Other included headers
+* Defines
+
+### Include guards
+Every header file should be using #pragma once at the top of the file before any include statements.
