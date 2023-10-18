@@ -29,7 +29,7 @@ bool HotkeyManager::PollHotkeys() {
     }
 
     //Let the IHotkeys interface check the hotkeys, they can be retrieved later from its "hotkey_states" member.
-    if(std::map<HotkeyCombination, bool, IHotkeys::UnionComparator> checkedHotkeys = this->implementation->CheckHotkeys(hotkeys); checkedHotkeys.empty()){
+    if(this->implementation->CheckHotkeys(hotkeys).empty()){
         // No hotkeys were registered
         return false;
     }
