@@ -18,7 +18,7 @@ public:
 
     ~WindowsHotkeyImplementation() override = default;
 
-    std::map<HotkeyCombination, bool, UnionComparator> CheckHotkeys(std::vector<HotkeyCombination> key_codes) override;
+    std::map<CombinedHotkeyStrokes, bool, UnionComparator> CheckHotkeys(std::vector<CombinedHotkeyStrokes> key_codes) override;
 
     std::vector<uint32_t> GetKeysPressed() override;
 };

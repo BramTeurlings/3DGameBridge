@@ -23,9 +23,9 @@ bool HotkeyManager::PollHotkeys() {
     }
 
     // Adds all registered hotkeys to the list of hotkeys.
-    std::vector<HotkeyCombination> hotkeys;
+    std::vector<IHotkeys::CombinedHotkeyStrokes> hotkeys;
     for(auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); it++) {
-        hotkeys.push_back(it->hotkeyCombination);
+        hotkeys.push_back(it->hotkey_combination);
     }
 
     //Let the IHotkeys interface check the hotkeys, they can be retrieved later from its "hotkey_states" member.
@@ -39,23 +39,26 @@ bool HotkeyManager::PollHotkeys() {
 
 void HotkeyManager::AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, uint8_t second_keystroke, uint8_t third_keystroke, uint8_t fourth_keystroke) {
     // Start by combining all shortcuts into the union.
-    HotkeyCombination received_strokes{};
+    IHotkeys::CombinedHotkeyStrokes received_strokes{};
     received_strokes.separatedStrokes[0] = first_keystroke;
     received_strokes.separatedStrokes[1] = second_keystroke;
     received_strokes.separatedStrokes[2] = third_keystroke;
     received_strokes.separatedStrokes[3] = fourth_keystroke;
 
     // Sort all keystrokes
-    std::sort(&received_strokes.separatedStrokes[0],&received_strokes.separatedStrokes[4]);
+    std::sort(&received_strokes.separatedStrokes[0],&received_strokes.separatedStrokes[4]);\
 
-    registered_hotkeys.push_back({ received_strokes, event_type });
+    HotkeyContainer tempContainer;
+    tempContainer.hotkey_combination = received_strokes;
+    tempContainer.hotkey_event = event_type;
+    registered_hotkeys.push_back(tempContainer);
 }
 
 
 
-void HotkeyManager::RemoveHotkey(uint32_t combined_number, HotKeyEvent event_type) {
+void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, HotKeyEvent event_type) {
     for(int i = 0; i < registered_hotkeys.size(); i++) {
-        if(registered_hotkeys[i].hotkeyCombination.combinedNumber == combined_number && registered_hotkeys[i].hotkeyEvent == event_type) {
+        if(registered_hotkeys[i].hotkey_combination.combinedNumber == combined_number && registered_hotkeys[i].hotkey_event == event_type) {
             // Found matching hotkey, time to remove it!
             registered_hotkeys.erase(registered_hotkeys.begin() + i);
         }
@@ -63,12 +66,12 @@ void HotkeyManager::RemoveHotkey(uint32_t combined_number, HotKeyEvent event_typ
 }
 
 void HotkeyManager::SendHotkeyEvents() {
-    std::map<HotkeyCombination, bool>::iterator it;
+    std::map<IHotkeys::CombinedHotkeyStrokes, bool>::iterator it;
 
     for (int i = 0; i < registered_hotkeys.size(); i++) {
-        if(implementation->hotkey_states[registered_hotkeys[i].hotkeyCombination]) {
+        if(implementation->hotkey_states[registered_hotkeys[i].hotkey_combination]) {
             // Found pressed hotkey, send event.
-            event_stream_writer->SubmitEvent(registered_hotkeys[i].hotkeyEvent, 0,
+            event_stream_writer->SubmitEvent(registered_hotkeys[i].hotkey_event, 0,
                                              nullptr);
         }
     }

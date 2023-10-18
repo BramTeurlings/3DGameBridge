@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <map>
 #include "hotkey_interface.h"
 #include "event_manager.h"
 #include "game_bridge.h"
 #include "game_bridge_structs.h"
+#include <map>
 
 struct GAME_BRIDGE_API HotkeyManagerInitialize {
     std::shared_ptr<IHotkeys> implementation;
@@ -17,8 +17,8 @@ struct GAME_BRIDGE_API HotkeyManagerInitialize {
 };
 
 struct HotkeyContainer {
-    HotkeyCombination hotkeyCombination;
-    HotKeyEvent hotkeyEvent;
+    IHotkeys::CombinedHotkeyStrokes hotkey_combination;
+    HotKeyEvent hotkey_event;
 };
 
 class GAME_BRIDGE_API HotkeyManager : private IGameBridgeManager {

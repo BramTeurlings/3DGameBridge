@@ -9,10 +9,10 @@
 #include <map>
 #include <algorithm>
 
-std::map<HotkeyCombination, bool, IHotkeys::UnionComparator>
-WindowsHotkeyImplementation::CheckHotkeys(std::vector<HotkeyCombination> key_codes) {
+std::map<IHotkeys::CombinedHotkeyStrokes, bool, IHotkeys::UnionComparator>
+WindowsHotkeyImplementation::CheckHotkeys(std::vector<CombinedHotkeyStrokes> key_codes) {
     // Prepare the return vector
-    std::map<HotkeyCombination, bool, IHotkeys::UnionComparator> result{};
+    std::map<CombinedHotkeyStrokes, bool, IHotkeys::UnionComparator> result{};
 
     // Clear list of hotkey states.
     hotkey_states.clear();
@@ -42,7 +42,7 @@ WindowsHotkeyImplementation::CheckHotkeys(std::vector<HotkeyCombination> key_cod
         }
 
         // Combine all keycodes that correspond to the current hotkey into one uint32_t, substitute 0 when the key is not pressed.
-        HotkeyCombination currentHotkeyStatus{};
+        CombinedHotkeyStrokes currentHotkeyStatus{};
         currentHotkeyStatus.separatedStrokes[0] = (keyStates.find(it->separatedStrokes[0])->second) ? keyStates.find(it->separatedStrokes[0])->first : 0x0;
         currentHotkeyStatus.separatedStrokes[1] = (keyStates.find(it->separatedStrokes[1])->second) ? keyStates.find(it->separatedStrokes[1])->first : 0x0;
         currentHotkeyStatus.separatedStrokes[2] = (keyStates.find(it->separatedStrokes[2])->second) ? keyStates.find(it->separatedStrokes[2])->first : 0x0;

@@ -64,7 +64,7 @@ TEST_F(HotkeySystemTests, Intialize) {
 }
 
 TEST_F(HotkeySystemTests, PollHotkeys) {
-    HotkeyCombination testCombo;
+    IHotkeys::CombinedHotkeyStrokes testCombo{};
     testCombo.separatedStrokes[0] = 0x11;
     testCombo.separatedStrokes[1] = 0x30;
     testCombo.separatedStrokes[2] = 0;
@@ -101,10 +101,10 @@ TEST_F(HotkeySystemTests, AddHotkey) {
 
     // Check all the separate strokes to see if they match.
     // The first two values are NULL because they are not filled in and sorted to the front in the AddHotkey() method.
-    ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[0]) << "Keystroke [0] does not match expected keycode.";
-    ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[1]) << "Keystroke [1] does not match expected keycode.";
-    ASSERT_EQ(0x12, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[2]) << "Keystroke [2] does not match expected keycode.";
-    ASSERT_EQ(0x31, hotkeyManager.registered_hotkeys.back().hotkeyCombination.separatedStrokes[3]) << "Keystroke [3] does not match expected keycode.";
+    ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[0]) << "Keystroke [0] does not match expected keycode.";
+    ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[1]) << "Keystroke [1] does not match expected keycode.";
+    ASSERT_EQ(0x12, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[2]) << "Keystroke [2] does not match expected keycode.";
+    ASSERT_EQ(0x31, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[3]) << "Keystroke [3] does not match expected keycode.";
 }
 
 TEST_F(HotkeySystemTests, RemoveHotkey) {
@@ -112,11 +112,11 @@ TEST_F(HotkeySystemTests, RemoveHotkey) {
     ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size()) << "No hotkeys initially registered.";
 
     // Test removing a hotkey that doesn't exist.
-    hotkeyManager.RemoveHotkey(0x1, hotkeyManager.registered_hotkeys.begin()->hotkeyEvent);
+    hotkeyManager.RemoveHotkey(0x1, hotkeyManager.registered_hotkeys.begin()->hotkey_event);
     ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size()) << "Removing a hotkey that isn't in the list shouldn't change registered_hotkey's size.";
 
     // Test removing a hotkey that does exist.
-    hotkeyManager.RemoveHotkey(hotkeyManager.registered_hotkeys.begin()->hotkeyCombination.combinedNumber, hotkeyManager.registered_hotkeys.begin()->hotkeyEvent);
+    hotkeyManager.RemoveHotkey(hotkeyManager.registered_hotkeys.begin()->hotkey_combination.combinedNumber, hotkeyManager.registered_hotkeys.begin()->hotkey_event);
     ASSERT_EQ(0, hotkeyManager.registered_hotkeys.size()) << "Removing a hotkey that exists en registered_hotkeys should decrement its size by one.";
 }
 
@@ -132,13 +132,13 @@ TEST_F(HotkeySystemTests, GetEventBuffer) {
 
 TEST_F(HotkeySystemTests, CheckHotkeys) {
     // Adds all registered hotkeys to the list of hotkeys.
-    std::vector<HotkeyCombination> hotkeys;
+    std::vector<IHotkeys::CombinedHotkeyStrokes> hotkeys;
     for(auto it = hotkeyManager.registered_hotkeys.begin(); it != hotkeyManager.registered_hotkeys.end(); it++) {
-        hotkeys.push_back(it->hotkeyCombination);
+        hotkeys.push_back(it->hotkey_combination);
     }
 
     //Let the IHotkeys interface check the hotkeys, they can be retrieved from its "hotkey_states" member.
-    std::map<HotkeyCombination, bool, IHotkeys::UnionComparator> checkedHotkeys = hotkeyManager.implementation->CheckHotkeys(hotkeys);
+    std::map<IHotkeys::CombinedHotkeyStrokes, bool, IHotkeys::UnionComparator> checkedHotkeys = hotkeyManager.implementation->CheckHotkeys(hotkeys);
 
     ASSERT_EQ(checkedHotkeys.size(), 1) << "Checked hotkeys should only contain one hotkey.";
     ASSERT_EQ(checkedHotkeys.begin()->second, 0) << "Checked hotkey should not be pressed.";
