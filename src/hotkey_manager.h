@@ -28,7 +28,6 @@ struct HotkeyContainer {
 class GAME_BRIDGE_API HotkeyManager : private IGameBridgeManager {
 public:
     std::vector<HotkeyContainer> registered_hotkeys;
-//    std::map<IHotkeys::HotkeyCombination, HotKeyEvent> key_combo;
     EventStreamWriter* event_stream_writer;
     void* event_stream_buffer{};
     std::shared_ptr<IHotkeys> implementation;
