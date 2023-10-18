@@ -57,22 +57,20 @@ void HotkeyManager::AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, u
 
 
 void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, HotKeyEvent event_type) {
-    for(int i = 0; i < registered_hotkeys.size(); i++) {
-        if(registered_hotkeys[i].hotkey_combination.combinedNumber == combined_number && registered_hotkeys[i].hotkey_event == event_type) {
+    for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
+        if (it->hotkey_combination.combinedNumber == combined_number && it->hotkey_event == event_type) {
             // Found matching hotkey, time to remove it!
-            registered_hotkeys.erase(registered_hotkeys.begin() + i);
+            registered_hotkeys.erase(it);
+            return;
         }
     }
 }
 
 void HotkeyManager::SendHotkeyEvents() {
-    std::map<IHotkeys::CombinedHotkeyStrokes, bool>::iterator it;
-
-    for (int i = 0; i < registered_hotkeys.size(); i++) {
-        if(implementation->hotkey_states[registered_hotkeys[i].hotkey_combination]) {
+    for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
+        if (implementation->hotkey_states[it->hotkey_combination]) {
             // Found pressed hotkey, send event.
-            event_stream_writer->SubmitEvent(registered_hotkeys[i].hotkey_event, 0,
-                                             nullptr);
+            event_stream_writer->SubmitEvent(it->hotkey_event, 0, nullptr);
         }
     }
 }
