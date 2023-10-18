@@ -13,7 +13,7 @@
 
 struct GAME_BRIDGE_API EventHeader {
     // Contains size of the event data and type
-	// TODO lower amount of bytes stored
+    // TODO lower amount of bytes stored
     size_t size;
     uint32_t event_type;
 };
@@ -24,93 +24,129 @@ struct GAME_BRIDGE_API EventHeader {
  *
  */
 struct GAME_BRIDGE_API EventStream {
-	// Size of the entire buffer
-    size_t buffer_size;
+    // Size of the entire buffer.
+    size_t buffer_size = 0;
 
-	// Size of the buffer used for user events.
-	// This will be (buffer_size - sizeof(EventHeader)) so the event manager has space to write an end of stream message 
-	size_t user_buffer_size;
+    // Size of the buffer used for user events.
+    // This size will always be smaller than buffer_size so system messages can always be added.
+    size_t user_buffer_size = 0;
 
-	// Used for event type for now, later used as actual id
-    uint32_t stream_id;
+    // Used for event type for now, later used as actual id
+    uint32_t stream_id = 0;
 
-	// Underlying event buffer
-	std::shared_ptr<char[]> buffer;
+    // Underlying event buffer
+    std::shared_ptr<char[]> buffer;
 };
-// Reserve 0 as the NULL EVENT
-constexpr size_t GB_EVENT_NULL = 0;
 
 class GAME_BRIDGE_API EventStreamReader {
-	EventStream event_stream;
-	char* next = nullptr;
+    EventStream event_stream;
+    char* next = nullptr;
 
 public:
-	EventStreamReader();
-	EventStreamReader(EventStream stream);
+    EventStreamReader();
 
-	/*
-	* Gets the next event for the user to process
-	* event_type = type of the next event
-	* size = size of the next event
-	* data = pointer to the data of the event
-	*/
-	GB_EVENT GetNextEvent(uint32_t& event_type, size_t& size, void* data);
+    /**
+     * \brief Create Event Stream Reader
+     * \param stream EventStream
+     */
+    EventStreamReader(EventStream stream);
 
-	void ResetEventIndexPointer();
+    /**
+    * \brief Gets the next event for the user to process
+    * @param event_type Type of the next event
+    * @param size Size of the next event
+    * @param data Pointer to the data of the event
+    * \return Event type enum.
+    */
+    GB_EVENT GetNextEvent(uint32_t& event_type, size_t& size, void* data);
 
-	// Not entirely sure about the consts....
-	// TODO Also not sure we still want this
-	// const void* const GetEventStream();
+    /**
+     * \brief Sets the read index back to the beginning of the buffer.
+     */
+    void ResetEventIndexPointer();
 };
 
 class GAME_BRIDGE_API EventStreamWriter {
-	EventStream event_stream {};
-	size_t used_bytes = 0;
+    EventStream event_stream {};
+    size_t used_bytes = 0;
 
 public:
-	EventStreamWriter();
-	EventStreamWriter(EventStream stream);
+    /**
+     * \brief Create EventStreamWriter
+     * \param stream EventStream
+     */
+    EventStreamWriter(EventStream stream);
 
-	void ClearStream();
+    /**
+     * \brief Clears the event stream buffer.
+     * \details After clearing, the first event will be a NULL_EVENT. Any event submitted after clearing will overwrite the NULL_EVENT.
+     * The null event will always process to the default case in a switch case (or NULL_EVENT case when a case is explicitly made for it)
+    */
+    void ClearStream();
 
-	bool SubmitEvent(GB_EVENT event_type, uint32_t size = 0, void* data = nullptr);
-	EventStream GetEventStream();
-	size_t GetUsedBytes();
+    /**
+     * \brief Submit event to the event stream
+     * \param event_type    Event type enum
+     * \param size          Size of the extra data of the message. This can be any size regardless of the extra message size the buffer was create with
+     * \param data          Extra data pointer
+     * \return True when submission succeeded
+     * \return False when the message doesn't fit the buffer
+     */
+    bool SubmitEvent(GB_EVENT event_type, uint32_t size = 0, void* data = nullptr);
+
+    /**
+     * \brief Get the underlying EventStream
+     * \return Underlying EventStream
+     */
+    EventStream GetEventStream();
+
+    /**
+     * \brief Amount of bytes in use by the buffer in the current frame
+     * \return Number of bytes in use
+     */
+    size_t GetUsedBytes();
 };
 
-// When events are being submitted, processing should never be done
-// Processing is only allowed after the EventManager has been put into a processing state
-// When event should be recorded again, the EventManager should be put back in a recording/submitting state
-// If we need more in the future we could use a producer/consumer strategy
-
 class GAME_BRIDGE_API EventManager : private IGameBridgeManager {
-private:
+    // If we need more in the future we could use a producer/consumer strategy
+
     std::unordered_map<uint32_t, EventStream, ClassHash> event_streams = {};
     std::vector<std::shared_ptr<EventStreamReader>> stream_readers = {};
     std::vector<std::shared_ptr<EventStreamWriter>> stream_writers = {};
 
 public:
-	// Use indirection array to get stream readers and writers
+    /**
+     * \brief Returns an event stream reader for the given event manager type.
+     * @param event_manager_type    type of the event manager to get a processing stream of.
+     * \return Shared pointer to an EventStreamReader
+     */
+    std::shared_ptr<EventStreamReader> GetEventStreamReader(EventManagerType event_manager_type);
 
-	EventManager();
+    /**
+     * \brief   Creates an EventStreamWriter object with an underlying EvenStream for the given EventManagerType
+     * \details The underlying buffer wil be made larger than the given buffer size to fit extra system messages.
+     * Buffer layout will look like: <[Header][Extra Message Data]> ..... <[NULL_EVENT]>. Buffer will always end with a NULL_EVENT.
+     * @param event_manager_type        Type of the event manager to create an event stream for
+     * @param max_event_count           Number of events that have to fit in the buffer
+     * @param extra_event_data_size     Size of extra data that will be added per event
+     * \return Shared pointer to an EventStreamWriter
+    */
+    std::shared_ptr<EventStreamWriter> CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
 
-	// TODO need some way to tell when the frame begins and ends to every stream reader and writer
-	// TODO They can check themselves if the stream they read/write still exists. return a "NULL" message when the stream has ended
-	// TODO Make EventStreamReaders an writers a shared pointer managed from the event manager for example
-    // Returns an EventStreamReader for the given "event_manager_type".
-	std::shared_ptr<EventStreamReader> GetEventStreamReader(EventManagerType event_manager_type);
+    /**
+     * \brief   Prepare event streams for processing of the events.
+     * \details Should always be called before any events are being processed by the application
+     */
+    void PrepareForEventStreamProcessing();
 
-    // Creates an the EventStreamWriter object with an underlying EvenStream for the given event_manager_type.
-	//
-	
-	std::shared_ptr<EventStreamWriter> CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
+    /**
+     * \brief Prepare event streams for submission of event streams
+     */
+    void PrepareForEventStreamSubmission();
 
-    void PrepareForEventStreamReading();
-    void PrepareForEventStreamWriting();
-
-	// TODO implement this later, remove the event stream from the event manager.
-	// An END OF STREAM message should be sent and all reader should theb be discarded. The shared pointer of the stream will be discarded then too.
-	//void EndEventStream(EventStreamWriter writer);
-
+    /**
+     * \brief Gets GameBridgeManagerType
+     * \return GameBridgeManagerType
+     */
     GameBridgeManagerType GetEventManagerType() override;
 };

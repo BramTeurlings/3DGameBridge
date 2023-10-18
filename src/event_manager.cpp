@@ -11,13 +11,12 @@ EventStreamReader::EventStreamReader(EventStream stream) : event_stream((stream)
     next = event_stream.buffer.get();
 }
 
-// EventStreamReader
 GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, void *data) {
     EventHeader const* header = reinterpret_cast<EventHeader*>(next);
     size = header->size;
     event_type = header->event_type;
 
-    // If event type is GB_EVENT_NULL, let the next pointer  point to this event
+    // If event type is GB_EVENT_NULL, let the next pointer point to this event
     if (event_type == GB_EVENT_NULL) {
         return event_type;
     }
@@ -37,26 +36,11 @@ void EventStreamReader::ResetEventIndexPointer() {
     next = event_stream.buffer.get();
 }
 
-//const void *const EventStreamReader::GetEventStream() {
-//    return event_stream;
-//}
-// End EventStreamReader
-
-EventStreamWriter::EventStreamWriter()
-{
-}
-
-// EventStreamWriter
 EventStreamWriter::EventStreamWriter(EventStream stream) : event_stream(stream) {
     // Initialize the constant stream variable so that it cannot be changed in here.
 }
 
 void EventStreamWriter::ClearStream() {
-    // This function will always write a NULL_EVENT in the case no events are generated.
-    // The first event that is generated, will overwrite the NULL_EVENT
-    // This way we don't have to check if the first event is ok in an EventStreamReader
-    // The null event will always process to the default case in a switch case (or NULL_EVENT case when a case is explicitly made for it)
-
     // Clearing memory is not required, we just overwrite it
     // Submit GB_EVENT_NULL event as the first event in the stream
     used_bytes = 0;
@@ -91,14 +75,9 @@ size_t EventStreamWriter::GetUsedBytes()
     return used_bytes;
 }
 
-// End EventStreamReader
-
-EventManager::EventManager()
-{
-}
-
 // EventManager
 std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManagerType event_manager_type) {
+    // TODO Use indirection array to get stream readers and writers?
     try {
         EventStream const& stream = event_streams.at(event_manager_type);
         std::shared_ptr<EventStreamReader> reader = std::make_shared<EventStreamReader>(EventStreamReader(stream));
@@ -111,7 +90,8 @@ std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManag
     }
 }
 
-//TODO maybe use error codes?
+// TODO maybe use error codes?
+// TODO Only one event stream can exists per manager, the existing stream will be returned or nullptr?
 std::shared_ptr<EventStreamWriter> EventManager::
 CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
 {
@@ -128,7 +108,7 @@ CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count,
     return writer;
 }
 
-void EventManager::PrepareForEventStreamReading()
+void EventManager::PrepareForEventStreamProcessing()
 {
     // Add final event message
     for(const auto& writer : stream_writers)
@@ -154,7 +134,7 @@ void EventManager::PrepareForEventStreamReading()
     }
 }
 
-void EventManager::PrepareForEventStreamWriting()
+void EventManager::PrepareForEventStreamSubmission()
 {
     // Makes sure the first event in the stream is always a GB_EVENT_NULL
     for (const auto& writer : stream_writers)
@@ -168,6 +148,11 @@ void EventManager::PrepareForEventStreamWriting()
         reader->ResetEventIndexPointer();
     }
 }
+
+/** TODO implement this later, remove the event stream from the event manager.
+ * An END OF STREAM message should be sent and all reader should the be discarded. The shared pointer of the stream will be discarded then too.
+*/
+// void EndEventStream(EventStreamWriter writer);
 
 GameBridgeManagerType EventManager::GetEventManagerType() {
     return GameBridgeManagerType::SRGB_MANAGER_EVENTS;

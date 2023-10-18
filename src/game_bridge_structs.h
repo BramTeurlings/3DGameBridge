@@ -35,6 +35,9 @@ enum GAME_BRIDGE_API EventManagerType {
 };
 
 // Messages
+// Reserve 0 as the NULL EVENT
+constexpr size_t GB_EVENT_NULL = 0;
+
 // 0 Should be reserved for null event
 enum GAME_BRIDGE_API HotKeyEvent {
     GB_EVENT_HOTKEY_TOGGLE_LENS = 1

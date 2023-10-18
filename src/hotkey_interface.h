@@ -43,7 +43,6 @@ public:
     IHotkeys() = default;
     virtual ~IHotkeys() = default;
 
-
     // Todo: For the two methods below, do we want them to return a list of pressed strings right away or simply save the keystates inside this interface's fields?
 
     // Checks for every given key if it is pressed or not and stores the result somewhere.

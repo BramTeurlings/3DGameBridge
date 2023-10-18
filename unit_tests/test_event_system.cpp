@@ -356,7 +356,7 @@ TEST_F(EventSystemTests, FullTest)
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
     // Prepare for writing events
-    event_manager.PrepareForEventStreamWriting();
+    event_manager.PrepareForEventStreamSubmission();
 
     // Write 499 mock events to stream
     // Try 50 more the make sure only 500 are written, and the other 50 did not write to the stream.
@@ -397,7 +397,7 @@ TEST_F(EventSystemTests, FullTest)
     }
 
     // Prepare for reading events
-    event_manager.PrepareForEventStreamReading();
+    event_manager.PrepareForEventStreamProcessing();
 
     uint32_t eventidx = 0;
 
