@@ -10,10 +10,6 @@
 #include "game_bridge.h"
 #include "game_bridge_structs.h"
 
-enum class GAME_BRIDGE_API HotkeyManagerInitializeFlags {
-    SRGB_HOTKEY_MANAGER_NO_FLAGS
-};
-
 struct GAME_BRIDGE_API HotkeyManagerInitialize {
     std::shared_ptr<IHotkeys> implementation;
     HotkeyManagerInitializeFlags flags;

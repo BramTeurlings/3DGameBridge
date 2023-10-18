@@ -21,6 +21,10 @@ enum GAME_BRIDGE_API EventManagerInitialize {
     PROCESS_EVENTS_ON_THE_NEXT_FRAME
 };
 
+enum GAME_BRIDGE_API HotkeyManagerInitializeFlags {
+    SRGB_HOTKEY_MANAGER_NO_FLAGS
+};
+
 // Event types
 enum GAME_BRIDGE_API EventManagerType {
     SRGB_EVENT_MANAGER_TYPE_HOTKEY,
