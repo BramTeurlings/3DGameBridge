@@ -10,7 +10,7 @@
 #include <algorithm>
 
 std::map<HotkeyCombination, bool, IHotkeys::UnionComparator>
-WindowsHotkeyImplementation::CheckHotkeys(std::vector<HotkeyCombination> keyCodes) {
+WindowsHotkeyImplementation::CheckHotkeys(std::vector<HotkeyCombination> key_codes) {
     // Prepare the return vector
     std::map<HotkeyCombination, bool, IHotkeys::UnionComparator> result{};
 
@@ -21,7 +21,7 @@ WindowsHotkeyImplementation::CheckHotkeys(std::vector<HotkeyCombination> keyCode
     std::map<uint8_t, bool> keyStates;
 
     // Loop through the hotkeys
-    for (auto it = keyCodes.begin(); it != keyCodes.end(); it++)
+    for (auto it = key_codes.begin(); it != key_codes.end(); it++)
     {
         // Loop through the key codes
         for (unsigned char keyCode : it->separatedStrokes) {

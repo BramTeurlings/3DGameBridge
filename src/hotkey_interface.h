@@ -35,10 +35,9 @@ public:
     IHotkeys() = default;
     virtual ~IHotkeys() = default;
 
-
     // Checks for every given key inside the hotkeys if it is pressed or not and stores the result inside the hotkey_states object.
     // Resets all keys in the hotkey_states vector at the start of the operation.
-    virtual std::map<HotkeyCombination, bool, UnionComparator> CheckHotkeys(std::vector<HotkeyCombination> keyCodes) = 0;
+    virtual std::map<HotkeyCombination, bool, UnionComparator> CheckHotkeys(std::vector<HotkeyCombination> key_codes) = 0;
 
     // Returns all the keys that are currently in the pressed state regardless of if hotkeys are assigned to them.
     // Resets all keys in the pressed_keys vector at the start of the operation.
