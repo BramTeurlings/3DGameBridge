@@ -45,7 +45,7 @@ void HotkeyManager::AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, u
     received_strokes.separatedStrokes[3] = fourth_keystroke;
 
     // Sort all keystrokes
-    std::sort(&received_strokes.separatedStrokes[0],&received_strokes.separatedStrokes[4]);\
+    std::sort(&received_strokes.separatedStrokes[0],&received_strokes.separatedStrokes[4]);
 
     HotkeyContainer tempContainer;
     tempContainer.hotkey_combination = received_strokes;
