@@ -14,8 +14,6 @@
 
 class GAME_BRIDGE_API WindowsHotkeyImplementation : public IHotkeys {
 public:
-    WindowsHotkeyImplementation() = default;
-
     ~WindowsHotkeyImplementation() override = default;
 
     std::map<CombinedHotkeyStrokes, bool, UnionComparator> CheckHotkeys(std::vector<CombinedHotkeyStrokes> key_codes) override;
