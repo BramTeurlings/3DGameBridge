@@ -13,9 +13,8 @@ HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementatio
     //event_stream_buffer = event_stream;
 }
 
+// Polls the hotkeys using the current implementation of the IHotkeys interface. (Currently defaults to the Windows Implementation).
 bool HotkeyManager::PollHotkeys() {
-    // Polls the hotkeys using the current implementation of the IHotkeys interface. (Statically defined as Windows at present).
-
     //Check if hotkey implementation is initialized
     if (this->implementation == nullptr){
         //Hotkey Implementation is not initialized.
