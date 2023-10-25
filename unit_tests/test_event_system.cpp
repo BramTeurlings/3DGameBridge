@@ -12,8 +12,6 @@ class EventSystemTests : public ::testing::Test {
 protected:
     virtual void SetUp() {
         platform_event_writer = event_manager.CreateEventStream(SRGB_EVENT_MANAGER_TYPE_PLATFORM, TEST_EVENT_COUNT, 0);
-        hotkey_event_writer = event_manager.CreateEventStream(SRGB_EVENT_MANAGER_TYPE_HOTKEY, TEST_EVENT_COUNT, 0);
-        weaver_event_writer = event_manager.CreateEventStream(SRGB_EVENT_MANAGER_TYPE_WEAVER, TEST_EVENT_COUNT, 0);
     }
 
     void FillEventStreams()
@@ -30,13 +28,6 @@ protected:
         for (uint32_t i = 0; i < TEST_EVENT_COUNT; i++) {
             weaver_event_writer->SubmitEvent(SRGB_EVENT_WEAVER_WEAVING_ENABLED, 0, nullptr);
         }
-    }
-
-    void SetUpEvenStreamReaders()
-    {
-        ASSERT_TRUE(event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY));
-        ASSERT_TRUE(event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_WEAVER));
-        ASSERT_TRUE(event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM));
     }
 
     EventManager event_manager;
@@ -65,53 +56,55 @@ protected:
     };
 };
 
-TEST_F(EventSystemTests, GetWriterEventStream) {
-    EventStream stream = platform_event_writer->GetEventStream();
-    ASSERT_NE(stream.buffer, nullptr);
+TEST_F(EventSystemTests, CreateEventStream) {
+    auto stream_writer = event_manager.CreateEventStream(SRGB_EVENT_MANAGER_TYPE_WEAVER, 300, 0);
+    EventStream stream = stream_writer->GetEventStream();
+
+    ASSERT_EQ(stream_writer->GetUsedBytes(), 0)
+        << "Number of bytes in use should be 0";
+
+    // Check if buffer was allocated
+    ASSERT_NE(stream.buffer, nullptr)
+        << "Buffer not allocated";
+
+    // Check buffer size
+    ASSERT_EQ(stream.buffer_size, sizeof(EventHeader) * (300 + 1))
+        << "Unexpected buffer size";
+
+    // Check user buffer size
+    ASSERT_EQ(stream.user_buffer_size, sizeof(EventHeader) * 300)
+        << "Unexpected buffer size";
+
+    // Check stream id
+    ASSERT_EQ(stream.stream_id, SRGB_EVENT_MANAGER_TYPE_WEAVER)
+        << "Stream id should correspond to the manager type the stream was initialized with";
+
+    // TODO test with extra data
 }
 
-TEST_F(EventSystemTests, EventSystem) {
+TEST_F(EventSystemTests, GetEventStreamReader) {
+    // Check platform event
+    weaver_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    ASSERT_TRUE(platform_event_reader);
 
-    // Check platform writer
-    EventStream stream = platform_event_writer->GetEventStream();
-    ASSERT_GE(stream.buffer_size, 1);
+    // Check if the first event points to the same address as the start of the event buffer.
+    uint32_t event_type;
+    size_t size;
+    void* data = nullptr;
+    weaver_event_reader->GetNextEvent(event_type, size, data);
+    ASSERT_EQ(static_cast<char*>(data) - sizeof(EventHeader), weaver_event_writer->GetEventStream().buffer.get()) // void* data, is always the address right after the header in memory.
+        << "The first event in the reader must be the same as the begin of the same event stream";
 
-    // Check hotkey writer
-    stream = hotkey_event_writer->GetEventStream();
-    ASSERT_GE(stream.buffer_size, 1);
+    // Make sure other event streams are empty
+    ASSERT_EQ(hotkey_event_reader, nullptr)
+        << "hotkey_event_reader not empty, can't continue test";
+    ASSERT_EQ(weaver_event_reader, nullptr)
+        << "weaver_event_reader not empty, can't continue test";
 
-    // Check weaver writer
-    stream = weaver_event_writer->GetEventStream();
-    ASSERT_GE(stream.buffer_size, 1);
-}
-
-TEST_F(EventSystemTests, GetUsedBytes)
-{
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), 0);
-
-    for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
-    }
-
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5);
-
-    for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
-    }
-
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 10);
-
-    for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
-    }
-
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 15);
-
-    for (uint32_t i = 0; i < 5; i++) {
-        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
-    }
-
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 20);
+    // Manager should not exist
+    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY);
+    ASSERT_EQ(hotkey_event_reader, nullptr)
+        << "Hotkey manager should be empty";
 }
 
 TEST_F(EventSystemTests, SubmitEvent) {
@@ -121,23 +114,38 @@ TEST_F(EventSystemTests, SubmitEvent) {
     }
 
     // Check if 500 enums can be stored
-    EventStream stream = platform_event_writer->GetEventStream();
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * TEST_EVENT_COUNT);
+    // Testing GetBytesUsed because it returns a value that's calculated by SubmitEvents
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * TEST_EVENT_COUNT)
+        << "Buffer stored an unexpected amount of memory";
 
+    // Check that no more than the maximum amount of events can be stored
     ASSERT_FALSE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr))
-    << "Check if not more than 500 enums can be stored, SubmitEvent should return false";
+        << "Event submitted that should have been rejected";
 
     // TODO test with extra data
 }
 
-TEST_F(EventSystemTests, GetEventStreamReader) {
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY);
-    hotkey_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_WEAVER);
-    weaver_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+TEST_F(EventSystemTests, GetUsedBytes)
+{
+    // Used byte should be empty
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), 0)
+        << "Unexpected number of bytes in use, not 0 when the buffer should be empty";
 
-    ASSERT_TRUE(platform_event_reader);
-    ASSERT_TRUE(hotkey_event_reader);
-    ASSERT_TRUE(weaver_event_reader);
+    // Add a few events and check the amount of bytes used
+    for (uint32_t i = 0; i < 5; i++) {
+        platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr);
+    }
+
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5)
+        << "Unexpected number of bytes in use";
+
+    // Test with a number for extra data
+    for (uint32_t i = 0; i < 5; i++) {
+        platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 21, nullptr);
+    }
+
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) + 21 * 10)
+        << "Unexpected number of bytes in use";
 }
 
 TEST_F(EventSystemTests, GetNextEvent) {
@@ -151,18 +159,18 @@ TEST_F(EventSystemTests, GetNextEvent) {
         switch (used_event)
         {
         case 0:
-            ASSERT_TRUE(platform_event_writer->SubmitEvent(TEST_1, 0, nullptr)) << "Not enough memory to write to event buffer, index: " << i;
+            platform_event_writer->SubmitEvent(TEST_1, 0, nullptr);
             break;
         case 1:
-            ASSERT_TRUE(platform_event_writer->SubmitEvent(TEST_2, 0, nullptr)) << "Not enough memory to write to event buffer, index: " << i;
+            platform_event_writer->SubmitEvent(TEST_2, 0, nullptr);
             break;
         case 2:
-            ASSERT_TRUE(platform_event_writer->SubmitEvent(TEST_3, 0, nullptr)) << "Not enough memory to write to event buffer, index: " << i;
+            platform_event_writer->SubmitEvent(TEST_3, 0, nullptr);
             break;
         }
     }
 
-    // Write 500th event
+    // Write NULL_EVENT as the 500th event manually to stop reading at the end of the buffer
     ASSERT_TRUE(platform_event_writer->SubmitEvent(TEST_NULL, 0, nullptr));
 
     // Read events from stream
@@ -190,103 +198,94 @@ TEST_F(EventSystemTests, GetNextEvent) {
             }
             default:
             {
-                // 0 was already returned by GetNextEvent so the while loop quits before coming here
-                ASSERT_EQ(event_type, TEST_NULL) << "Event type not TEST_NULL, SHOULD NOT COME HERE, index: " << eventidx;
-                break;
+                ASSERT_TRUE(false)
+                    << "Unknown event was added or data was changed, this line should never execute";
             }
         }
 
         eventidx++;
     }
 
-    // Test last event
-    ASSERT_EQ(event_type, TEST_NULL) << "Event type not TEST_NULL";
-    eventidx++; // Increment the last index
+    // Test last event. Since NULL_EVENT == 0 the while loop will not process it
+    ASSERT_EQ(event_type, TEST_NULL)
+        << "Event type not TEST_NULL";
 
-    ASSERT_EQ(eventidx, TEST_EVENT_COUNT);
+    eventidx++; // Increment the last index
+    ASSERT_EQ(eventidx, TEST_EVENT_COUNT)
+        << "Unexpected event count";
 }
 
-// TODO test after EventStreamWriter tests and use a writer inside this test if that makes sense
-TEST_F(EventSystemTests, ClearStream) {
+TEST_F(EventSystemTests, ClearStream_StreamReader) {
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
     auto buffer = platform_event_writer->GetEventStream().buffer;
 
-    {
-        // Submit 5 times TEST_5
-        for (int i = 0; i < 5; i++) {
-            platform_event_writer->SubmitEvent(TEST_5);
-        }
+    // Pointer to first event in the stream
+    EventHeader* header = reinterpret_cast<EventHeader*>(buffer.get());
 
-        // Bytes used should be 0
-        platform_event_writer->ClearStream();
-        ASSERT_EQ(platform_event_writer->GetUsedBytes(), 0)
-            << "Bytes used should be 0";
-    }
+    // Submit TEST_1 and get the event header
+    platform_event_writer->SubmitEvent(TEST_1);
 
-    {
-        // Submit TEST_1 and get the event header
-        platform_event_writer->SubmitEvent(TEST_1);
-        EventHeader* header = reinterpret_cast<EventHeader*>(buffer.get());
+    // Make sure there is a size higher than 0
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader))
+        << "Unexpected number for Used bytes";
 
-        // Clear then submit TEST_2
-        platform_event_writer->ClearStream();
-        platform_event_writer->SubmitEvent(TEST_2);
+    // TEST_1 should be the first event in the stream
+    ASSERT_EQ(header->event_type, TEST_1)
+        << "Unexpected event, TEST_1 is not the first even in the stream";
 
-        // TEST_2 should be the first event in the stream
-        ASSERT_EQ(header->event_type, TEST_2)
-            << "TEST_2 should be the first event in the stream";
 
-        // Clear then submit TEST_3
-        platform_event_writer->ClearStream();
-        platform_event_writer->SubmitEvent(TEST_3);
+    // Clear then submit TEST_2 with extra data number
+    platform_event_writer->ClearStream();
+    platform_event_writer->SubmitEvent(TEST_2);
 
-        // TEST_3 should be the first event in the stream
-        ASSERT_EQ(header->event_type, TEST_3)
-            << "TEST_3 should be the first event in the stream";
+    // Size should be exactly the same as with TEST_1
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader))
+        << "Bytes used should be 0";
 
-        // Clear then submit TEST_4
-        platform_event_writer->ClearStream();
-        platform_event_writer->SubmitEvent(TEST_4);
+    // TEST_2 should be the first event in the stream
+    ASSERT_EQ(header->event_type, TEST_2)
+        << "Unexpected event, TEST_2 is not the first even in the stream";
 
-        // TEST_4 should be the first event in the stream
-        ASSERT_EQ(header->event_type, TEST_4)
-            << "TEST_4 should be the first event in the stream";
-    }
+
+    // TODO test with extra data
+}
+
+TEST_F(EventSystemTests, ClearStream_StreamWriter) {
+    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
     platform_event_writer->ClearStream();
     platform_event_reader->ResetEventIndexPointer();
 
+    // Test ClearStream for a EventStreamReader
     uint32_t event_type;
     size_t extra_data_size = 0;
     void* event_data = nullptr;
-    {
-        for (int i = 0; i < 5; i++) {
-            platform_event_writer->SubmitEvent(TEST_1);
-        }
 
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
-
-        // Make sure TEST_NULL is the only event returned after clearing
-        platform_event_writer->ClearStream();
-        platform_event_reader->ResetEventIndexPointer();
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    for (int i = 0; i < 5; i++) {
+        platform_event_writer->SubmitEvent(TEST_1);
     }
 
-    {
-        platform_event_writer->SubmitEvent(TEST_2);
-        platform_event_writer->ClearStream();
-        platform_event_reader->ResetEventIndexPointer();
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
 
-        platform_event_writer->ClearStream();
-        platform_event_reader->ResetEventIndexPointer();
-        platform_event_writer->SubmitEvent(TEST_3);
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_3) << "Event not equal to TEST_3";
-    }
+    // Make sure TEST_NULL is the only event returned after clearing
+    platform_event_writer->ClearStream();
+    platform_event_reader->ResetEventIndexPointer();
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+
+
+    platform_event_writer->SubmitEvent(TEST_2);
+    platform_event_writer->ClearStream();
+    platform_event_reader->ResetEventIndexPointer();
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+
+    platform_event_writer->ClearStream();
+    platform_event_reader->ResetEventIndexPointer();
+    platform_event_writer->SubmitEvent(TEST_3);
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_3) << "Event not equal to TEST_3";
 }
 
 TEST_F(EventSystemTests, ResetEventIndexPointer) {

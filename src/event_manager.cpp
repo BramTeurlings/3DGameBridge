@@ -1,16 +1,13 @@
 #include "event_manager.h"
-#include "game_bridge_structs.h"
 #include <stdexcept>
 #include <iostream>
-
-EventStreamReader::EventStreamReader(): event_stream({})
-{
-}
+#include "game_bridge_structs.h"
 
 EventStreamReader::EventStreamReader(EventStream stream) : event_stream((stream)) {
     next = event_stream.buffer.get();
 }
 
+// TODO signature not immediately clear
 GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, void *data) {
     EventHeader const* header = reinterpret_cast<EventHeader*>(next);
     size = header->size;
@@ -67,6 +64,8 @@ bool EventStreamWriter::SubmitEvent(GB_EVENT event_type, uint32_t size, void* da
 
 EventStream EventStreamWriter::GetEventStream()
 {
+    // TODO !!! Event manager keeps a list of EventManager objects, those are different from the ones being stored in EventStreamWriters !!! This is a bug !!
+    // TODO should return a const pointer maybe? If this object gets edited by the manager it won't be reflected in the returned value here since it's a copy. Could be a design decision for easier multi threading perhaps
     return event_stream;
 }
 
@@ -92,8 +91,7 @@ std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManag
 
 // TODO maybe use error codes?
 // TODO Only one event stream can exists per manager, the existing stream will be returned or nullptr?
-std::shared_ptr<EventStreamWriter> EventManager::
-CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
+std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
 {
     size_t message_size = sizeof(EventHeader) + extra_event_data_size;
     size_t buffer_size = message_size * (max_event_count + 1); // +1 to event count for end of buffer message

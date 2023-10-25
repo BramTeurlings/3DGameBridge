@@ -43,13 +43,11 @@ class GAME_BRIDGE_API EventStreamReader {
     char* next = nullptr;
 
 public:
-    EventStreamReader();
-
     /**
      * \brief Create Event Stream Reader
      * \param stream EventStream
      */
-    EventStreamReader(EventStream stream);
+    explicit EventStreamReader(EventStream stream);
 
     /**
     * \brief Gets the next event for the user to process
@@ -75,11 +73,12 @@ public:
      * \brief Create EventStreamWriter
      * \param stream EventStream
      */
-    EventStreamWriter(EventStream stream);
+    explicit EventStreamWriter(EventStream stream);
 
     /**
      * \brief Clears the event stream buffer.
      * \details After clearing, the first event will be a NULL_EVENT. Any event submitted after clearing will overwrite the NULL_EVENT.
+     * ClearStream is used when PrepareForEventStreamSubmission is called on the EventManager
      * The null event will always process to the default case in a switch case (or NULL_EVENT case when a case is explicitly made for it)
     */
     void ClearStream();
@@ -101,7 +100,8 @@ public:
     EventStream GetEventStream();
 
     /**
-     * \brief Amount of bytes in use by the buffer in the current frame
+     * \brief Gets the amount of bytes in use
+     * \details This will be reset to 0 when calling PrepareForEventStreamSubmission os called in the EventManager or when calling ClearStream() 
      * \return Number of bytes in use
      */
     size_t GetUsedBytes();
