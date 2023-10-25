@@ -77,7 +77,7 @@ TEST_F(HotkeySystemTests, PollHotkeys) {
     hotkeyManager.implementation->hotkey_states.insert(std::make_pair(testCombo, true));
 
     // Poll the hotkeys, it should return true as at least one hotkey is registered.
-    ASSERT_EQ(hotkeyManager.PollHotkeys(), 1) << "PollHotkeys() should return true when at least one hotkey is registered.";
+    ASSERT_TRUE(hotkeyManager.PollHotkeys()) << "PollHotkeys() should return true when at least one hotkey is registered.";
 
     // Hotkeys are now polled. Check which buttons are pressed.
     ASSERT_EQ(hotkeyManager.implementation->hotkey_states[testCombo], 0) << "Hotkey state shouldn't be pressed.";
@@ -86,7 +86,7 @@ TEST_F(HotkeySystemTests, PollHotkeys) {
     hotkeyManager.registered_hotkeys.clear();
 
     // List of registered hotkeys is empty, the PollHotkeys() function should now return false;
-    ASSERT_EQ(hotkeyManager.PollHotkeys(), 0) << "PollHotkeys() should return false when no hotkeys are registered.";
+    ASSERT_FALSE(hotkeyManager.PollHotkeys()) << "PollHotkeys() should return false when no hotkeys are registered.";
 }
 
 TEST_F(HotkeySystemTests, AddHotkey) {
