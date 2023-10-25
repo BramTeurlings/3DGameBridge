@@ -105,6 +105,19 @@ TEST_F(HotkeySystemTests, AddHotkey) {
     ASSERT_EQ(0x0, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[1]) << "Keystroke [1] does not match expected keycode.";
     ASSERT_EQ(0x12, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[2]) << "Keystroke [2] does not match expected keycode.";
     ASSERT_EQ(0x31, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[3]) << "Keystroke [3] does not match expected keycode.";
+
+    // Add a new hotkey.
+    hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x31, 0x32, 0x54);
+
+    // Assert that the hotkey was added.
+    ASSERT_EQ(3, hotkeyManager.registered_hotkeys.size()) << "Hotkey was not added to registered_hotkeys after calling AddHotkey()";
+
+    // Check all the separate strokes to see if they match.
+    // The first two values are NOT NULL because they are filled in.
+    ASSERT_EQ(0x12, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[0]) << "Keystroke [0] does not match expected keycode.";
+    ASSERT_EQ(0x31, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[1]) << "Keystroke [1] does not match expected keycode.";
+    ASSERT_EQ(0x32, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[2]) << "Keystroke [2] does not match expected keycode.";
+    ASSERT_EQ(0x54, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[3]) << "Keystroke [3] does not match expected keycode.";
 }
 
 TEST_F(HotkeySystemTests, RemoveHotkey) {
