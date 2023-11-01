@@ -89,7 +89,7 @@ public:
      * \param size          Size of the extra data of the message. This can be any size regardless of the extra message size the buffer was create with
      * \param data          Extra data pointer
      * \return True when submission succeeded
-     * \return False when the message doesn't fit the buffer
+     * \return False when the event doesn't fit the buffer
      */
     bool SubmitEvent(GB_EVENT event_type, uint32_t size = 0, void* data = nullptr);
 
@@ -129,7 +129,8 @@ public:
      * @param event_manager_type        Type of the event manager to create an event stream for
      * @param max_event_count           Number of events that have to fit in the buffer
      * @param extra_event_data_size     Size of extra data that will be added per event
-     * \return Shared pointer to an EventStreamWriter
+     * \return Shared pointer to an EventStreamReader
+     * \return Returns nullptr when no even stream exist for the event_manager_type
     */
     std::shared_ptr<EventStreamWriter> CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
 

@@ -87,6 +87,9 @@ TEST_F(EventSystemTests, GetEventStreamReader) {
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
     ASSERT_TRUE(platform_event_reader);
 
+    // Check if the object is valid by calling a function
+    platform_event_reader->ResetEventIndexPointer();
+
 
     // Make sure other event streams are empty
     ASSERT_EQ(hotkey_event_reader, nullptr)
@@ -98,6 +101,9 @@ TEST_F(EventSystemTests, GetEventStreamReader) {
     hotkey_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY);
     ASSERT_EQ(hotkey_event_reader, nullptr)
         << "Hotkey manager should be empty";
+
+    // Check if the object is valid by calling a function
+    platform_event_reader->ResetEventIndexPointer();
 }
 
 TEST_F(EventSystemTests, SubmitEvent) {
@@ -209,7 +215,7 @@ TEST_F(EventSystemTests, GetNextEvent) {
         << "Unexpected event count";
 }
 
-TEST_F(EventSystemTests, ClearStream_StreamReader) {
+TEST_F(EventSystemTests, ClearStream_StreamWriter) {
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
     auto buffer = platform_event_writer->GetEventStream().buffer;
 
@@ -217,10 +223,12 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
     EventHeader* header = reinterpret_cast<EventHeader*>(buffer.get());
 
     // Submit TEST_1 and get the event header
-    platform_event_writer->SubmitEvent(TEST_1);
+    for (int i = 0; i < 5; i++) {
+        platform_event_writer->SubmitEvent(TEST_1);
+    }
 
     // Make sure there is a size higher than 0
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader))
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5)
         << "Unexpected number for Used bytes";
 
     // TEST_1 should be the first event in the stream
@@ -230,21 +238,23 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
 
     // Clear then submit TEST_2 with extra data number
     platform_event_writer->ClearStream();
-    platform_event_writer->SubmitEvent(TEST_2);
+
+    for (int i = 0; i < 5; i++) {
+        platform_event_writer->SubmitEvent(TEST_2);
+    }
 
     // Size should be exactly the same as with TEST_1
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader))
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5)
         << "Bytes used should be 0";
 
     // TEST_2 should be the first event in the stream
     ASSERT_EQ(header->event_type, TEST_2)
         << "Unexpected event, TEST_2 is not the first even in the stream";
 
-
     // TODO test with extra data
 }
 
-TEST_F(EventSystemTests, ClearStream_StreamWriter) {
+TEST_F(EventSystemTests, ClearStream_StreamReader) {
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
     // Test ClearStream for a EventStreamReader
@@ -256,7 +266,9 @@ TEST_F(EventSystemTests, ClearStream_StreamWriter) {
         platform_event_writer->SubmitEvent(TEST_1);
     }
 
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
+    for (int i = 0; i < 5; i++) {
+        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
+    }
 
     platform_event_writer->ClearStream();
     platform_event_reader->ResetEventIndexPointer();
@@ -308,113 +320,131 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
     << "Final event should be TEST_NULL";
 }
 
+// Basically a full system test that also uses PrepareForEventStreamSubmission and PrepareForEventStreamProcessing
 TEST_F(EventSystemTests, PrepareEvenStreamReadingAndWriting)
 {
-    // Get event stream reader
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    for (int redo = 0; redo < 5; redo++) {
+        // Get event stream reader
+        platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
-    // Make sure all streams are cleared and reader pointers are reset
-    event_manager.PrepareForEventStreamSubmission();
+        // Make sure all streams are cleared and reader pointers are reset
+        event_manager.PrepareForEventStreamSubmission();
 
-    // Write 500 mock events to stream
-    // Try 50 more the make sure only 500 are written, and the other 50 did not write to the stream.
+        // Pointer to first event in the stream
+        EventHeader* header = reinterpret_cast<EventHeader*>(platform_event_writer->GetEventStream().buffer.get());
 
-    for (uint32_t i = 0; i < TEST_EVENT_COUNT + 50; i++) {
-        int used_event = i % 8;
+        // Stream should be cleared
+        ASSERT_EQ(platform_event_writer->GetUsedBytes(), 0)
+            << "Unexpected number for Used bytes";
 
-        switch (used_event)
-        {
-        case 0:
-            platform_event_writer->SubmitEvent(TEST_1, 0, nullptr);
-            break;
-        case 1:
-            platform_event_writer->SubmitEvent(TEST_2, 0, nullptr);
-            break;
-        case 2:
-            platform_event_writer->SubmitEvent(TEST_3, 0, nullptr);
-            break;
-        case 3:
-            platform_event_writer->SubmitEvent(TEST_4, 0, nullptr);
-            break;
-        case 4:
-            platform_event_writer->SubmitEvent(TEST_5, 0, nullptr);
-            break;
-        case 5:
-            platform_event_writer->SubmitEvent(TEST_6, 0, nullptr);
-            break;
-        case 6:
-            platform_event_writer->SubmitEvent(TEST_7, 0, nullptr);
-            break;
-        case 7:
-            platform_event_writer->SubmitEvent(TEST_8, 0, nullptr);
-            break;
-        case 8:
-            platform_event_writer->SubmitEvent(TEST_9, 0, nullptr);
-            break;
-        }
-    }
+        // GB_EVENT_NULL should be the first event in the stream
+        ASSERT_EQ(header->event_type, GB_EVENT_NULL)
+            << "Unexpected event, TEST_1 is not the first even in the stream";
 
-    // Check whether PrepareForEventStreamProcessing
-    // Make sure every buffer has a NULL_EVENT at the end and writer pointers are reset
-    event_manager.PrepareForEventStreamProcessing();
+        // Write 500 mock events to stream
+        // Try 50 more the make sure only 500 are written, and the other 50 did not write to the stream.
 
-    // Test reading all events as expected
-    uint32_t event_type;
-    size_t extra_data_size = 0;
-    void* event_data = nullptr;
-    while (platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data)) {
-        switch (event_type) {
-        case TEST_1:
-        {
-            ASSERT_EQ(event_type, TEST_1);
-            break;
+        for (uint32_t i = 0; i < TEST_EVENT_COUNT + 50; i++) {
+            int used_event = i % 9;
+
+            switch (used_event)
+            {
+            case 0:
+                platform_event_writer->SubmitEvent(TEST_1, 0, nullptr);
+                break;
+            case 1:
+                platform_event_writer->SubmitEvent(TEST_2, 0, nullptr);
+                break;
+            case 2:
+                platform_event_writer->SubmitEvent(TEST_3, 0, nullptr);
+                break;
+            case 3:
+                platform_event_writer->SubmitEvent(TEST_4, 0, nullptr);
+                break;
+            case 4:
+                platform_event_writer->SubmitEvent(TEST_5, 0, nullptr);
+                break;
+            case 5:
+                platform_event_writer->SubmitEvent(TEST_6, 0, nullptr);
+                break;
+            case 6:
+                platform_event_writer->SubmitEvent(TEST_7, 0, nullptr);
+                break;
+            case 7:
+                platform_event_writer->SubmitEvent(TEST_8, 0, nullptr);
+                break;
+            case 8:
+                platform_event_writer->SubmitEvent(TEST_9, 0, nullptr);
+                break;
+            }
         }
-        case TEST_2:
-        {
-            ASSERT_EQ(event_type, TEST_2);
-            break;
-        }
-        case TEST_3:
-        {
-            ASSERT_EQ(event_type, TEST_3);
-            break;
-        }
-        case TEST_4:
-        {
-            ASSERT_EQ(event_type, TEST_4);
-            break;
-        }
-        case TEST_5:
-        {
-            ASSERT_EQ(event_type, TEST_5);
-            break;
-        }
-        case TEST_6:
-        {
-            ASSERT_EQ(event_type, TEST_6);
-            break;
-        }
-        case TEST_7:
-        {
-            ASSERT_EQ(event_type, TEST_7);
-            break;
-        }
-        case TEST_8:
-        {
-            ASSERT_EQ(event_type, TEST_8);
-            break;
-        }
-        case TEST_9:
-        {
-            ASSERT_EQ(event_type, TEST_9);
-            break;
-        }
-        default:
-        {
-            // 0 was already returned by GetNextEvent so the while loop quits before coming here
-            ASSERT_EQ(event_type, TEST_NULL);
-            break;
-        }
+
+        // Check whether PrepareForEventStreamProcessing
+        // Make sure every buffer has a NULL_EVENT at the end and writer pointers are reset
+        event_manager.PrepareForEventStreamProcessing();
+
+        int index = 1;
+
+        // Test reading all events as expected
+        uint32_t event_type;
+        size_t extra_data_size = 0;
+        void* event_data = nullptr;
+        while (platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data)) {
+            switch (event_type) {
+            case TEST_1:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_2:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_3:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_4:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_5:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_6:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_7:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_8:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            case TEST_9:
+            {
+                ASSERT_EQ(event_type, index);
+                break;
+            }
+            default:
+            {
+                // 0 was already returned by GetNextEvent so the while loop quits before coming here
+                ASSERT_EQ(event_type, TEST_NULL);
+                break;
+            }
+            }
+
+            index = index % 9 + 1;
         }
     }
 }

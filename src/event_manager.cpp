@@ -7,7 +7,8 @@ EventStreamReader::EventStreamReader(EventStream stream) : event_stream(stream) 
     next = event_stream.buffer.get();
 }
 
-// TODO signature not immediately clear
+// TODO Reserve data at the start of the buffer containing a boolean saying the stream is allowed to be read.
+// TODO this way we can tell whether an EOS message has been written so it's safe to read
 GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, void *data) {
     EventHeader const* header = reinterpret_cast<EventHeader*>(next);
     size = header->size;
