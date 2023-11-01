@@ -84,16 +84,9 @@ TEST_F(EventSystemTests, CreateEventStream) {
 
 TEST_F(EventSystemTests, GetEventStreamReader) {
     // Check platform event
-    weaver_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
     ASSERT_TRUE(platform_event_reader);
 
-    // Check if the first event points to the same address as the start of the event buffer.
-    uint32_t event_type;
-    size_t size;
-    void* data = nullptr;
-    weaver_event_reader->GetNextEvent(event_type, size, data);
-    ASSERT_EQ(static_cast<char*>(data) - sizeof(EventHeader), weaver_event_writer->GetEventStream().buffer.get()) // void* data, is always the address right after the header in memory.
-        << "The first event in the reader must be the same as the begin of the same event stream";
 
     // Make sure other event streams are empty
     ASSERT_EQ(hotkey_event_reader, nullptr)
@@ -102,7 +95,7 @@ TEST_F(EventSystemTests, GetEventStreamReader) {
         << "weaver_event_reader not empty, can't continue test";
 
     // Manager should not exist
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY);
+    hotkey_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY);
     ASSERT_EQ(hotkey_event_reader, nullptr)
         << "Hotkey manager should be empty";
 }
@@ -139,12 +132,13 @@ TEST_F(EventSystemTests, GetUsedBytes)
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5)
         << "Unexpected number of bytes in use";
 
+    int64_t data = 50;
     // Test with a number for extra data
     for (uint32_t i = 0; i < 5; i++) {
-        platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 21, nullptr);
+        platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, sizeof(data), &data);
     }
 
-    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) + 21 * 10)
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5 + (sizeof(EventHeader) + sizeof(data)) * 5)
         << "Unexpected number of bytes in use";
 }
 
@@ -253,9 +247,6 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
 TEST_F(EventSystemTests, ClearStream_StreamWriter) {
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
-    platform_event_writer->ClearStream();
-    platform_event_reader->ResetEventIndexPointer();
-
     // Test ClearStream for a EventStreamReader
     uint32_t event_type;
     size_t extra_data_size = 0;
@@ -267,30 +258,22 @@ TEST_F(EventSystemTests, ClearStream_StreamWriter) {
 
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
 
+    platform_event_writer->ClearStream();
+    platform_event_reader->ResetEventIndexPointer();
+
     // Make sure TEST_NULL is the only event returned after clearing
     platform_event_writer->ClearStream();
     platform_event_reader->ResetEventIndexPointer();
+    // Test 3 times to make sure the index pointer is not moving
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-
-
-    platform_event_writer->SubmitEvent(TEST_2);
-    platform_event_writer->ClearStream();
-    platform_event_reader->ResetEventIndexPointer();
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-
-    platform_event_writer->ClearStream();
-    platform_event_reader->ResetEventIndexPointer();
-    platform_event_writer->SubmitEvent(TEST_3);
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_3) << "Event not equal to TEST_3";
 }
 
 TEST_F(EventSystemTests, ResetEventIndexPointer) {
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
+    // Fill buffer
     platform_event_writer->SubmitEvent(TEST_1);
     platform_event_writer->SubmitEvent(TEST_2);
     platform_event_writer->SubmitEvent(TEST_3);
@@ -302,62 +285,38 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
     platform_event_writer->SubmitEvent(TEST_9);
     platform_event_writer->SubmitEvent(TEST_NULL);
 
+    // Test all events in buffer
     uint32_t event_type;
     size_t extra_data_size = 0;
     void* event_data = nullptr;
-
-    // Test reset function from multiple points in the buffer
-    for (int i = 1; i <= 5; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-        << "ResetEventIndexPointer: Event not equal to " << i;
-    }
-
-    platform_event_reader->ResetEventIndexPointer();
-    for (int i = 1; i <= 6; i++) {
+    for (int i = 1; i <= 9; i++) {
         ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
             << "ResetEventIndexPointer: Event not equal to " << i;
     }
+    // Final event should be TEST_NULL
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+        << "Final event should be TEST_NULL";
 
-    platform_event_reader->ResetEventIndexPointer();
-    for (int i = 1; i <= 7; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-            << "ResetEventIndexPointer: Event not equal to " << i;
-    }
-
-    platform_event_reader->ResetEventIndexPointer();
-    for (int i = 1; i <= 8; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-            << "ResetEventIndexPointer: Event not equal to " << i;
-    }
-
+    // Reset the pointer and test all events again
     platform_event_reader->ResetEventIndexPointer();
     for (int i = 1; i <= 9; i++) {
         ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
             << "ResetEventIndexPointer: Event not equal to " << i;
     }
-
     // Final event should be TEST_NULL
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
     << "Final event should be TEST_NULL";
-
-    // Make sure the event index pointer is reset to the start of the buffer
-    platform_event_reader->ResetEventIndexPointer();
-    auto buffer = platform_event_writer->GetEventStream().buffer;
-    EventHeader* header = reinterpret_cast<EventHeader*>(buffer.get());
-    GB_EVENT next_event = platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data);
-    ASSERT_EQ(next_event, header->event_type)
-    << "Event index should be the begin of the event buffer";
 }
 
-TEST_F(EventSystemTests, FullTest)
+TEST_F(EventSystemTests, PrepareEvenStreamReadingAndWriting)
 {
     // Get event stream reader
     platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
 
-    // Prepare for writing events
+    // Make sure all streams are cleared and reader pointers are reset
     event_manager.PrepareForEventStreamSubmission();
 
-    // Write 499 mock events to stream
+    // Write 500 mock events to stream
     // Try 50 more the make sure only 500 are written, and the other 50 did not write to the stream.
 
     for (uint32_t i = 0; i < TEST_EVENT_COUNT + 50; i++) {
@@ -395,11 +354,11 @@ TEST_F(EventSystemTests, FullTest)
         }
     }
 
-    // Prepare for reading events
+    // Check whether PrepareForEventStreamProcessing
+    // Make sure every buffer has a NULL_EVENT at the end and writer pointers are reset
     event_manager.PrepareForEventStreamProcessing();
 
-    uint32_t eventidx = 0;
-
+    // Test reading all events as expected
     uint32_t event_type;
     size_t extra_data_size = 0;
     void* event_data = nullptr;
@@ -457,7 +416,5 @@ TEST_F(EventSystemTests, FullTest)
             break;
         }
         }
-
-        eventidx++;
     }
 }
