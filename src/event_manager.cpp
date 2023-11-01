@@ -3,7 +3,7 @@
 #include <iostream>
 #include "game_bridge_structs.h"
 
-EventStreamReader::EventStreamReader(EventStream stream) : event_stream((stream)) {
+EventStreamReader::EventStreamReader(EventStream stream) : event_stream(stream) {
     next = event_stream.buffer.get();
 }
 
@@ -48,6 +48,9 @@ void EventStreamWriter::ClearStream() {
 // TODO reserve an extra bit of memory to fit a null event so there is always room for a null event
 // TODO This part of memory can only be accessed by the event manager, which puts a null event in
 bool EventStreamWriter::SubmitEvent(GB_EVENT event_type, uint32_t size, void* data) {
+    // If size is larger than 0 but a nullptr was passed for data, stop execution.
+    _ASSERT((size == 0 && data == nullptr) || (size > 0 && data != nullptr) && "Either size and data are 0, or size is larger than 0 and data is not nullptr.");
+
     size_t remaining_memory = event_stream.user_buffer_size - used_bytes;
     if (remaining_memory < sizeof(EventHeader) + size)
     {
@@ -64,7 +67,7 @@ bool EventStreamWriter::SubmitEvent(GB_EVENT event_type, uint32_t size, void* da
 
 EventStream EventStreamWriter::GetEventStream()
 {
-    // TODO !!! Event manager keeps a list of EventManager objects, those are different from the ones being stored in EventStreamWriters !!! This is a bug !!
+    // TODO !!! Event manager keeps a list of EventStream objects, those are different from the ones being stored in EventStreamWriters !!! This could be considered a bug !!
     // TODO should return a const pointer maybe? If this object gets edited by the manager it won't be reflected in the returned value here since it's a copy. Could be a design decision for easier multi threading perhaps
     return event_stream;
 }
@@ -83,8 +86,12 @@ std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManag
         stream_readers.push_back(reader);
         return reader;
     }
-    catch (std::runtime_error& error){
+    catch (std::out_of_range&){
         std::cout << "Couldn't find existing stream" << "\n";
+        return std::shared_ptr<EventStreamReader>{};
+    }
+    catch (std::exception& error) {
+        std::cout << "Exception occurred while getting even stream: " << error.what() << "\n";
         return std::shared_ptr<EventStreamReader>{};
     }
 }
@@ -102,23 +109,23 @@ std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(EventManagerT
 
     std::shared_ptr<EventStreamWriter> writer = std::make_shared<EventStreamWriter>(EventStreamWriter(stream));
     stream_writers.push_back(writer);
+    // Initialize the stream with a NULL_EVENT
+    writer->ClearStream();
 
     return writer;
 }
 
 void EventManager::PrepareForEventStreamProcessing()
 {
-    // Add final event message
+    // Add NULL_EVENT at the end of every buffer
     for(const auto& writer : stream_writers)
     {
         auto stream = writer->GetEventStream();
         size_t used_bytes = writer->GetUsedBytes();
 
+        // Cannot fit NULL_EVENT at the end of the buffer, if this happens there is a bug somewhere.
         size_t remaining_memory = stream.buffer_size - writer->GetUsedBytes();
-        if (remaining_memory < sizeof(EventHeader))
-        {
-            throw std::exception("No memory left in the buffer for the event manager");
-        }
+        _ASSERT(remaining_memory >= sizeof(EventHeader) && "There should always be more remaining memory than the size of an event header at this point");
 
         // Add event header and data to the stream
         EventHeader header{ 0, GB_EVENT_NULL };
