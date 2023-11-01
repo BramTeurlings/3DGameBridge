@@ -74,6 +74,12 @@ option(BUILD_UNIT_TESTS "Enabled the unit_tests project")
 if(BUILD_UNIT_TESTS)
 	message("Building unit tests")
 	add_subdirectory(unit_tests)
+
+# Copy all linked dlls to build executable directory
+	add_custom_command(
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:3DGameBridge>" $<TARGET_FILE_DIR:unit_tests>
+    TARGET 3DGameBridge POST_BUILD
+)
 endif()
 
 # Link dependancies
