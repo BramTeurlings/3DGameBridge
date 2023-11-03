@@ -21,7 +21,6 @@ struct GAME_BRIDGE_API EventHeader {
 // const data members makes the struct only copy constructable, not copy assignable
 /*
  * Struct holding the underlying event stream
- *
  */
 struct GAME_BRIDGE_API EventStream {
     // Size of the entire buffer.
@@ -124,7 +123,7 @@ public:
 
     /**
      * \brief   Creates an EventStreamWriter object with an underlying EvenStream for the given EventManagerType
-     * \details The underlying buffer wil be made larger than the given buffer size to fit extra system messages.
+     * \details The underlying buffer will be made larger than the given buffer size to fit extra system messages.
      * Buffer layout will look like: <[Header][Extra Message Data]> ..... <[NULL_EVENT]>. Buffer will always end with a NULL_EVENT.
      * @param event_manager_type        Type of the event manager to create an event stream for
      * @param max_event_count           Number of events that have to fit in the buffer

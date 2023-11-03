@@ -303,7 +303,7 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
     void* event_data = nullptr;
     for (int i = 1; i <= 9; i++) {
         ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-            << "ResetEventIndexPointer: Event not equal to " << i;
+            << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
@@ -313,7 +313,7 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
     platform_event_reader->ResetEventIndexPointer();
     for (int i = 1; i <= 9; i++) {
         ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-            << "ResetEventIndexPointer: Event not equal to " << i;
+            << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
@@ -361,7 +361,7 @@ TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
     void* event_data = nullptr;
     for (int i = 1; i <= 9; i++) {
         ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-            << "ResetEventIndexPointer: Event not equal to " << i;
+            << "Event not equal to " << i;
     }
 
     // Resets the pointer and adds EVENT_NULL
@@ -370,7 +370,7 @@ TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
     // Can process events again
     for (int i = 1; i <= 9; i++) {
         ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
-            << "ResetEventIndexPointer: Event not equal to " << i;
+            << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
     ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
