@@ -124,7 +124,7 @@ void EventManager::PrepareForEventStreamProcessing()
         auto stream = writer->GetEventStream();
         size_t used_bytes = writer->GetUsedBytes();
 
-        // Cannot fit NULL_EVENT at the end of the buffer, if this happens there is a bug somewhere.
+        // Cannot fit NULL_EVENT at the end of the buffer, if this executes there is a bug somewhere.
         size_t remaining_memory = stream.buffer_size - writer->GetUsedBytes();
         _ASSERT(remaining_memory >= sizeof(EventHeader) && "There should always be more remaining memory than the size of an event header at this point");
 

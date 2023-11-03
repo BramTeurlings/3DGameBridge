@@ -320,8 +320,64 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
     << "Final event should be TEST_NULL";
 }
 
+TEST_F(EventSystemTests, PrepareForEventStreamSubmission)
+{
+    // Get event stream reader
+    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+
+    // Make sure all streams are cleared and reader pointers are reset
+    event_manager.PrepareForEventStreamSubmission();
+
+    // Pointer to first event in the stream
+    EventHeader* header = reinterpret_cast<EventHeader*>(platform_event_writer->GetEventStream().buffer.get());
+
+    // Stream should be cleared
+    ASSERT_EQ(platform_event_writer->GetUsedBytes(), 0)
+        << "Unexpected number for Used bytes";
+
+    // GB_EVENT_NULL should be the first event in the stream
+    ASSERT_EQ(header->event_type, GB_EVENT_NULL)
+        << "Unexpected event, TEST_1 is not the first even in the stream";
+}
+
+TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
+{
+    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+
+    // Fill buffer
+    platform_event_writer->SubmitEvent(TEST_1);
+    platform_event_writer->SubmitEvent(TEST_2);
+    platform_event_writer->SubmitEvent(TEST_3);
+    platform_event_writer->SubmitEvent(TEST_4);
+    platform_event_writer->SubmitEvent(TEST_5);
+    platform_event_writer->SubmitEvent(TEST_6);
+    platform_event_writer->SubmitEvent(TEST_7);
+    platform_event_writer->SubmitEvent(TEST_8);
+    platform_event_writer->SubmitEvent(TEST_9);
+
+    // Test all events in buffer
+    uint32_t event_type;
+    size_t extra_data_size = 0;
+    void* event_data = nullptr;
+    for (int i = 1; i <= 9; i++) {
+        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+            << "ResetEventIndexPointer: Event not equal to " << i;
+    }
+
+    // Resets the pointer and adds EVENT_NULL
+    event_manager.PrepareForEventStreamProcessing();
+
+    // Can process events again
+    for (int i = 1; i <= 9; i++) {
+        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+            << "ResetEventIndexPointer: Event not equal to " << i;
+    }
+    // Final event should be TEST_NULL
+    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+        << "Final event should be TEST_NULL";
+}
 // Basically a full system test that also uses PrepareForEventStreamSubmission and PrepareForEventStreamProcessing
-TEST_F(EventSystemTests, PrepareEvenStreamReadingAndWriting)
+TEST_F(EventSystemTests, FullTest)
 {
     for (int redo = 0; redo < 5; redo++) {
         // Get event stream reader
