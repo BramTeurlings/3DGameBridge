@@ -109,7 +109,7 @@ public:
 class GAME_BRIDGE_API EventManager : private IGameBridgeManager {
     // If we need more in the future we could use a producer/consumer strategy
 
-    std::unordered_map<uint32_t, EventStream, ClassHash> event_streams = {};
+    std::unordered_map<uint32_t, EventStream> event_streams = {};
     std::vector<std::shared_ptr<EventStreamReader>> stream_readers = {};
     std::vector<std::shared_ptr<EventStreamWriter>> stream_writers = {};
 

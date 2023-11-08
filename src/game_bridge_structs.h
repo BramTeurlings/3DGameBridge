@@ -56,14 +56,3 @@ enum GAME_BRIDGE_API WeaverFlags {
     SRGB_MANUAL_SET_CAMERA_LATENCY_VALUE,
     SRGB_MANUAL_SET_CAMERA_LATENCY_IN_FRAMES__VALUE
 };
-
-// Utility
-struct ClassHash
-{
-    template <typename T>
-    std::size_t operator()(T t) const
-    {
-        return static_cast<std::size_t>(t);
-    }
-};
-
