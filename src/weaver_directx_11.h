@@ -31,13 +31,13 @@ class DirectX11Weaver : private IGameBridgeManager {
     SR::SRContext *sr_context;
     SR::PredictingDX11Weaver* native_weavers[2] = { {}, {}};
     int native_weaver_index = 0;
-    EventStreamWriter* event_stream_writer;
-    EventStreamReader* event_stream_reader;
+    //EventStreamWriter* event_stream_writer;
+    //EventStreamReader* event_stream_reader;
     void** back_buffer;
 
     void SetWeaving(bool weaving_enabled) {}
 
-    bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc)
+    bool create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc)
     {
         // Check if device context or render target view is null
         if (!device_context || !effect_resource_desc)

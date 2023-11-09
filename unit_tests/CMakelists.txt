@@ -18,9 +18,4 @@ target_link_libraries(unit_tests PRIVATE 3DGameBridge)
 # Gtest
 target_link_libraries(unit_tests PRIVATE gtest gtest_main)
 
-
-# Copy all linked dlls to build executable directory
-add_custom_command(
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:3DGameBridge>" $<TARGET_FILE_DIR:unit_tests>
-    TARGET unit_tests POST_BUILD
-)
+target_link_libraries(unit_tests PRIVATE 3DGameBridge)

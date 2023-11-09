@@ -34,8 +34,8 @@ class DirectX12Weaver : private IGameBridgeManager {
     SR::SRContext *sr_context;
     SR::PredictingDX12Weaver* native_weavers[2] = { {}, {}};
     int native_weaver_index = 0;
-    EventStreamWriter* event_stream_writer;
-    EventStreamReader* event_stream_reader;
+    //EventStreamWriter* event_stream_writer;
+    //EventStreamReader* event_stream_reader;
     ID3D12CommandQueue* command_queue;
     ID3D12GraphicsCommandList* command_list;
 
@@ -44,7 +44,7 @@ class DirectX12Weaver : private IGameBridgeManager {
 
     void SetWeaving(bool weaving_enabled) {}
 
-    bool DirectX12Weaver::create_effect_copy_buffer(ID3D12Device* device, ID3D12Resource* effect_resource)
+    bool create_effect_copy_buffer(ID3D12Device* device, ID3D12Resource* effect_resource)
     {
         // Check if device or effect resource is null
         if (!device || !effect_resource)
