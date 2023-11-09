@@ -4,15 +4,11 @@
 
 #pragma once
 
-#include <map>
 #include "hotkey_interface.h"
 #include "event_manager.h"
 #include "game_bridge.h"
 #include "game_bridge_structs.h"
-
-enum class GAME_BRIDGE_API HotkeyManagerInitializeFlags {
-    SRGB_HOTKEY_MANAGER_NO_FLAGS
-};
+#include <map>
 
 struct GAME_BRIDGE_API HotkeyManagerInitialize {
     std::shared_ptr<IHotkeys> implementation;
@@ -20,12 +16,15 @@ struct GAME_BRIDGE_API HotkeyManagerInitialize {
     GameBridge game_bridge;
 };
 
+struct HotkeyContainer {
+    IHotkeys::CombinedHotkeyStrokes hotkey_combination;
+    HotKeyEvent hotkey_event;
+};
+
 class GAME_BRIDGE_API HotkeyManager : private IGameBridgeManager {
 public:
-    std::vector<IHotkeys::HotkeyContainer> registered_hotkeys;
-//    std::map<IHotkeys::HotkeyCombination, HotKeyEvent> key_combo;
-    //EventStreamWriter* event_stream_writer;
-    void* event_stream_buffer{};
+    std::vector<HotkeyContainer> registered_hotkeys;
+    EventStreamWriter* event_stream_writer{};
     std::shared_ptr<IHotkeys> implementation;
 
     HotkeyManager() = default;
@@ -33,8 +32,8 @@ public:
     explicit HotkeyManager(HotkeyManagerInitialize initialize);
 
     // Checks if the specified hotkeys are being pressed or not.
-    // Returns true if the operation was successful
-    // Returns false if the operation was not successful, usually due to an uninitialized hotkey manager implementation
+    // Returns true if one or more hotkey(s) were successfully checked.
+    // Returns false if the operation was not successful, usually due to an uninitialized hotkey manager implementation or if no hotkeys were registered.
     bool PollHotkeys();
 
     // Adds the specified hotkey to the list of registered hotkeys.
@@ -50,12 +49,13 @@ public:
     void AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, uint8_t second_keystroke = 0, uint8_t third_keystroke = 0, uint8_t fourth_keystroke = 0);
 
     // Removes the specified hotkey from the list of registered hotkeys.
-    void RemoveHotkey(uint32_t key_bits);
+    //
+    // combined_number: The uint32_t representing the key codes requires to trigger the hotkey.
+    // event_type: The enum class representing the type of event that should trigger when pressing the hotkey.
+    void RemoveHotkey(uint32_t combined_number, HotKeyEvent event_type);
 
     // Uses the event_stream_writer to send all generated events to the EventManager depending on what keys are pressed.
     void SendHotkeyEvents();
-
-    void* GetEventBuffer();
 
     GameBridgeManagerType GetEventManagerType() override;
 };
