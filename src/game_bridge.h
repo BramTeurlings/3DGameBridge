@@ -16,7 +16,7 @@ namespace game_bridge {
     extern "C" GAME_BRIDGE_API void init_api();
 }
 
-class GameBridge {
+class GAME_BRIDGE_API GameBridge {
     std::vector<IGameBridgeManager*> game_bridge_managers;
     EventManager event_manager;
 

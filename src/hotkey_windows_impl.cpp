@@ -2,78 +2,97 @@
 // Created by Bram on 22/06/2023.
 //
 
-#include "hotkey_interface.h"
+#include "hotkey_windows_impl.h"
 
-#include <iostream>
 #include <vector>
 #include <Windows.h>
 #include <map>
+#include <algorithm>
 
-class WindowsHotkeyImplementation : private IHotkeys {
-    public:
-    std::vector<std::map<uint32_t, bool>> CheckHotkeys(std::vector<uint32_t> keyCodes) override {
-        // Clear list of hotkey states.
-        hotkey_states.clear();
+std::map<IHotkeys::CombinedHotkeyStrokes, bool, IHotkeys::UnionComparator>
+WindowsHotkeyImplementation::CheckHotkeys(std::vector<CombinedHotkeyStrokes> key_codes) {
+    // Prepare the return vector
+    std::map<CombinedHotkeyStrokes, bool, IHotkeys::UnionComparator> result{};
 
-        std::vector<std::map<uint32_t, bool>> keyStates;
+    // Clear list of hotkey states.
+    hotkey_states.clear();
 
+    // List of keycodes with their status.
+    std::map<uint8_t, bool> keyStates;
+
+    // Loop through the hotkeys
+    for (auto it = key_codes.begin(); it != key_codes.end(); it++)
+    {
         // Loop through the key codes
-        for (size_t i = 0; i < keyCodes.size(); i++)
-        {
+        for (unsigned char keyCode : it->separatedStrokes) {
             // Check the state of each key code
-            auto keyCode = static_cast<int>(keyCodes[i]);
-
-            // Todo: Microsoft sample checks against 0x01 instead, we need to check if this works. We're supposed to check the most significant bit to get the read state.
-            // By performing a bitwise AND operation between the GetAsyncKeyState result and 0x8000.
-            // We extract the most significant bit, which corresponds to the key state.
-            // If the result is non-zero (bit 15 is set), it means the key is pressed.
-            // If the result is zero (bit 15 is not set), it means the key is released.
-            bool isKeyPressed = GetAsyncKeyState(keyCode) & 0x8000;
-
-            // Update the key state in the vector
-            std::map<uint32_t, bool> keyState;
-            keyState[keyCode] = isKeyPressed;
-
-            // Add the map to the vector
-            keyStates.push_back(keyState);
-        }
-
-        // Todo: Check if this is using the copy constructor, because I want to make a copy here.
-        // Set the list of pressed_keys.
-        hotkey_states = keyStates;
-
-        // Returns the key states
-        return keyStates;
-    }
-
-    std::vector<uint32_t> GetKeysPressed() override {
-        // Clear list of pressed keys.
-        pressed_keys.clear();
-
-        std::vector<uint32_t> keysPressed;
-
-        // Loop through the possible key codes
-        for (uint32_t keyCode = 0; keyCode < 256; keyCode++)
-        {
-            // Todo: Microsoft sample checks against 0x01 instead, we need to check if this works. We're supposed to check the most significant bit to get the read state.
-            // By performing a bitwise AND operation between the GetAsyncKeyState result and 0x8000.
-            // We extract the most significant bit, which corresponds to the key state.
-            // If the result is non-zero (bit 15 is set), it means the key is pressed.
-            // If the result is zero (bit 15 is not set), it means the key is released.
-            bool isKeyPressed = GetAsyncKeyState(static_cast<int>(keyCode)) & 0x8000;
-
-            // Add the key code to the vector if it's pressed
-            if (isKeyPressed)
-            {
-                keysPressed.push_back(keyCode);
+            // Skip if key has already been checked.
+            if (keyStates.count(keyCode)){
+                continue;
             }
+
+            // By performing a bitwise AND operation between the GetAsyncKeyState result and 0x8000.
+            // We extract the most significant bit, which corresponds to the key state.
+            // If the result is non-zero (bit 15 is set), it means the key is pressed.
+            // If the result is zero (bit 15 is not set), it means the key is released.
+            bool isKeyPressed = GetAsyncKeyState((int)keyCode) & 0x8000;
+
+            // Add key status to the map.
+            keyStates.insert({keyCode, isKeyPressed});
         }
 
-        // Todo: Check if this is using the copy constructor, because I want to make a copy here.
-        // Set the list of pressed_keys.
-        pressed_keys = keysPressed;
+        // Combine all keycodes that correspond to the current hotkey into one uint32_t, substitute 0 when the key is not pressed.
+        CombinedHotkeyStrokes currentHotkeyStatus{};
+        currentHotkeyStatus.separatedStrokes[0] = (keyStates.find(it->separatedStrokes[0])->second) ? keyStates.find(it->separatedStrokes[0])->first : 0x0;
+        currentHotkeyStatus.separatedStrokes[1] = (keyStates.find(it->separatedStrokes[1])->second) ? keyStates.find(it->separatedStrokes[1])->first : 0x0;
+        currentHotkeyStatus.separatedStrokes[2] = (keyStates.find(it->separatedStrokes[2])->second) ? keyStates.find(it->separatedStrokes[2])->first : 0x0;
+        currentHotkeyStatus.separatedStrokes[3] = (keyStates.find(it->separatedStrokes[3])->second) ? keyStates.find(it->separatedStrokes[3])->first : 0x0;
 
-        // Return the vector of pressed keys
-        return keysPressed;
+        // Sort all the stokes to be consistent with the registered keystokes.
+        std::sort(&currentHotkeyStatus.separatedStrokes[0],&currentHotkeyStatus.separatedStrokes[4]);
+
+        if((currentHotkeyStatus.combinedNumber & it->combinedNumber) == it->combinedNumber) {
+            // The hotkey is pressed.
+            result[it.operator*()] = true;
+        } else {
+            // The hotkey is not pressed.
+            result[it.operator*()] = false;
+        }
+
     }
-};
+
+    // Set the list of pressed_keys.
+    hotkey_states = result;
+
+    // Returns the key states
+    return result;
+}
+
+std::vector<uint32_t> WindowsHotkeyImplementation::GetKeysPressed() {
+    // Clear list of pressed keys.
+    pressed_keys.clear();
+
+    std::vector<uint32_t> keysPressed;
+
+    // Loop through the possible key codes
+    for (uint32_t keyCode = 0; keyCode < 256; keyCode++)
+    {
+        // By performing a bitwise AND operation between the GetAsyncKeyState result and 0x8000.
+        // We extract the most significant bit, which corresponds to the key state.
+        // If the result is non-zero (bit 15 is set), it means the key is pressed.
+        // If the result is zero (bit 15 is not set), it means the key is released.
+        bool isKeyPressed = GetAsyncKeyState(static_cast<int>(keyCode)) & 0x8000;
+
+        // Add the key code to the vector if it's pressed
+        if (isKeyPressed)
+        {
+            keysPressed.push_back(keyCode);
+        }
+    }
+
+    // Set the list of pressed_keys.
+    pressed_keys = keysPressed;
+
+    // Return the vector of pressed keys
+    return keysPressed;
+}

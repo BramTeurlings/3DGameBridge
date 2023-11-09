@@ -2,54 +2,78 @@
 // Created by Bram on 15/06/2023.
 //
 
+#include "hotkey_windows_impl.h"
 #include "hotkey_manager.h"
-#include "hotkey_windows_impl.cpp"
+#include <algorithm>
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
-    void* event_stream;
+    // Todo: Wait for event manager implementation.
+    //void* event_stream;
     //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
     //event_stream_buffer = event_stream;
 }
 
-void HotkeyManager::PollHotkeys() {
-    // Polls the hotkeys using the current implementation of the IHotkeys interface. (Statically defined as Windows at present).
-
-    //Windows Implementation:
-    WindowsHotkeyImplementation hotkey_manager;
-
-    std::vector<uint32_t> hotkeys;
-    for(uint32_t i = 0; i < key_combo.size();) {
-        hotkeys.push_back(key_combo[i]);
+// Polls the hotkeys using the current implementation of the IHotkeys interface. (Currently defaults to the Windows Implementation).
+bool HotkeyManager::PollHotkeys() {
+    //Check if hotkey implementation is initialized
+    if (this->implementation == nullptr){
+        //Hotkey Implementation is not initialized.
+        return false;
     }
 
-    //Let the IHotkeys interface check the hotkeys, they can be retrieved from its "hotkey_states" member.
-    std::vector<std::map<uint32_t, bool>> checkedHotkeys = hotkey_manager.CheckHotkeys(hotkeys);
+    // Adds all registered hotkeys to the list of hotkeys.
+    std::vector<IHotkeys::CombinedHotkeyStrokes> hotkeys;
+    for(auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); it++) {
+        hotkeys.push_back(it->hotkey_combination);
+    }
+
+    //Let the IHotkeys interface check the hotkeys, they can be retrieved later from its "hotkey_states" member.
+    if(this->implementation->CheckHotkeys(hotkeys).empty()){
+        // No hotkeys were registered
+        return false;
+    }
+
+    return true;
 }
 
-void HotkeyManager::AddHotkey(uint32_t key_bits, GameBridgeEvents event_type) {
-    key_combo.insert(std::map<uint32_t, GameBridgeEvents>::value_type (0, event_type));
+void HotkeyManager::AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, uint8_t second_keystroke, uint8_t third_keystroke, uint8_t fourth_keystroke) {
+    // Start by combining all shortcuts into the union.
+    IHotkeys::CombinedHotkeyStrokes received_strokes{};
+    received_strokes.separatedStrokes[0] = first_keystroke;
+    received_strokes.separatedStrokes[1] = second_keystroke;
+    received_strokes.separatedStrokes[2] = third_keystroke;
+    received_strokes.separatedStrokes[3] = fourth_keystroke;
+
+    // Sort all keystrokes
+    std::sort(&received_strokes.separatedStrokes[0],&received_strokes.separatedStrokes[4]);
+
+    HotkeyContainer tempContainer;
+    tempContainer.hotkey_combination = received_strokes;
+    tempContainer.hotkey_event = event_type;
+    registered_hotkeys.push_back(tempContainer);
 }
 
-void HotkeyManager::RemoveHotkey(uint32_t key_bits) {
-    key_combo.erase(key_bits);
+
+
+void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, HotKeyEvent event_type) {
+    for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
+        if (it->hotkey_combination.combinedNumber == combined_number && it->hotkey_event == event_type) {
+            // Found matching hotkey, time to remove it!
+            registered_hotkeys.erase(it);
+            return;
+        }
+    }
 }
 
 void HotkeyManager::SendHotkeyEvents() {
-    for(int i = 0; i < implementation->hotkey_states.size(); i++){
-        auto it = implementation->hotkey_states[i].begin();
-        if(it->second) {
-            // Todo: Assuming the uint32_t is always 4 bytes, we use that as the size of the payload. (This is probably wrong?)
-            event_stream_writer->SubmitEvent(it->second, 4, reinterpret_cast<void *>((uintptr_t) it->first));
+    for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
+        if (implementation->hotkey_states[it->hotkey_combination]) {
+            // Found pressed hotkey, send event.
+            event_stream_writer->SubmitEvent(it->hotkey_event, 0, nullptr);
         }
-        it++;
     }
-}
-
-void *HotkeyManager::GetEventBuffer() {
-    return event_stream_buffer;
 }
 
 GameBridgeManagerType HotkeyManager::GetEventManagerType() {
     return GameBridgeManagerType::SRGB_MANAGER_HOTKEY;
 }
-

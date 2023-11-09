@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -16,15 +17,18 @@ struct EventHeader {
 };
 
 struct EventStream {
-	const size_t stream_size;
-	const uint32_t max_event_count;
-	std::shared_ptr<char[]> const stream;
+    //Todo: Removed const here due to construction problems with the event_streams object. Check if this is ok.
+	size_t stream_size;
+    //Todo: Removed const here due to construction problems with the event_streams object. Check if this is ok.
+    uint32_t max_event_count;
+    //Todo: Removed const here due to construction problems with the event_streams object. Check if this is ok.
+    std::shared_ptr<char[]> stream;
 	uint32_t stream_id; // Used for event type for now, later used as actual id
 };
 // Reserve 0 as the NULL EVENT
 constexpr size_t GB_EVENT_NULL = 0;
 
-class EventStreamReader {
+class GAME_BRIDGE_API EventStreamReader {
 	const EventStream event_stream;
 	char* next = nullptr;
 
@@ -46,7 +50,7 @@ public:
 	// const void* const GetEventStream();
 };
 
-class EventStreamWriter {
+class GAME_BRIDGE_API EventStreamWriter {
 	const EventStream event_stream;
 	size_t used_bytes = 0;
 
@@ -63,9 +67,9 @@ public:
 // When event should be recorded again, the EventManager should be put back in a recording/submitting state
 // If we need more in the future we could use a producer/consumer strategy
 
-class EventManager : private IGameBridgeManager {
+class GAME_BRIDGE_API EventManager : private IGameBridgeManager {
 private:
-    std::unordered_map<EventManagerType, EventStream> event_streams = {};
+    std::unordered_map<EventManagerType, EventStream, ClassHash> event_streams = {};
 
 public:
 	// Probably not necessary anymore

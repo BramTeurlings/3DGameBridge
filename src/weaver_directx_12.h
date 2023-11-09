@@ -2,6 +2,8 @@
 // Created by Bram on 14/06/2023.
 //
 
+#pragma once
+
 // Context
 #include <sr/management/srcontext.h>
 
@@ -17,12 +19,6 @@
 #include <combaseapi.h>
 #include <DirectXMath.h>
 #include "d3d12.h"
-
-#ifndef INC_3DGAMEBRIDGE_DIRECTX_12_WEAVER_H
-#define INC_3DGAMEBRIDGE_DIRECTX_12_WEAVER_H
-
-#endif //INC_3DGAMEBRIDGE_DIRECTX_12_WEAVER_H
-#pragma once
 
 struct DX12WeaverInitialize {
     // SDK Params

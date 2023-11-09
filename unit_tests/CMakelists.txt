@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 project (unit_tests VERSION 0.1)
+# Update this every time gtest is updated.
 add_subdirectory(lib/googletest-1.14.0)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
@@ -16,6 +17,7 @@ target_link_libraries(unit_tests PRIVATE 3DGameBridge)
 
 # Gtest
 target_link_libraries(unit_tests PRIVATE gtest gtest_main)
+
 
 # Copy all linked dlls to build executable directory
 add_custom_command(
