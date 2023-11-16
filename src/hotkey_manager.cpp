@@ -8,9 +8,7 @@
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
     // Todo: Wait for event manager implementation.
-    //void* event_stream;
-    //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
-    //event_stream_buffer = event_stream;
+    event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, 100, 0);
 }
 
 // Polls the hotkeys using the current implementation of the IHotkeys interface. (Currently defaults to the Windows Implementation).
@@ -65,11 +63,11 @@ void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, HotKeyEvent ev
     }
 }
 
-void HotkeyManager::SendHotkeyEvents() {
+bool HotkeyManager::SendHotkeyEvents() {
     for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
         if (implementation->hotkey_states[it->hotkey_combination]) {
             // Found pressed hotkey, send event.
-            event_stream_writer->SubmitEvent(it->hotkey_event, 0, nullptr);
+            return event_stream_writer->SubmitEvent(it->hotkey_event, 0, nullptr);
         }
     }
 }

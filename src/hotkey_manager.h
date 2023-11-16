@@ -24,7 +24,7 @@ struct HotkeyContainer {
 class GAME_BRIDGE_API HotkeyManager : private IGameBridgeManager {
 public:
     std::vector<HotkeyContainer> registered_hotkeys;
-    EventStreamWriter* event_stream_writer{};
+    std::shared_ptr<EventStreamWriter> event_stream_writer{};
     std::shared_ptr<IHotkeys> implementation;
 
     HotkeyManager() = default;
@@ -55,7 +55,7 @@ public:
     void RemoveHotkey(uint32_t combined_number, HotKeyEvent event_type);
 
     // Uses the event_stream_writer to send all generated events to the EventManager depending on what keys are pressed.
-    void SendHotkeyEvents();
+    bool SendHotkeyEvents();
 
     GameBridgeManagerType GetEventManagerType() override;
 };

@@ -2,6 +2,7 @@
 
 // TODO Move all the export definitions in the project to an common header file for internal use only (if that works)
 #include <cstddef>
+#include <cstdint>
 
 #ifdef GAME_BRIDGE_API_EXPORTS
 #define GAME_BRIDGE_API __declspec(dllexport)

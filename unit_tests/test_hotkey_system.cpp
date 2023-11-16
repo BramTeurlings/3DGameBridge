@@ -135,12 +135,10 @@ TEST_F(HotkeySystemTests, RemoveHotkey) {
 
 TEST_F(HotkeySystemTests, SendHotkeyEvents) {
     // Todo: Implement, make sure to test sending one and multiple hotkeys
-    ASSERT_EQ(0 ,1) << "Not implemented.";
-}
+    // First see if the amount of registered hotkeys is equal to 1.
+    ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size()) << "No hotkeys initially registered.";
 
-TEST_F(HotkeySystemTests, GetEventBuffer) {
-    // Todo: Implement, make sure to test if the buffer is usable and not empty.
-    ASSERT_EQ(0 ,1) << "Not implemented.";
+    ASSERT_TRUE(hotkeyManager.SendHotkeyEvents());
 }
 
 TEST_F(HotkeySystemTests, CheckHotkeys) {
