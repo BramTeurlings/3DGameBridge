@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 #include "hotkey_manager.h"
 #include "hotkey_windows_impl.h"
+#include "windows.h"
 
 class HotkeySystemTests : public ::testing::Test {
 
@@ -138,7 +139,47 @@ TEST_F(HotkeySystemTests, SendHotkeyEvents) {
     // First see if the amount of registered hotkeys is equal to 1.
     ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size()) << "No hotkeys initially registered.";
 
-    ASSERT_TRUE(hotkeyManager.SendHotkeyEvents());
+    //Max size for the events is 100 so let's add one too many.
+    for(int i = 0; i < 101; i++){
+        // Add a new hotkey that we know is not pressed.
+        hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x11, 0x11);
+    }
+
+    ASSERT_TRUE(hotkeyManager.SendHotkeyEvents()) << "Should succeed because no hotkeys are pressed so none of them should be sent.";
+
+    //Max size for the events is 100 so let's add 100.
+    for(int i = 0; i < 100; i++){
+        // Add a new hotkey that is being pressed.
+        hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x12);
+    }
+
+    // See if the amount of registered hotkeys is equal to 102.
+    ASSERT_EQ(202, hotkeyManager.registered_hotkeys.size()) << "No hotkeys registered after adding 101.";
+
+    // This structure will be used to create the keyboard input event.
+    INPUT ip;
+
+    // Set up a generic keyboard event.
+    ip.type = INPUT_KEYBOARD;
+    ip.ki.wScan = 0; // hardware scan code for key
+    ip.ki.time = 0;
+    ip.ki.dwExtraInfo = 0;
+
+    // Press the "hotkey" key
+    ip.ki.wVk = 0x12; // virtual-key code for the "alt" key
+    ip.ki.dwFlags = 0; // 0 for key press
+    SendInput(1, &ip, sizeof(INPUT));
+
+    hotkeyManager.PollHotkeys();
+
+    // Release the "hotkey" key
+    ip.ki.dwFlags = KEYEVENTF_KEYUP; // KEYEVENTF_KEYUP for key release
+    SendInput(1, &ip, sizeof(INPUT));
+
+    ASSERT_TRUE(hotkeyManager.SendHotkeyEvents()) << "Sending 100 pressed hotkeys should not fail.";
+
+    // Send the 100 pressed hotkeys again to go over the maximum allowed number, this should fail.
+    ASSERT_FALSE(hotkeyManager.SendHotkeyEvents()) << "Hotkey sending should be rejected once the limit of 100 is reached.";
 }
 
 TEST_F(HotkeySystemTests, CheckHotkeys) {

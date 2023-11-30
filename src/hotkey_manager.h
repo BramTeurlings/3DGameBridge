@@ -55,6 +55,7 @@ public:
     void RemoveHotkey(uint32_t combined_number, HotKeyEvent event_type);
 
     // Uses the event_stream_writer to send all generated events to the EventManager depending on what keys are pressed.
+    // This will return false when the send operation failed, a failure will not invalidate events sent earlier.
     bool SendHotkeyEvents();
 
     GameBridgeManagerType GetEventManagerType() override;

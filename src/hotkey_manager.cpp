@@ -65,11 +65,15 @@ void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, HotKeyEvent ev
 
 bool HotkeyManager::SendHotkeyEvents() {
     for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
+        // Check if the hotkey state of the current hotkey combination is true.
         if (implementation->hotkey_states[it->hotkey_combination]) {
             // Found pressed hotkey, send event.
-            return event_stream_writer->SubmitEvent(it->hotkey_event, 0, nullptr);
+            if(!event_stream_writer->SubmitEvent(it->hotkey_event, 0, nullptr)) {
+                return false;
+            }
         }
     }
+    return true;
 }
 
 GameBridgeManagerType HotkeyManager::GetEventManagerType() {
