@@ -119,10 +119,10 @@ public:
      * @param event_manager_type    type of the event manager to get a processing stream of.
      * \return Shared pointer to an EventStreamReader
      */
-    std::shared_ptr<EventStreamReader> GetEventStreamReader(EventManagerType event_manager_type);
+    std::shared_ptr<EventStreamReader> GetEventStreamReader(GameBridgeEventManagerType event_manager_type);
 
     /**
-     * \brief   Creates an EventStreamWriter object with an underlying EvenStream for the given EventManagerType
+     * \brief   Creates an EventStreamWriter object with an underlying EvenStream for the given GameBridgeEventManagerType
      * \details The underlying buffer will be made larger than the given buffer size to fit extra system messages.
      * Buffer layout will look like: <[Header][Extra Message Data]> ..... <[NULL_EVENT]>. Buffer will always end with a NULL_EVENT.
      * @param event_manager_type        Type of the event manager to create an event stream for
@@ -131,7 +131,7 @@ public:
      * \return Shared pointer to an EventStreamReader
      * \return Returns nullptr when no even stream exist for the event_manager_type
     */
-    std::shared_ptr<EventStreamWriter> CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
+    std::shared_ptr<EventStreamWriter> CreateEventStream(GameBridgeEventManagerType event_manager_type, uint32_t max_event_count = DEFAULT_MESSAGE_COUNT, size_t extra_event_data_size = DEFAULT_MESSAGE_SIZE);
 
     /**
      * \brief   Prepare event streams for processing of the events.

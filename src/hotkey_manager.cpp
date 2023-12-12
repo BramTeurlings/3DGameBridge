@@ -9,7 +9,7 @@
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
     // Todo: Wait for event manager implementation.
     //void* event_stream;
-    //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
+    //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(GameBridgeEventManagerType::GB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
     //event_stream_buffer = event_stream;
 }
 
@@ -36,7 +36,7 @@ bool HotkeyManager::PollHotkeys() {
     return true;
 }
 
-void HotkeyManager::AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, uint8_t second_keystroke, uint8_t third_keystroke, uint8_t fourth_keystroke) {
+void HotkeyManager::AddHotkey(GameBridgeHotKeyEvent event_type, uint8_t first_keystroke, uint8_t second_keystroke, uint8_t third_keystroke, uint8_t fourth_keystroke) {
     // Start by combining all shortcuts into the union.
     IHotkeys::CombinedHotkeyStrokes received_strokes{};
     received_strokes.separatedStrokes[0] = first_keystroke;
@@ -55,7 +55,7 @@ void HotkeyManager::AddHotkey(HotKeyEvent event_type, uint8_t first_keystroke, u
 
 
 
-void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, HotKeyEvent event_type) {
+void HotkeyManager::RemoveHotkey(CombinedStrokes combined_number, GameBridgeHotKeyEvent event_type) {
     for (auto it = registered_hotkeys.begin(); it != registered_hotkeys.end(); ++it) {
         if (it->hotkey_combination.combinedNumber == combined_number && it->hotkey_event == event_type) {
             // Found matching hotkey, time to remove it!
@@ -75,5 +75,5 @@ void HotkeyManager::SendHotkeyEvents() {
 }
 
 GameBridgeManagerType HotkeyManager::GetEventManagerType() {
-    return GameBridgeManagerType::SRGB_MANAGER_HOTKEY;
+    return GameBridgeManagerType::GB_MANAGER_HOTKEY;
 }

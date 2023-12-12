@@ -24,7 +24,7 @@ struct DX12WeaverInitialize {
     // SDK Params
     D3D12_CPU_DESCRIPTOR_HANDLE* in_buffer;
     D3D12_CPU_DESCRIPTOR_HANDLE* out_buffer;
-    WeaverFlags flags;
+    GameBridgeWeaverFlags flags;
     GameBridge* game_bridge;
     ID3D12CommandQueue* command_queue;
     ID3D12CommandList* command_list;

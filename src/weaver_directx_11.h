@@ -23,7 +23,7 @@ struct DX11WeaverInitialize {
     // SDK Params
     void** in_buffer;
     void** out_buffer;
-    WeaverFlags flags;
+    GameBridgeWeaverFlags flags;
     GameBridge* game_bridge;
 };
 

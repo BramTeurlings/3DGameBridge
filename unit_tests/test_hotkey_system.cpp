@@ -23,7 +23,7 @@ protected:
         // Create Windows hotkey implementation
         auto windowsHotkeys = std::make_shared<WindowsHotkeyImplementation>();
 
-        HotkeyManagerInitializeFlags flags = HotkeyManagerInitializeFlags::SRGB_HOTKEY_MANAGER_NO_FLAGS;
+        GameBridgeHotkeyManagerInitializeFlags flags = GameBridgeHotkeyManagerInitializeFlags::GB_HOTKEY_MANAGER_NO_FLAGS;
 
         HotkeyManagerInitialize init{windowsHotkeys, flags, gameBridge};
 
@@ -32,7 +32,7 @@ protected:
         // Add some hotkeys to poll
         // Hotkeys are comprised of 8 bits per keystroke. We support any hotkey combination as long as it is shorter than 4 keys.
         // Hotkeys are split into each individual keystroke by use of a union with uint8_t strokes[4].
-        hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x11, 0x30);
+        hotkeyManager.AddHotkey(GameBridgeHotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x11, 0x30);
     }
 
     HotkeyManager hotkeyManager;
@@ -54,7 +54,7 @@ TEST_F(HotkeySystemTests, Intialize) {
     auto windowsHotkeys = std::make_shared<WindowsHotkeyImplementation>();
 
     // Make sure to test all the initializer flags
-    HotkeyManagerInitializeFlags flags = HotkeyManagerInitializeFlags::SRGB_HOTKEY_MANAGER_NO_FLAGS;
+    GameBridgeHotkeyManagerInitializeFlags flags = GameBridgeHotkeyManagerInitializeFlags::GB_HOTKEY_MANAGER_NO_FLAGS;
 
     HotkeyManagerInitialize init{windowsHotkeys, flags, gameBridge};
 
@@ -94,7 +94,7 @@ TEST_F(HotkeySystemTests, AddHotkey) {
     ASSERT_EQ(1, hotkeyManager.registered_hotkeys.size());
 
     // Add a new hotkey.
-    hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x31);
+    hotkeyManager.AddHotkey(GameBridgeHotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x31);
 
     // Assert that the hotkey was added.
     ASSERT_EQ(2, hotkeyManager.registered_hotkeys.size()) << "Hotkey was not added to registered_hotkeys after calling AddHotkey()";
@@ -107,7 +107,7 @@ TEST_F(HotkeySystemTests, AddHotkey) {
     ASSERT_EQ(0x31, hotkeyManager.registered_hotkeys.back().hotkey_combination.separatedStrokes[3]) << "Keystroke [3] does not match expected keycode.";
 
     // Add a new hotkey.
-    hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x31, 0x32, 0x54);
+    hotkeyManager.AddHotkey(GameBridgeHotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x31, 0x32, 0x54);
 
     // Assert that the hotkey was added.
     ASSERT_EQ(3, hotkeyManager.registered_hotkeys.size()) << "Hotkey was not added to registered_hotkeys after calling AddHotkey()";
