@@ -14,6 +14,8 @@
 
 typedef uint32_t GB_EVENT;
 
+int DEFAULT_EVENT_COUNT_MAX = 100;
+
 // Managers
 enum GAME_BRIDGE_API GameBridgeManagerType {
     SRGB_MANAGER_HOTKEY,
