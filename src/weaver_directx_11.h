@@ -21,6 +21,9 @@
 
 struct DX11WeaverInitialize {
     // SDK Params
+    ID3D11Device* dev;
+    ID3D11DeviceContext* context;
+    IDXGISwapChain* swap_chain; // Todo: Do we want to ask this or instead ask for the window handle directly?
     void** in_buffer;
     void** out_buffer;
     WeaverFlags flags;
@@ -31,60 +34,25 @@ class DirectX11Weaver : private IGameBridgeManager {
     SR::SRContext *sr_context;
     SR::PredictingDX11Weaver* native_weavers[2] = { {}, {}};
     int native_weaver_index = 0;
-    //EventStreamWriter* event_stream_writer;
-    //EventStreamReader* event_stream_reader;
+    std::shared_ptr<EventStreamWriter> event_stream_writer;
+    std::shared_ptr<EventStreamReader> event_stream_reader;
+    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
     void** back_buffer;
+    bool weaver_initialized = false;
+    bool weaving_enabled = false; // Todo: This is only used to prevent a crash on the first frame. Can this be removed?
+    bool resize_buffer_failed = false;
+    ID3D11Texture2D* texture_copy = nullptr;
+    ID3D11ShaderResourceView* resource_copy = nullptr;
+    // Todo: Do we need all of these DX objects below?
+    ID3D11Device* dx_device = nullptr;
+    ID3D11DeviceContext* dx_device_context = nullptr;
+    IDXGISwapChain* dx_swap_chain = nullptr;
 
     void SetWeaving(bool weaving_enabled) {}
 
-    bool create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc)
-    {
-        // Check if device context or render target view is null
-        if (!device_context || !effect_resource_desc)
-        {
-            return false;
-        }
+    bool create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc);
 
-        // Get the render target texture from the render target view
-        ID3D11Resource* sourceResource = nullptr;
-        effect_resource_desc->GetResource(&sourceResource);
-        if (!sourceResource)
-        {
-            return false;
-        }
-
-        // Query the source texture from the render target texture
-        ID3D11Texture2D* sourceTexture = nullptr;
-        HRESULT hr = sourceResource->QueryInterface(IID_ID3D11Texture2D, reinterpret_cast<void**>(&sourceTexture));
-        sourceResource->Release();
-        if (FAILED(hr) || !sourceTexture)
-        {
-            return false;
-        }
-
-        // Create the destination texture
-        ID3D11Texture2D* destinationTexture = nullptr;
-        D3D11_TEXTURE2D_DESC textureDesc;
-        // Create the destination device
-        ID3D11Device* d3d11_device;
-        sourceTexture->GetDesc(&textureDesc);
-        device_context->GetDevice(&d3d11_device);
-        hr = d3d11_device->CreateTexture2D(&textureDesc, nullptr, &destinationTexture);
-        if (FAILED(hr) || !destinationTexture)
-        {
-            sourceTexture->Release();
-            return false;
-        }
-
-        // Copy the source texture to the destination texture
-        device_context->CopyResource(destinationTexture, sourceTexture);
-
-        // Release the source and destination textures
-        sourceTexture->Release();
-        destinationTexture->Release();
-
-        return true;
-    }
+    bool init_weaver(ID3D11Device* dev, ID3D11DeviceContext* context, IDXGISwapChain* swap_chain);
 
 public:
     GameBridgeManagerType GetEventManagerType() override;
