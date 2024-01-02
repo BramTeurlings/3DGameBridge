@@ -7,7 +7,6 @@
 #include <algorithm>
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
-    // Todo: Wait for event manager implementation.
     event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventManagerType::SRGB_EVENT_MANAGER_TYPE_HOTKEY, 100, 0);
 }
 
