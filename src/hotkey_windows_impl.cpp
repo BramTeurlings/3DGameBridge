@@ -35,6 +35,8 @@ WindowsHotkeyImplementation::CheckHotkeys(std::vector<CombinedHotkeyStrokes> key
             // We extract the most significant bit, which corresponds to the key state.
             // If the result is non-zero (bit 15 is set), it means the key is pressed.
             // If the result is zero (bit 15 is not set), it means the key is released.
+            // Note that this does NOT account for keys being pressed and released in between calls to GetAsyncState().
+            // Todo: Handle the released state per hotkey to ensure hotkeys are triggered once per press.
             bool isKeyPressed = GetAsyncKeyState((int)keyCode) & 0x8000;
 
             // Add key status to the map.
