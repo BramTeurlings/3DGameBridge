@@ -28,14 +28,14 @@ enum GAME_BRIDGE_API GameBridgeEventManagerInitialize {
 };
 
 enum GAME_BRIDGE_API GameBridgeHotkeyManagerInitializeFlags {
-    GB_HOTKEY_MANAGER_NO_FLAGS
+    GB_MANAGER_HOTKEY_NO_FLAGS
 };
 
 // Event manager types
 enum GAME_BRIDGE_API GameBridgeEventManagerType {
-    GB_EVENT_MANAGER_TYPE_HOTKEY,
-    GB_EVENT_MANAGER_TYPE_PLATFORM,
-    GB_EVENT_MANAGER_TYPE_WEAVER
+    GB_MANAGER_EVENT_TYPE_HOTKEY,
+    GB_MANAGER_EVENT_TYPE_PLATFORM,
+    GB_MANAGER_EVENT_TYPE_WEAVER
 };
 
 // Messages

@@ -9,7 +9,7 @@
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
     // Todo: Wait for event manager implementation.
     //void* event_stream;
-    //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(GameBridgeEventManagerType::GB_EVENT_MANAGER_TYPE_HOTKEY, &event_stream);
+    //event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(GameBridgeEventManagerType::GB_MANAGER_EVENT_TYPE_HOTKEY, &event_stream);
     //event_stream_buffer = event_stream;
 }
 
