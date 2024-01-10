@@ -27,7 +27,7 @@ enum GAME_BRIDGE_API GameBridgeEventManagerInitialize {
     GB_PROCESS_EVENTS_ON_THE_NEXT_FRAME
 };
 
-enum GAME_BRIDGE_API GameBridgeHotkeyManagerInitializeFlags {
+enum GAME_BRIDGE_API GameBridgeHotkeyManagerInitialize {
     GB_MANAGER_HOTKEY_NO_FLAGS
 };
 

@@ -23,7 +23,7 @@ protected:
         // Create Windows hotkey implementation
         auto windowsHotkeys = std::make_shared<WindowsHotkeyImplementation>();
 
-        GameBridgeHotkeyManagerInitializeFlags flags = GameBridgeHotkeyManagerInitializeFlags::GB_MANAGER_HOTKEY_NO_FLAGS;
+        GameBridgeHotkeyManagerInitialize flags = GameBridgeHotkeyManagerInitialize::GB_MANAGER_HOTKEY_NO_FLAGS;
 
         HotkeyManagerInitialize init{windowsHotkeys, flags, gameBridge};
 
@@ -54,7 +54,7 @@ TEST_F(HotkeySystemTests, Intialize) {
     auto windowsHotkeys = std::make_shared<WindowsHotkeyImplementation>();
 
     // Make sure to test all the initializer flags
-    GameBridgeHotkeyManagerInitializeFlags flags = GameBridgeHotkeyManagerInitializeFlags::GB_MANAGER_HOTKEY_NO_FLAGS;
+    GameBridgeHotkeyManagerInitialize flags = GameBridgeHotkeyManagerInitialize::GB_MANAGER_HOTKEY_NO_FLAGS;
 
     HotkeyManagerInitialize init{windowsHotkeys, flags, gameBridge};
 
