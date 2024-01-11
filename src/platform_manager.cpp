@@ -39,7 +39,7 @@ void *PlatformManager::InitializeWeaver(WeaverType weaver_type) {
 void PlatformManager::SwitchLens(bool enable) {}
 
 GameBridgeManagerType PlatformManager::GetEventManagerType() {
-    return GameBridgeManagerType::SRGB_MANAGER_PLATFORM;
+    return GameBridgeManagerType::GB_MANAGER_PLATFORM;
 }
 
 void PlatformManager::InitializeSRContext(SRContextParameters sr_context_parameters) {

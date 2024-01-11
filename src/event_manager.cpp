@@ -79,7 +79,7 @@ size_t EventStreamWriter::GetUsedBytes()
 }
 
 // EventManager
-std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManagerType event_manager_type) {
+std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(GameBridgeEventManagerType event_manager_type) {
     // TODO Use indirection array to get stream readers and writers?
     try {
         EventStream const& stream = event_streams.at(event_manager_type);
@@ -99,7 +99,7 @@ std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventManag
 
 // TODO maybe use error codes?
 // TODO Only one event stream can exists per manager, the existing stream will be returned or nullptr?
-std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(EventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
+std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(GameBridgeEventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
 {
     size_t message_size = sizeof(EventHeader) + extra_event_data_size;
     size_t buffer_size = message_size * (max_event_count + 1); // +1 to event count for end of buffer message
@@ -161,5 +161,5 @@ void EventManager::PrepareForEventStreamSubmission()
 // void EndEventStream(EventStreamWriter writer);
 
 GameBridgeManagerType EventManager::GetEventManagerType() {
-    return GameBridgeManagerType::SRGB_MANAGER_EVENTS;
+    return GameBridgeManagerType::GB_MANAGER_EVENTS;
 }

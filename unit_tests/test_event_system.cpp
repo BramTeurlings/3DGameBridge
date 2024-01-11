@@ -11,14 +11,14 @@ class EventSystemTests : public ::testing::Test {
 
 protected:
     virtual void SetUp() {
-        platform_event_writer = event_manager.CreateEventStream(SRGB_EVENT_MANAGER_TYPE_PLATFORM, TEST_EVENT_COUNT, 0);
+        platform_event_writer = event_manager.CreateEventStream(GB_MANAGER_EVENT_TYPE_PLATFORM, TEST_EVENT_COUNT, 0);
     }
 
     void FillEventStreams()
     {
         // Fill event streams
         for (uint32_t i = 0; i < TEST_EVENT_COUNT; i++) {
-            platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr);
+            platform_event_writer->SubmitEvent(GB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr);
         }
 
         for (uint32_t i = 0; i < TEST_EVENT_COUNT; i++) {
@@ -26,7 +26,7 @@ protected:
         }
 
         for (uint32_t i = 0; i < TEST_EVENT_COUNT; i++) {
-            weaver_event_writer->SubmitEvent(SRGB_EVENT_WEAVER_WEAVING_ENABLED, 0, nullptr);
+            weaver_event_writer->SubmitEvent(GB_EVENT_WEAVER_WEAVING_ENABLED, 0, nullptr);
         }
     }
 
@@ -57,7 +57,7 @@ protected:
 };
 
 TEST_F(EventSystemTests, CreateEventStream) {
-    auto stream_writer = event_manager.CreateEventStream(SRGB_EVENT_MANAGER_TYPE_WEAVER, 300, 0);
+    auto stream_writer = event_manager.CreateEventStream(GB_MANAGER_EVENT_TYPE_WEAVER, 300, 0);
     EventStream stream = stream_writer->GetEventStream();
 
     ASSERT_EQ(stream_writer->GetUsedBytes(), 0)
@@ -76,7 +76,7 @@ TEST_F(EventSystemTests, CreateEventStream) {
         << "Unexpected buffer size";
 
     // Check stream id
-    ASSERT_EQ(stream.stream_id, SRGB_EVENT_MANAGER_TYPE_WEAVER)
+    ASSERT_EQ(stream.stream_id, GB_MANAGER_EVENT_TYPE_WEAVER)
         << "Stream id should correspond to the manager type the stream was initialized with";
 
     // TODO test with extra data
@@ -84,7 +84,7 @@ TEST_F(EventSystemTests, CreateEventStream) {
 
 TEST_F(EventSystemTests, GetEventStreamReader) {
     // Check platform event
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
     ASSERT_TRUE(platform_event_reader);
 
     // Check if the object is valid by calling a function
@@ -98,7 +98,7 @@ TEST_F(EventSystemTests, GetEventStreamReader) {
         << "weaver_event_reader not empty, can't continue test";
 
     // Manager should not exist
-    hotkey_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_HOTKEY);
+    hotkey_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_HOTKEY);
     ASSERT_EQ(hotkey_event_reader, nullptr)
         << "Hotkey manager should be empty";
 
@@ -109,7 +109,7 @@ TEST_F(EventSystemTests, GetEventStreamReader) {
 TEST_F(EventSystemTests, SubmitEvent) {
     // Fill event stream
     for (uint32_t i = 0; i < TEST_EVENT_COUNT; i++) {
-        ASSERT_TRUE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
+        ASSERT_TRUE(platform_event_writer->SubmitEvent(GB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr));
     }
 
     // Check if 500 enums can be stored
@@ -118,7 +118,7 @@ TEST_F(EventSystemTests, SubmitEvent) {
         << "Buffer stored an unexpected amount of memory";
 
     // Check that no more than the maximum amount of events can be stored
-    ASSERT_FALSE(platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr))
+    ASSERT_FALSE(platform_event_writer->SubmitEvent(GB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr))
         << "Event submitted that should have been rejected";
 
     // TODO test with extra data
@@ -132,7 +132,7 @@ TEST_F(EventSystemTests, GetUsedBytes)
 
     // Add a few events and check the amount of bytes used
     for (uint32_t i = 0; i < 5; i++) {
-        platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr);
+        platform_event_writer->SubmitEvent(GB_EVENT_PLATFORM_CONTEXT_INVALIDATED, 0, nullptr);
     }
 
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5)
@@ -141,7 +141,7 @@ TEST_F(EventSystemTests, GetUsedBytes)
     int64_t data = 50;
     // Test with a number for extra data
     for (uint32_t i = 0; i < 5; i++) {
-        platform_event_writer->SubmitEvent(SRGB_EVENT_PLATFORM_CONTEXT_INVALIDATED, sizeof(data), &data);
+        platform_event_writer->SubmitEvent(GB_EVENT_PLATFORM_CONTEXT_INVALIDATED, sizeof(data), &data);
     }
 
     ASSERT_EQ(platform_event_writer->GetUsedBytes(), sizeof(EventHeader) * 5 + (sizeof(EventHeader) + sizeof(data)) * 5)
@@ -150,7 +150,7 @@ TEST_F(EventSystemTests, GetUsedBytes)
 
 TEST_F(EventSystemTests, GetNextEvent) {
     // Get event stream reader
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
 
     // Write 499 mock events to stream
     for (uint32_t i = 0; i < TEST_EVENT_COUNT-1; i++) {
@@ -216,7 +216,7 @@ TEST_F(EventSystemTests, GetNextEvent) {
 }
 
 TEST_F(EventSystemTests, ClearStream_StreamWriter) {
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
     auto buffer = platform_event_writer->GetEventStream().buffer;
 
     // Pointer to first event in the stream
@@ -255,7 +255,7 @@ TEST_F(EventSystemTests, ClearStream_StreamWriter) {
 }
 
 TEST_F(EventSystemTests, ClearStream_StreamReader) {
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
 
     // Test ClearStream for a EventStreamReader
     uint32_t event_type;
@@ -283,7 +283,7 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
 }
 
 TEST_F(EventSystemTests, ResetEventIndexPointer) {
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
 
     // Fill buffer
     platform_event_writer->SubmitEvent(TEST_1);
@@ -323,7 +323,7 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
 TEST_F(EventSystemTests, PrepareForEventStreamSubmission)
 {
     // Get event stream reader
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
 
     // Make sure all streams are cleared and reader pointers are reset
     event_manager.PrepareForEventStreamSubmission();
@@ -342,7 +342,7 @@ TEST_F(EventSystemTests, PrepareForEventStreamSubmission)
 
 TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
 {
-    platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
 
     // Fill buffer
     platform_event_writer->SubmitEvent(TEST_1);
@@ -381,7 +381,7 @@ TEST_F(EventSystemTests, FullTest)
 {
     for (int redo = 0; redo < 5; redo++) {
         // Get event stream reader
-        platform_event_reader = event_manager.GetEventStreamReader(SRGB_EVENT_MANAGER_TYPE_PLATFORM);
+        platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
 
         // Make sure all streams are cleared and reader pointers are reset
         event_manager.PrepareForEventStreamSubmission();
