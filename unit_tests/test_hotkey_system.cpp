@@ -142,7 +142,7 @@ TEST_F(HotkeySystemTests, SendHotkeyEvents) {
     //Max size for the events is 100 so let's add one too many.
     for(int i = 0; i < 101; i++){
         // Add a new hotkey that we know is not pressed.
-        hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x11, 0x11);
+        hotkeyManager.AddHotkey(GameBridgeHotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x11, 0x11);
     }
 
     ASSERT_TRUE(hotkeyManager.SendHotkeyEvents()) << "Should succeed because no hotkeys are pressed so none of them should be sent.";
@@ -150,7 +150,7 @@ TEST_F(HotkeySystemTests, SendHotkeyEvents) {
     //Max size for the events is 100 so let's add 100.
     for(int i = 0; i < 100; i++){
         // Add a new hotkey that is being pressed.
-        hotkeyManager.AddHotkey(HotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x12);
+        hotkeyManager.AddHotkey(GameBridgeHotKeyEvent::GB_EVENT_HOTKEY_TOGGLE_LENS, 0x12, 0x12);
     }
 
     // See if the amount of registered hotkeys is equal to 102.
