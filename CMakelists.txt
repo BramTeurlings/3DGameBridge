@@ -2,96 +2,15 @@ cmake_minimum_required(VERSION 3.23)
 
 set (CMAKE_CXX_STANDARD 20)
 
-project (3DGameBridge VERSION 0.1)
-message("3D Game Bridge Version: ${3DGameBridge_VERSION}")
+project (GameBridge VERSION 0.1)
+message("Game Bridge Version: ${3DGameBridge_VERSION}")
 
-set(CMAKE_DEBUG_POSTFIX d)
-
-# Source files
-add_library(3DGameBridge SHARED
-		src/game_bridge.h
-        src/game_bridge.cpp
-		src/event_manager.h
-		src/event_manager.cpp
-		src/game_bridge_manager_interface.h
-		src/game_bridge.h
-		src/game_bridge_structs.h
-		src/hotkey_manager.h
-		src/hotkey_interface.h
-		src/platform_manager.h
-		src/weaver_directx_11.h
-        src/weaver_directx_11.cpp
-		src/weaver_directx_12.h
-		src/weaver_directx_12.cpp
-		src/hotkey_manager.cpp
-		src/platform_manager.cpp
-		src/hotkey_windows_impl.cpp
-		src/hotkey_windows_impl.h
-)
-
-# Library exporting
-target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
-set_target_properties(3DGameBridge PROPERTIES LINKER_LANGUAGE CXX)
-
-set_target_properties(3DGameBridge PROPERTIES PUBLIC_HEADER src/game_bridge.h)
-
-install(TARGETS 3DGameBridge
-        EXPORT 3DGameBridgeTargets
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        PUBLIC_HEADER DESTINATION include)
-
-install(EXPORT 3DGameBridgeTargets
-		FILE 3DGameBridgeTargets.cmake
-		DESTINATION lib/cmake/3DGameBridge
-)
-
-target_include_directories(3DGameBridge INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-	$<INSTALL_INTERFACE:include>
-)
-
-include(CMakePackageConfigHelpers)
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/3DGameBridgeConfig.cmake
-    INSTALL_DESTINATION lib/cmake/3DGameBridge
-)
-
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/3DGameBridgeConfigVersion.cmake"
-  VERSION "${3DGameBridge_VERSION}"
-  COMPATIBILITY AnyNewerVersion
-)
-
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeConfig.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeConfigVersion.cmake
-  DESTINATION lib/cmake/3DGameBridge
-)
-
-# Option to build unit tests project
-option(BUILD_UNIT_TESTS "Enabled the unit_tests project")
-if(BUILD_UNIT_TESTS)
-	message("Building unit tests")
-	add_subdirectory(unit_tests)
-
-# Copy all linked dlls to build executable directory
-	add_custom_command(
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:3DGameBridge>" $<TARGET_FILE_DIR:unit_tests>
-    TARGET 3DGameBridge POST_BUILD
-)
-endif()
-
-# Link dependancies
 set(TARGET_DXHEADERS DirectX-Headers)
 add_subdirectory(third-party/DirectX-Headers)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
 
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-		simulatedreality
-		srDirectX::srDirectX
-		)
+
+add_subdirectory(gamebridge)
+add_subdirectory(runtime_openxr)

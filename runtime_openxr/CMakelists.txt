@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.23)
+
+set (CMAKE_CXX_STANDARD 20)
+
+project (RuntimeOpenXR VERSION 0.1)
+message("3D Game Bridge Version: ${3DGameBridge_VERSION}")
+
+set(CMAKE_DEBUG_POSTFIX d)
+
+# Source files
+add_library(RuntimeOpenXR SHARED
+		src/dllmain.cpp
+)
+
+# Link dependancies
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+		simulatedreality
+		srDirectX::srDirectX
+		)
