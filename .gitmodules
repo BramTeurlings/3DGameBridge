@@ -4,3 +4,6 @@
 [submodule "third-party/OpenXR-SDK"]
 	path = third-party/OpenXR-SDK
 	url = https://github.com/KhronosGroup/OpenXR-SDK.git
+[submodule "third-party/easyloggingpp"]
+	path = third-party/easyloggingpp
+	url = https://github.com/abumq/easyloggingpp.git
