@@ -5,12 +5,14 @@ set (CMAKE_CXX_STANDARD 20)
 project (GameBridge VERSION 0.1)
 message("Game Bridge Version: ${3DGameBridge_VERSION}")
 
+# Set DirectX headers include
 set(TARGET_DXHEADERS DirectX-Headers)
 add_subdirectory(third-party/DirectX-Headers)
 
+# Include SR
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 
-
+# Add projects
 add_subdirectory(gamebridge)
 add_subdirectory(runtime_openxr)

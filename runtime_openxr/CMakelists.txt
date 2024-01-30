@@ -9,8 +9,27 @@ set(CMAKE_DEBUG_POSTFIX d)
 
 # Source files
 add_library(RuntimeOpenXR SHARED
-		src/dllmain.cpp
+		src/main.cpp
+		src/dll.h
+		src/instance.h
+		src/instance.cpp
+		src/openxr_functions.h
+		src/openxr_includes.h
+		src/system.h
+		src/system.cpp
+		
+		../third-party/easyloggingpp/src/easylogging++.cc
 )
+
+target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_PLATFORM_WIN32)
+target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_GRAPHICS_API_D3D11)
+target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_GRAPHICS_API_D3D12)
+#target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_GRAPHICS_API_VULKAN)
+#target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_GRAPHICS_API_OPENGL)
+
+# Include OpenXR
+target_include_directories(RuntimeOpenXR PRIVATE ../third-party/OpenXR-SDK/include)
+target_include_directories(RuntimeOpenXR PRIVATE ../third-party/easyloggingpp/src)
 
 # Link dependancies
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
@@ -18,4 +37,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
 		srDirectX::srDirectX
-		)
+)

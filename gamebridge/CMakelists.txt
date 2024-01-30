@@ -82,4 +82,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
 		srDirectX::srDirectX
-		)
+)
