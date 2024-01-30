@@ -20,6 +20,7 @@
 
 using namespace GameBridge;
 
+// Not really a global...
 GB_Instance* g_gbinstance = nullptr;
 
 
@@ -139,29 +140,32 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
 
     // Create new instance
     g_gbinstance = new GB_Instance();
-    g_gbinstance->name = "Game Bridge";
-
-    const auto address = reinterpret_cast<size_t>(&g_gbinstance);
-    *instance = reinterpret_cast<XrInstance>(address);
+    *instance = reinterpret_cast<XrInstance>(g_gbinstance);
 
     LOG(INFO) << "New GameBridge Instance created";
     return XR_SUCCESS;
 }
 
-XrResult xrDestroyInstance(XrInstance instance) {
+XrResult xrGetInstanceProperties(XrInstance instance, XrInstanceProperties* instanceProperties) {
+    // TODO Make a list of instances to check whether passed instances are valid or not
+    GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+
+    strcpy_s(instanceProperties->runtimeName, XR_MAX_RUNTIME_NAME_SIZE, gb_instance->runtime_name.data());
+    instanceProperties->runtimeVersion = gb_instance->runtime_version;
+
     return XR_SUCCESS;
 }
 
-XrResult xrGetInstanceProperties(XrInstance instance, XrInstanceProperties* instanceProperties) {
-    return XR_SUCCESS;
+XrResult xrDestroyInstance(XrInstance instance) {
+    return test_return;
 }
 
 XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements)
 {
-    return XR_SUCCESS;
+    return test_return;
 }
 
 XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements)
 {
-    return XR_SUCCESS;
+    return test_return;
 }
