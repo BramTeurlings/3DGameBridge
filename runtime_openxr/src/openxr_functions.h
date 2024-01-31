@@ -8,7 +8,6 @@
 
 inline static XrResult test_return = XR_ERROR_RUNTIME_FAILURE;
 
-inline XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInput, uint32_t* spaceCountOutput, XrReferenceSpaceType* spaces) { return test_return; };
 inline XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t* formatCountOutput, int64_t* formats) { return test_return; };
 inline XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t* imageCountOutput, XrSwapchainImageBaseHeader* images) { return test_return; };
 inline XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoundSourcesForActionEnumerateInfo* enumerateInfo, uint32_t sourceCapacityInput, uint32_t* sourceCountOutput, XrPath* sources) { return test_return; };
@@ -16,13 +15,6 @@ inline XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoun
 inline XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData) { return test_return; };
 inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
 inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
-
-inline XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space) { return test_return; };
-inline XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df* bounds) { return test_return; };
-inline XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space) { return test_return; };
-inline XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) { return test_return; };
-inline XrResult xrDestroySpace(XrSpace space) { return test_return; };
-
 
 inline XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* createInfo, XrSwapchain* swapchain) { return test_return; };
 inline XrResult xrDestroySwapchain(XrSwapchain swapchain) { return test_return; };
@@ -38,12 +30,7 @@ inline XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeg
 inline XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) { return test_return; };
 
 inline XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) { return test_return; };
-inline XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* path) { return test_return; };
-inline XrResult xrPathToString(XrInstance instance, XrPath path, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer) { return test_return; };
-inline XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* createInfo, XrActionSet* actionSet) { return test_return; };
-inline XrResult xrDestroyActionSet(XrActionSet actionSet) { return test_return; };
-inline XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action) { return test_return; };
-inline XrResult xrDestroyAction(XrAction action) { return test_return; };
+
 inline XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrInteractionProfileSuggestedBinding* suggestedBindings) { return test_return; };
 inline XrResult xrAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo* attachInfo) { return test_return; };
 inline XrResult xrGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState* interactionProfile) { return test_return; };
@@ -56,7 +43,8 @@ inline XrResult xrGetInputSourceLocalizedName(XrSession session, const XrInputSo
 inline XrResult xrApplyHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo, const XrHapticBaseHeader* hapticFeedback) { return test_return; };
 inline XrResult xrStopHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo) { return test_return; };
 
-// Forward declarations not defined in openxr header
+
+// Forward declarations not defined in openxr header (implemented)
 XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements);
 XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements);
 

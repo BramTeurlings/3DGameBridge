@@ -5,15 +5,15 @@
 #include "easylogging++.h"
 #include "openxr_includes.h"
 #include "instance.h"
+#include "system.h"
+#include "session.h"
 
-XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId)
-{
+XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId) {
     // TODO need a better and safer way to reference instances
     GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
     XrFormFactor requested_formfactor;
 
-    switch (getInfo->formFactor)
-    {
+    switch (getInfo->formFactor) {
     case XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY:
         requested_formfactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
         break;
@@ -30,17 +30,15 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
     system->id = *systemId;
     system->requested_formfactor = requested_formfactor;
     system->sr_device = GameBridge::SRDisplay::SR_DISPLAY;
-    
+
     return XR_SUCCESS;
 }
 
-XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties)
-{
+XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties) {
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
-XrResult xrEnumerateEnvironmentBlendModes(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t environmentBlendModeCapacityInput, uint32_t* environmentBlendModeCountOutput, XrEnvironmentBlendMode* environmentBlendModes)
-{
+XrResult xrEnumerateEnvironmentBlendModes(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t environmentBlendModeCapacityInput, uint32_t* environmentBlendModeCountOutput, XrEnvironmentBlendMode* environmentBlendModes) {
     LOG(INFO) << "Requested view configuration type: " << viewConfigurationType;
     // SR only supports XR_ENVIRONMENT_BLEND_MODE_OPAQUE 
     const std::array supported_blend_modes = { XR_ENVIRONMENT_BLEND_MODE_OPAQUE };
@@ -62,8 +60,7 @@ XrResult xrEnumerateEnvironmentBlendModes(XrInstance instance, XrSystemId system
     }
 }
 
-XrResult xrEnumerateViewConfigurations(XrInstance instance, XrSystemId systemId, uint32_t viewConfigurationTypeCapacityInput, uint32_t* viewConfigurationTypeCountOutput, XrViewConfigurationType* viewConfigurationTypes)
-{
+XrResult xrEnumerateViewConfigurations(XrInstance instance, XrSystemId systemId, uint32_t viewConfigurationTypeCapacityInput, uint32_t* viewConfigurationTypeCountOutput, XrViewConfigurationType* viewConfigurationTypes) {
     // TODO check if mono as primary is ok
     const std::array supported_view_configurations = { XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO };
     *viewConfigurationTypeCountOutput = supported_view_configurations.size();
@@ -84,8 +81,7 @@ XrResult xrEnumerateViewConfigurations(XrInstance instance, XrSystemId systemId,
     }
 }
 
-XrResult xrGetViewConfigurationProperties(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, XrViewConfigurationProperties* configurationProperties)
-{
+XrResult xrGetViewConfigurationProperties(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, XrViewConfigurationProperties* configurationProperties) {
     XrResult res = XR_ERROR_RUNTIME_FAILURE;
 
     switch (viewConfigurationType) {
@@ -99,15 +95,14 @@ XrResult xrGetViewConfigurationProperties(XrInstance instance, XrSystemId system
         configurationProperties->fovMutable = true; // TODO check if it's ok if the application changes the fov
         res = XR_SUCCESS;
         break;
-    default: ;
+    default:;
         res = XR_ERROR_VIEW_CONFIGURATION_TYPE_UNSUPPORTED;
     }
 
     return res;
 }
 
-XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId systemId,XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrViewConfigurationView* views)
-{
+XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrViewConfigurationView* views) {
     XrResult res = XR_ERROR_RUNTIME_FAILURE;
 
     //TODO dependent on the SR screen, hopefully we can set reset this later on runtime. It would be cool to setup everything without having to connect to the sr service since that might take some time.
@@ -117,9 +112,8 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
 
     std::vector<XrViewConfigurationView> supported_views;
 
-    if(viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO)
-    {
-        XrViewConfigurationView view {};
+    if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
+        XrViewConfigurationView view{};
         view.recommendedImageRectWidth = primary_display_res_x;
         view.maxImageRectWidth = primary_display_res_x;
         view.recommendedImageRectHeight = primary_display_res_y;
@@ -131,8 +125,7 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
 
         res = XR_SUCCESS;
     }
-    else
-    {
+    else {
         res = XR_ERROR_VIEW_CONFIGURATION_TYPE_UNSUPPORTED;
     }
 
@@ -147,10 +140,86 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     else if (viewCapacityInput < supported_views.size()) {
         return XR_ERROR_SIZE_INSUFFICIENT;
     }
-    else
-    {
+    else {
         memcpy_s(views, viewCapacityInput * sizeof(XrViewConfigurationView), supported_views.data(), supported_views.size() * sizeof(XrViewConfigurationView));
     }
 
     return res;
+}
+
+XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInput, uint32_t* spaceCountOutput, XrReferenceSpaceType* spaces) {
+    GameBridge::GB_Session* gb_session = reinterpret_cast<GameBridge::GB_Session*>(session);
+
+    std::array reference_space_types{
+        XR_REFERENCE_SPACE_TYPE_VIEW,
+            XR_REFERENCE_SPACE_TYPE_LOCAL
+    };
+
+    *spaceCountOutput = reference_space_types.size();
+
+    // Request for the extension array or the extension array itself
+    if (spaceCapacityInput == 0) {
+        return XR_SUCCESS;
+    }
+    // Passed array not large enough
+    if (spaceCapacityInput < reference_space_types.size()) {
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    memcpy_s(spaces, spaceCapacityInput * sizeof(XrReferenceSpaceType), reference_space_types.data(), reference_space_types.size() * sizeof(XrReferenceSpaceType));
+    return XR_SUCCESS;
+}
+
+#include "openxr_functions.h"
+XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space) {
+    createInfo->poseInReferenceSpace;
+    createInfo->referenceSpaceType;
+
+    GameBridge::GB_Session* gb_session = reinterpret_cast<GameBridge::GB_Session*>(session);
+    return test_return;
+}
+
+XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df* bounds) {
+    return test_return;
+}
+
+XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space) {
+    return test_return;
+}
+
+XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) {
+    return test_return;
+}
+
+XrResult xrDestroySpace(XrSpace space) {
+    return test_return;
+}
+
+XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* createInfo, XrActionSet* actionSet) {
+    std::string action_set_name(createInfo->actionSetName);
+    std::string localized_action_set_name(createInfo->localizedActionSetName);
+
+    if (action_set_name.empty() || localized_action_set_name.empty()) {
+        // Specification says to return XR_ERROR_LOCALIZED_NAME_INVALID when either of the names ar empty.
+        // Doing it just in case but we might not care about it since we may not want to process input actions for SR.
+        return XR_ERROR_LOCALIZED_NAME_INVALID;
+    }
+
+    GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+    size_t action_set_id = gb_instance->AddActionSet(action_set_name, createInfo->priority);
+
+    *actionSet = reinterpret_cast<XrActionSet>(action_set_id);
+    return XR_SUCCESS;
+}
+
+XrResult xrDestroyActionSet(XrActionSet actionSet) {
+    return test_return;
+}
+
+XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action) {
+    return test_return;
+}
+
+XrResult xrDestroyAction(XrAction action) {
+    return test_return;
 }

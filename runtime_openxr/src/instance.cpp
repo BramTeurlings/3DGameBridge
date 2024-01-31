@@ -183,15 +183,7 @@ std::vector<IDXGIAdapter*> EnumerateAdapters(void) {
     return adapters;
 }
 
-XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements)
-{
-    return test_return;
-}
-
-XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements)
-{
-    XrResult res = XR_ERROR_RUNTIME_FAILURE;
-
+std::map<uint32_t, DXGI_ADAPTER_DESC> DetermineDeviceScores(std::vector<IDXGIAdapter*> adapters) {
     // VRAM
     uint32_t dedicated_memory_modifier = 2;
     // RAM used only by the GPU (integrated graphics)
@@ -200,22 +192,28 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     uint32_t shared_memory_modifier = 0.1;
 
     std::map<uint32_t, DXGI_ADAPTER_DESC> adapter_scores;
-
-    auto adapters = EnumerateAdapters();
-    for(auto adapter : adapters)
-    {
+    for (auto adapter : adapters) {
         DXGI_ADAPTER_DESC adapter_desc;
         adapter->GetDesc(&adapter_desc);
 
         uint32_t adapter_score = 0;
 
-        adapter_score += dedicated_memory_modifier          * adapter_desc.DedicatedVideoMemory;
-        adapter_score += dedicated_system_memory_modifier   * adapter_desc.DedicatedSystemMemory;
-        adapter_score += shared_memory_modifier             * adapter_desc.SharedSystemMemory;
+        adapter_score += dedicated_memory_modifier * adapter_desc.DedicatedVideoMemory;
+        adapter_score += dedicated_system_memory_modifier * adapter_desc.DedicatedSystemMemory;
+        adapter_score += shared_memory_modifier * adapter_desc.SharedSystemMemory;
 
         // TODO If a pc has two identical GPU'S the first one may be overwritten here
         adapter_scores[adapter_score] = adapter_desc;
     }
+
+    return adapter_scores;
+}
+
+// DX11 and DX12 requirements functions have the same logic, they do have different out types
+XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements) {
+
+    auto adapters = EnumerateAdapters();
+    auto adapter_scores = DetermineDeviceScores(adapters);
 
     if (adapter_scores.size() > 0) {
 
@@ -223,21 +221,77 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
         // Check if the system is the same as the one in the instance
         if (systemId == gb_instance->system.id) {
             gb_instance->system.feature_level = D3D_FEATURE_LEVEL_11_0;
+            gb_instance->system.features_enumerated = true;
 
             // Give graphics requirements to the connected application
             graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
             graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-            res = XR_SUCCESS;
+            return XR_SUCCESS;
         }
-        else {
-            res = XR_ERROR_SYSTEM_INVALID;
-        }
-    }
-    else
-    {
-        LOG(ERROR) << "No devices found";
+
+        return XR_ERROR_SYSTEM_INVALID;
     }
 
-    return res;
+    LOG(ERROR) << "No devices found";
+    return XR_ERROR_RUNTIME_FAILURE;
+}
+
+XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements) {
+    auto adapters = EnumerateAdapters();
+    auto adapter_scores = DetermineDeviceScores(adapters);
+
+    if (adapter_scores.size() > 0) {
+
+        GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+        // Check if the system is the same as the one in the instance
+        if (systemId == gb_instance->system.id) {
+            gb_instance->system.feature_level = D3D_FEATURE_LEVEL_11_0;
+            gb_instance->system.features_enumerated = true;
+
+            // Give graphics requirements to the connected application
+            graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
+            graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+            return XR_SUCCESS;
+        }
+
+        return XR_ERROR_SYSTEM_INVALID;
+    }
+
+    LOG(ERROR) << "No devices found";
+    return XR_ERROR_RUNTIME_FAILURE;
+}
+
+XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* path)
+{
+    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
+    XrPath xr_path = string_hasher(pathString);
+    *path = xr_path;
+
+    // Don't add the path if it already exists
+    if (!gb_instance->xrpath_storage[xr_path].empty()) {
+        return XR_SUCCESS;
+    }
+
+    gb_instance->xrpath_storage[xr_path] = std::string(pathString);
+    *path = xr_path;
+
+    return XR_SUCCESS;
+}
+
+XrResult xrPathToString(XrInstance instance, XrPath path, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer)
+{
+    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
+    std::string string_path = gb_instance->xrpath_storage[path];
+
+
+}
+
+size_t GB_Instance::AddActionSet(std::string name, uint32_t priority)
+{
+    size_t hash = string_hasher(name);
+    action_sets[hash] = GB_ActionSet{ priority };
+
+    return hash;
 }
