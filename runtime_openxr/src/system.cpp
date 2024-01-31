@@ -3,14 +3,14 @@
 #include <array>
 
 #include "easylogging++.h"
-#include "openxr_functions.h"
+#include "openxr_includes.h"
 #include "instance.h"
 
 XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId)
 {
+    // TODO need a better and safer way to reference instances
     GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
     XrFormFactor requested_formfactor;
-
 
     switch (getInfo->formFactor)
     {
@@ -25,10 +25,11 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
     }
 
     GameBridge::GB_System* system = &gb_instance->system;
+    *systemId = reinterpret_cast<XrSystemId>(system);
+
+    system->id = *systemId;
     system->requested_formfactor = requested_formfactor;
     system->sr_device = GameBridge::SRDisplay::SR_DISPLAY;
-
-    *systemId = reinterpret_cast<XrSystemId>(system);
     
     return XR_SUCCESS;
 }
@@ -107,22 +108,49 @@ XrResult xrGetViewConfigurationProperties(XrInstance instance, XrSystemId system
 
 XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId systemId,XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrViewConfigurationView* views)
 {
-    const std::array supported_view_configurations = {
-        XrViewConfigurationView{
-        }
-    };
+    XrResult res = XR_ERROR_RUNTIME_FAILURE;
 
     //TODO dependent on the SR screen, hopefully we can set reset this later on runtime. It would be cool to setup everything without having to connect to the sr service since that might take some time.
     // MS docs: The width/height of the client area for a full-screen window on the primary display monitor, in pixels. 
     const uint32_t primary_display_res_x = static_cast<uint32_t>(GetSystemMetrics(SM_CXSCREEN));
     const uint32_t primary_display_res_y = static_cast<uint32_t>(GetSystemMetrics(SM_CYSCREEN));
 
-    views->recommendedImageRectWidth = primary_display_res_x;
-    views->maxImageRectWidth = primary_display_res_x;
-    views->recommendedImageRectHeight = primary_display_res_y;
-    views->maxImageRectHeight = primary_display_res_y;
-    views->recommendedSwapchainSampleCount = 2; //TODO idk what this means
-    views->maxSwapchainSampleCount = 2;
+    std::vector<XrViewConfigurationView> supported_views;
 
-    return test_return;
+    if(viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO)
+    {
+        XrViewConfigurationView view {};
+        view.recommendedImageRectWidth = primary_display_res_x;
+        view.maxImageRectWidth = primary_display_res_x;
+        view.recommendedImageRectHeight = primary_display_res_y;
+        view.maxImageRectHeight = primary_display_res_y;
+        view.recommendedSwapchainSampleCount = 2; //TODO idk what this means
+        view.maxSwapchainSampleCount = 2;
+
+        supported_views.push_back(view);
+
+        res = XR_SUCCESS;
+    }
+    else
+    {
+        res = XR_ERROR_VIEW_CONFIGURATION_TYPE_UNSUPPORTED;
+    }
+
+    // Set output count
+    *viewCountOutput = supported_views.size();
+
+    // Request for the extension array or the extension array itself
+    if (viewCapacityInput == 0) {
+        res = XR_SUCCESS;
+    }
+    // Passed array not large enough
+    else if (viewCapacityInput < supported_views.size()) {
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+    else
+    {
+        memcpy_s(views, viewCapacityInput * sizeof(XrViewConfigurationView), supported_views.data(), supported_views.size() * sizeof(XrViewConfigurationView));
+    }
+
+    return res;
 }

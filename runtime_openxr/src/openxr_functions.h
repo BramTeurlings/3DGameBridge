@@ -17,9 +17,6 @@ inline XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData) {
 inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
 inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
 
-inline XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session) { return test_return; };
-inline XrResult xrDestroySession(XrSession session) { return test_return; };
-
 inline XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space) { return test_return; };
 inline XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df* bounds) { return test_return; };
 inline XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space) { return test_return; };
@@ -58,6 +55,10 @@ inline XrResult xrSyncActions(XrSession session, const XrActionsSyncInfo* syncIn
 inline XrResult xrGetInputSourceLocalizedName(XrSession session, const XrInputSourceLocalizedNameGetInfo* getInfo, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer) { return test_return; };
 inline XrResult xrApplyHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo, const XrHapticBaseHeader* hapticFeedback) { return test_return; };
 inline XrResult xrStopHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo) { return test_return; };
+
+// Forward declarations not defined in openxr header
+XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements);
+XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements);
 
 //XrResult xrGetOpenGLGraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsOpenGLKHR* graphicsRequirements);
 //XrResult xrGetVulkanInstanceExtensionsKHR(XrInstance instance, XrSystemId systemId, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer);
@@ -136,8 +137,8 @@ namespace GameBridge {
         { "xrStopHapticFeedback",                       reinterpret_cast<PFN_xrVoidFunction>(xrStopHapticFeedback) },
 
         // Graphics extensions
-        //{ "xrStopHapticFeedback",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D11GraphicsRequirementsKHR) },
-        //{ "xrStopHapticFeedback",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D12GraphicsRequirementsKHR) }
+        //{ "xrGetD3D11GraphicsRequirementsKHR",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D11GraphicsRequirementsKHR) },
+        { "xrGetD3D12GraphicsRequirementsKHR",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D12GraphicsRequirementsKHR) }
     };
 
     const std::vector<XrExtensionProperties> supported_extensions{

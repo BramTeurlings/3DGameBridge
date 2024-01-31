@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "openxr_includes.h"
 
 XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId);
@@ -20,7 +18,9 @@ namespace  GameBridge {
 
     class GB_System {
     public:
+        XrSystemId id;
         XrFormFactor requested_formfactor;
         SRDisplay sr_device;
+        D3D_FEATURE_LEVEL feature_level;
     };
 }

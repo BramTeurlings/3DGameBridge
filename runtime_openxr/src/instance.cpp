@@ -21,6 +21,7 @@
 using namespace GameBridge;
 
 // Not really a global...
+// TODO a list of instances in the future?
 GB_Instance* g_gbinstance = nullptr;
 
 
@@ -116,7 +117,7 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
     // Check extensions
     const char* const* api_extensions = createInfo->enabledExtensionNames;
     // Create set of application extensions
-    std::set <std::string > application_extensions;
+    std::set <std::string> application_extensions;
     for(uint32_t i  = 0; i < createInfo->enabledExtensionCount; i++)
     {
         application_extensions.insert(application_extensions.end(), api_extensions[i]);
@@ -136,7 +137,6 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
 
         return XR_ERROR_EXTENSION_NOT_PRESENT;
     }
-
 
     // Create new instance
     g_gbinstance = new GB_Instance();
@@ -160,6 +160,29 @@ XrResult xrDestroyInstance(XrInstance instance) {
     return test_return;
 }
 
+std::vector<IDXGIAdapter*> EnumerateAdapters(void) {
+    IDXGIAdapter* adapter;
+    std::vector<IDXGIAdapter*> adapters;
+    IDXGIFactory1* factory = NULL;
+
+    // Create a DXGIFactory object.
+    HRESULT err = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
+    if (FAILED(err)) {
+        LOG(ERROR) << "Could not create DXGIFactory with error: " << err;
+        return adapters;
+    }
+
+    for (UINT i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+        adapters.push_back(adapter);
+    }
+
+    if (factory) {
+        factory->Release();
+    }
+
+    return adapters;
+}
+
 XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements)
 {
     return test_return;
@@ -167,5 +190,54 @@ XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
 
 XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements)
 {
-    return test_return;
+    XrResult res = XR_ERROR_RUNTIME_FAILURE;
+
+    // VRAM
+    uint32_t dedicated_memory_modifier = 2;
+    // RAM used only by the GPU (integrated graphics)
+    uint32_t dedicated_system_memory_modifier = 1;
+    // CPU ram shared with the GPU
+    uint32_t shared_memory_modifier = 0.1;
+
+    std::map<uint32_t, DXGI_ADAPTER_DESC> adapter_scores;
+
+    auto adapters = EnumerateAdapters();
+    for(auto adapter : adapters)
+    {
+        DXGI_ADAPTER_DESC adapter_desc;
+        adapter->GetDesc(&adapter_desc);
+
+        uint32_t adapter_score = 0;
+
+        adapter_score += dedicated_memory_modifier          * adapter_desc.DedicatedVideoMemory;
+        adapter_score += dedicated_system_memory_modifier   * adapter_desc.DedicatedSystemMemory;
+        adapter_score += shared_memory_modifier             * adapter_desc.SharedSystemMemory;
+
+        // TODO If a pc has two identical GPU'S the first one may be overwritten here
+        adapter_scores[adapter_score] = adapter_desc;
+    }
+
+    if (adapter_scores.size() > 0) {
+
+        GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+        // Check if the system is the same as the one in the instance
+        if (systemId == gb_instance->system.id) {
+            gb_instance->system.feature_level = D3D_FEATURE_LEVEL_11_0;
+
+            // Give graphics requirements to the connected application
+            graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
+            graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+            res = XR_SUCCESS;
+        }
+        else {
+            res = XR_ERROR_SYSTEM_INVALID;
+        }
+    }
+    else
+    {
+        LOG(ERROR) << "No devices found";
+    }
+
+    return res;
 }
