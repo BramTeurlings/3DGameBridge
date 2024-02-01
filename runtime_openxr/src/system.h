@@ -20,12 +20,6 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location);
 XrResult xrDestroySpace(XrSpace space);
 
-// Actions
-inline XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* createInfo, XrActionSet* actionSet);
-inline XrResult xrDestroyActionSet(XrActionSet actionSet);
-inline XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action);
-inline XrResult xrDestroyAction(XrAction action);
-
 namespace  GameBridge {
     enum class SRDisplay
     {

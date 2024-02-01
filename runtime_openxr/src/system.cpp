@@ -194,32 +194,3 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
 XrResult xrDestroySpace(XrSpace space) {
     return test_return;
 }
-
-XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* createInfo, XrActionSet* actionSet) {
-    std::string action_set_name(createInfo->actionSetName);
-    std::string localized_action_set_name(createInfo->localizedActionSetName);
-
-    if (action_set_name.empty() || localized_action_set_name.empty()) {
-        // Specification says to return XR_ERROR_LOCALIZED_NAME_INVALID when either of the names ar empty.
-        // Doing it just in case but we might not care about it since we may not want to process input actions for SR.
-        return XR_ERROR_LOCALIZED_NAME_INVALID;
-    }
-
-    GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
-    size_t action_set_id = gb_instance->AddActionSet(action_set_name, createInfo->priority);
-
-    *actionSet = reinterpret_cast<XrActionSet>(action_set_id);
-    return XR_SUCCESS;
-}
-
-XrResult xrDestroyActionSet(XrActionSet actionSet) {
-    return test_return;
-}
-
-XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action) {
-    return test_return;
-}
-
-XrResult xrDestroyAction(XrAction action) {
-    return test_return;
-}

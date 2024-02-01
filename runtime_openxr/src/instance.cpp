@@ -269,7 +269,7 @@ XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* pat
     XrPath xr_path = string_hasher(pathString);
     *path = xr_path;
 
-    // Don't add the path if it already exists
+    // Don't overwrite the path if it already exists
     if (!gb_instance->xrpath_storage[xr_path].empty()) {
         return XR_SUCCESS;
     }
@@ -285,13 +285,142 @@ XrResult xrPathToString(XrInstance instance, XrPath path, uint32_t bufferCapacit
     GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
     std::string string_path = gb_instance->xrpath_storage[path];
 
+    if(string_path.empty()) 
+    {
+        return XR_ERROR_PATH_INVALID;
+    }
 
+    uint32_t path_size = static_cast<uint32_t>(string_path.size());
+    *bufferCountOutput = path_size;
+
+    if(bufferCapacityInput == 0)
+    {
+        return XR_SUCCESS;
+    }
+    if(bufferCapacityInput < path_size)
+    {
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    strcpy_s(buffer, path_size, string_path.data());
+
+    return XR_SUCCESS;
 }
 
-size_t GB_Instance::AddActionSet(std::string name, uint32_t priority)
-{
-    size_t hash = string_hasher(name);
-    action_sets[hash] = GB_ActionSet{ priority };
+XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* createInfo, XrActionSet* actionSet) {
+    const std::string action_set_name(createInfo->actionSetName);
+    const std::string localized_action_set_name(createInfo->localizedActionSetName);
 
-    return hash;
+    if (action_set_name.empty() || localized_action_set_name.empty()) {
+        // Specification says to return XR_ERROR_LOCALIZED_NAME_INVALID when either of the names ar empty.
+        // Doing it just in case but we might not care about it since we may not want to process input actions for SR.
+        return XR_ERROR_LOCALIZED_NAME_INVALID;
+    }
+
+    XrActionSet handle = reinterpret_cast<XrActionSet>(string_hasher(action_set_name));
+
+    auto pair = action_sets.insert({ handle, GB_ActionSet{ instance, createInfo->priority, localized_action_set_name } });
+    if (pair.second) {
+        *actionSet = handle;
+    }
+    else {
+        // Iterator to the pair element
+        LOG(WARNING) << "Action set already exists: " << localized_action_set_name;
+        return XR_ERROR_NAME_DUPLICATED;
+    }
+
+    return XR_SUCCESS;
 }
+
+XrResult xrDestroyActionSet(XrActionSet actionSet) {
+    GB_ActionSet to_delete;
+    try {
+        to_delete = action_sets.at(actionSet);
+    }
+    catch (std::out_of_range& e) {
+        LOG(ERROR) << "Failed adding action set: " << to_delete.localized_name << "does not exist";
+        return XR_ERROR_HANDLE_INVALID;
+    }
+    catch (std::exception& e) {
+        LOG(ERROR) << "Exception occurred: " << e.what();
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    std::erase_if(actions, [&](const auto& item)-> bool {
+        auto const& [key, value] = item;
+            if (value.action_set == actionSet) {
+                return true;
+            }
+            return false;
+        }
+    );
+
+    LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
+    action_sets.erase(actionSet);
+
+    return XR_SUCCESS;
+}
+
+XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action) {
+    GB_ActionSet gb_action_set;
+    try {
+        gb_action_set = action_sets.at(actionSet);
+    }
+    catch (std::out_of_range& e) {
+        LOG(ERROR) << "Failed adding action: " << createInfo->actionName << ". Action set: " << gb_action_set.localized_name << "does not exist";
+        return XR_ERROR_HANDLE_INVALID;
+    }
+    catch (std::exception& e) {
+        LOG(ERROR) << "Exception occurred: " << e.what();
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    GB_Action new_action{};
+    new_action.action_set = actionSet;
+    new_action.type = createInfo->actionType;
+    new_action.sub_action_paths.insert(new_action.sub_action_paths.begin(), createInfo->subactionPaths, createInfo->subactionPaths + createInfo->countSubactionPaths);
+    new_action.localized_name = createInfo->localizedActionName;
+
+    XrAction handle = reinterpret_cast<XrAction>(string_hasher(createInfo->actionName));
+
+    // TODO Can only register unique action names. I cannot register the same action handles to different actions sets. Is this a problem?
+    auto pair = actions.insert({ handle, new_action });
+    if (pair.second) {
+        *action = handle;
+    }
+    else {
+        LOG(WARNING) << "Action already exists: " << new_action.localized_name << "";
+        return XR_ERROR_NAME_DUPLICATED;
+    }
+
+    return XR_SUCCESS;
+}
+
+XrResult xrDestroyAction(XrAction action) {
+    GB_Action to_delete;
+    try {
+        to_delete = actions.at(action);
+    }
+    catch (std::out_of_range& e) {
+        LOG(ERROR) << "Failed adding action: " << to_delete.localized_name << "does not exist";
+        return XR_ERROR_HANDLE_INVALID;
+    }
+    catch (std::exception& e) {
+        LOG(ERROR) << "Exception occurred: " << e.what();
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
+    actions.erase(action);
+
+    return XR_SUCCESS;
+}
+
+XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrInteractionProfileSuggestedBinding* suggestedBindings) {
+    // TODO not implemented since we may not need this for now https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#semantic-path-interaction-profiles
+    // Vendor specific input mappings
+
+    GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+    suggestedBindings = &gb_instance->suggested_bindings;
+    return XR_SUCCESS;
+};
