@@ -184,7 +184,17 @@ XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType r
 }
 
 XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space) {
-    return test_return;
+    GameBridge::GB_Space new_space{};
+    new_space.session = session;
+    new_space.action = createInfo->action;
+    new_space.sub_action_path = createInfo->subactionPath;
+    new_space.pose_in_action_space = createInfo->poseInActionSpace;
+
+    // Add action handle to sub action handle for a space handle hash
+    XrSpace handle = reinterpret_cast<XrSpace>(reinterpret_cast<uint64_t>(new_space.action) + createInfo->subactionPath);
+    *space = handle;
+    GameBridge::spaces.insert({ handle, new_space });
+    return XR_SUCCESS;
 }
 
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) {

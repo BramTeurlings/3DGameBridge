@@ -11,5 +11,6 @@ XrResult xrDestroySession(XrSession session);
 namespace GameBridge {
     class GB_Session {
         XrSession id;
+        std::vector<XrActionSet> action_sets;
     };
 }

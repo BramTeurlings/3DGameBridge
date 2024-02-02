@@ -96,4 +96,5 @@ namespace  GameBridge {
     // The key is the string hash of an action set path. The same hash is being used for action set handles
     inline std::unordered_map<XrActionSet, GB_ActionSet> action_sets;
     inline std::unordered_map<XrAction, GB_Action> actions;
+    inline std::unordered_map<XrSpace, GB_Space> spaces;
 }

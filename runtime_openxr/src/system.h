@@ -21,8 +21,7 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
 XrResult xrDestroySpace(XrSpace space);
 
 namespace  GameBridge {
-    enum class SRDisplay
-    {
+    enum class SRDisplay {
         SR_DISPLAY
     };
 
@@ -35,8 +34,11 @@ namespace  GameBridge {
         bool features_enumerated = false;
     };
 
-    class GB_Space
-    {
-        XrSpace id;
+    struct GB_Space {
+        XrSession session;
+        XrSpace handle;
+        XrAction action;
+        XrPath sub_action_path;
+        XrPosef pose_in_action_space;
     };
 }

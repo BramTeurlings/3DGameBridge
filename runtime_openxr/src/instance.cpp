@@ -24,7 +24,6 @@ using namespace GameBridge;
 // TODO a list of instances in the future?
 GB_Instance* g_gbinstance = nullptr;
 
-
 XrResult xrGetInstanceProcAddr(XrInstance instance, const char* name, PFN_xrVoidFunction* function) {
     try {
         *function = GameBridge::openxr_functions.at(name);
