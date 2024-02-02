@@ -1,8 +1,7 @@
 #pragma once
-#include "dll.h"
-
 #include <string>
 
+#include "dll.h"
 #include "openxr_includes.h"
 #include "system.h"
 #include "session.h"
@@ -36,6 +35,7 @@ XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* cre
 XrResult xrDestroyActionSet(XrActionSet actionSet);
 XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action);
 XrResult xrDestroyAction(XrAction action);
+XrResult xrAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo* attachInfo);
 
 // Suggested bindings
 XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrInteractionProfileSuggestedBinding* suggestedBindings);
@@ -59,20 +59,8 @@ namespace  GameBridge {
         const std::string runtime_name = "XR Game Bridge";
         const uint64_t runtime_version = XR_MAKE_VERSION(RUNTIME_VERSION_MAYOR, RUNTIME_VERSION_MINOR, RUNTIME_VERSION_PATCH);
 
-        // TODO maybe we want a list of systems in the future
-        GB_System system;
-        GB_Session session;
-
-        std::unordered_map<XrPath, std::string> xrpath_storage;
         // Currently not being used
         XrInteractionProfileSuggestedBinding suggested_bindings;
-
-        /*!
-         * \brief Add an action set to the action map
-         * \param name Name of the action set, not the localized name
-         * \param priority Priority of the action set
-         * \return The id of the action set
-         */
     };
 
     struct GB_ActionSet {
@@ -94,6 +82,11 @@ namespace  GameBridge {
 
     // Data
     // The key is the string hash of an action set path. The same hash is being used for action set handles
+    inline std::unordered_map<XrPath, std::string> xrpath_storage;
+
+    inline std::unordered_map<XrInstance, GB_Instance> intances;
+    inline std::unordered_map<XrSession, GB_Session> sessions;
+    inline std::unordered_map<XrSystemId, GB_System> systems;
     inline std::unordered_map<XrActionSet, GB_ActionSet> action_sets;
     inline std::unordered_map<XrAction, GB_Action> actions;
     inline std::unordered_map<XrSpace, GB_Space> spaces;

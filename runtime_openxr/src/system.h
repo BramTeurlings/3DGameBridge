@@ -27,6 +27,7 @@ namespace  GameBridge {
 
     class GB_System {
     public:
+        XrInstance instance;
         XrSystemId id;
         XrFormFactor requested_formfactor;
         SRDisplay sr_device;

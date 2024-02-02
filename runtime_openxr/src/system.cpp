@@ -9,10 +9,9 @@
 #include "session.h"
 
 XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId) {
-    // TODO need a better and safer way to reference instances
-    GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
-    XrFormFactor requested_formfactor;
+    static uint32_t system_creation_count = 1;
 
+    XrFormFactor requested_formfactor;
     switch (getInfo->formFactor) {
     case XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY:
         requested_formfactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
@@ -24,13 +23,17 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
         return XR_ERROR_FORM_FACTOR_UNSUPPORTED;
     }
 
-    GameBridge::GB_System* system = &gb_instance->system;
-    *systemId = reinterpret_cast<XrSystemId>(system);
+    *systemId = system_creation_count;
 
-    system->id = *systemId;
-    system->requested_formfactor = requested_formfactor;
-    system->sr_device = GameBridge::SRDisplay::SR_DISPLAY;
+    GameBridge::GB_System system;
+    system.id = *systemId;
+    system.instance = instance;
+    system.requested_formfactor = requested_formfactor;
+    system.sr_device = GameBridge::SRDisplay::SR_DISPLAY;
 
+    GameBridge::systems.insert({*systemId, system});
+
+    //system_creation_count++; // OpenXR supports only a single system?
     return XR_SUCCESS;
 }
 
@@ -176,6 +179,7 @@ XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateI
     createInfo->referenceSpaceType;
 
     GameBridge::GB_Session* gb_session = reinterpret_cast<GameBridge::GB_Session*>(session);
+
     return test_return;
 }
 

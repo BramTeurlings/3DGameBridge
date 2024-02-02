@@ -210,70 +210,84 @@ std::map<uint32_t, DXGI_ADAPTER_DESC> DetermineDeviceScores(std::vector<IDXGIAda
 
 // DX11 and DX12 requirements functions have the same logic, they do have different out types
 XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements) {
-
     auto adapters = EnumerateAdapters();
     auto adapter_scores = DetermineDeviceScores(adapters);
 
-    if (adapter_scores.size() > 0) {
-
-        GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
-        // Check if the system is the same as the one in the instance
-        if (systemId == gb_instance->system.id) {
-            gb_instance->system.feature_level = D3D_FEATURE_LEVEL_11_0;
-            gb_instance->system.features_enumerated = true;
-
-            // Give graphics requirements to the connected application
-            graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
-            graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-
-            return XR_SUCCESS;
-        }
-
+    if (adapter_scores.size() == 0) {
+        LOG(ERROR) << "No devices found";
         return XR_ERROR_SYSTEM_INVALID;
     }
 
-    LOG(ERROR) << "No devices found";
-    return XR_ERROR_RUNTIME_FAILURE;
+    try {
+        GB_System& system = systems.at(systemId);
+
+        if (system.instance != instance) {
+            LOG(ERROR) << "Instance not bound to this system";
+            return XR_ERROR_HANDLE_INVALID;
+        }
+
+        system.feature_level = D3D_FEATURE_LEVEL_11_0;
+        system.features_enumerated = true;
+    }
+    catch (std::out_of_range& e) {
+        return XR_ERROR_SYSTEM_INVALID;
+    }
+    catch (std::exception& e) {
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    // Give graphics requirements to the connected application
+    graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
+    graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+    return XR_SUCCESS;
 }
 
 XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements) {
     auto adapters = EnumerateAdapters();
     auto adapter_scores = DetermineDeviceScores(adapters);
 
-    if (adapter_scores.size() > 0) {
-
-        GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
-        // Check if the system is the same as the one in the instance
-        if (systemId == gb_instance->system.id) {
-            gb_instance->system.feature_level = D3D_FEATURE_LEVEL_11_0;
-            gb_instance->system.features_enumerated = true;
-
-            // Give graphics requirements to the connected application
-            graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
-            graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-
-            return XR_SUCCESS;
-        }
-
+    if (adapter_scores.size() == 0) {
+        LOG(ERROR) << "No devices found";
         return XR_ERROR_SYSTEM_INVALID;
     }
 
-    LOG(ERROR) << "No devices found";
-    return XR_ERROR_RUNTIME_FAILURE;
+    try {
+        GB_System& system = systems.at(systemId);
+
+        if (system.instance != instance) {
+            LOG(ERROR) << "Instance not bound to this system";
+            return XR_ERROR_HANDLE_INVALID;
+        }
+
+        system.feature_level = D3D_FEATURE_LEVEL_11_0;
+        system.features_enumerated = true;
+    }
+    catch (std::out_of_range& e) {
+        return XR_ERROR_SYSTEM_INVALID;
+    }
+    catch (std::exception& e) {
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    // Give graphics requirements to the connected application
+    graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
+    graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+    return XR_SUCCESS;
 }
 
 XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* path)
 {
-    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
     XrPath xr_path = string_hasher(pathString);
     *path = xr_path;
 
     // Don't overwrite the path if it already exists
-    if (!gb_instance->xrpath_storage[xr_path].empty()) {
+    if (!xrpath_storage[xr_path].empty()) {
         return XR_SUCCESS;
     }
 
-    gb_instance->xrpath_storage[xr_path] = std::string(pathString);
+    xrpath_storage[xr_path] = std::string(pathString);
     *path = xr_path;
 
     return XR_SUCCESS;
@@ -281,8 +295,7 @@ XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* pat
 
 XrResult xrPathToString(XrInstance instance, XrPath path, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer)
 {
-    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
-    std::string string_path = gb_instance->xrpath_storage[path];
+    std::string string_path = xrpath_storage[path];
 
     if(string_path.empty()) 
     {
@@ -332,12 +345,14 @@ XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* cre
 }
 
 XrResult xrDestroyActionSet(XrActionSet actionSet) {
-    GB_ActionSet to_delete;
     try {
-        to_delete = action_sets.at(actionSet);
+        GB_ActionSet& to_delete = action_sets.at(actionSet);
+
+        LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
+        action_sets.erase(actionSet);
     }
     catch (std::out_of_range& e) {
-        LOG(ERROR) << "Failed adding action set: " << to_delete.localized_name << "does not exist";
+        LOG(ERROR) << "Action set not found";
         return XR_ERROR_HANDLE_INVALID;
     }
     catch (std::exception& e) {
@@ -345,6 +360,7 @@ XrResult xrDestroyActionSet(XrActionSet actionSet) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
+    // Remove actions linked to the action set
     std::erase_if(actions, [&](const auto& item)-> bool {
         auto const& [key, value] = item;
             if (value.action_set == actionSet) {
@@ -354,19 +370,15 @@ XrResult xrDestroyActionSet(XrActionSet actionSet) {
         }
     );
 
-    LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
-    action_sets.erase(actionSet);
-
     return XR_SUCCESS;
 }
 
 XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action) {
-    GB_ActionSet gb_action_set;
     try {
-        gb_action_set = action_sets.at(actionSet);
+        GB_ActionSet& gb_action_set = action_sets.at(actionSet);
     }
     catch (std::out_of_range& e) {
-        LOG(ERROR) << "Failed adding action: " << createInfo->actionName << ". Action set: " << gb_action_set.localized_name << "does not exist";
+        LOG(ERROR) << "Action set does not exist";
         return XR_ERROR_HANDLE_INVALID;
     }
     catch (std::exception& e) {
@@ -396,12 +408,14 @@ XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createI
 }
 
 XrResult xrDestroyAction(XrAction action) {
-    GB_Action to_delete;
     try {
-        to_delete = actions.at(action);
+        GB_Action& to_delete = actions.at(action);
+
+        LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
+        actions.erase(action);
     }
     catch (std::out_of_range& e) {
-        LOG(ERROR) << "Failed adding action: " << to_delete.localized_name << "does not exist";
+        LOG(ERROR) << "Action does not exist";
         return XR_ERROR_HANDLE_INVALID;
     }
     catch (std::exception& e) {
@@ -409,10 +423,14 @@ XrResult xrDestroyAction(XrAction action) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
-    LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
-    actions.erase(action);
-
     return XR_SUCCESS;
+}
+
+XrResult xrAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo* attachInfo) {
+    attachInfo->countActionSets;
+    attachInfo->actionSets;
+
+    return test_return;
 }
 
 XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrInteractionProfileSuggestedBinding* suggestedBindings) {
