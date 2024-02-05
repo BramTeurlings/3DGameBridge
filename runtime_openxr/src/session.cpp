@@ -1,10 +1,13 @@
 #include "session.h"
-#include "instance.h"
+
+#include <stdexcept>
 
 #include "openxr_functions.h"
+#include "instance.h"
+#include "system.h"
 
 XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session) {
-    static uint32_t session_creation_count = 1;
+    static uint64_t session_creation_count = 1;
     try {
         GameBridge::GB_System& system = GameBridge::systems.at(createInfo->systemId);
         if (!system.features_enumerated) {
@@ -25,6 +28,8 @@ XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createI
     *session = reinterpret_cast<XrSession>(session_creation_count);
     GameBridge::GB_Session new_session;
     new_session.id = *session;
+    new_session.instance = instance;
+    new_session.system = createInfo->systemId;
     GameBridge::sessions.insert({ *session, new_session });
 
     session_creation_count++;

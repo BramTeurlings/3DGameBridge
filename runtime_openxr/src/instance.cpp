@@ -6,6 +6,7 @@
 #include <set>
 
 #include "openxr_functions.h"
+#include "swapchain.h"
 
 //class OpenXRContainers {
 //public:
@@ -20,15 +21,12 @@
 
 using namespace GameBridge;
 
-// Not really a global...
-// TODO a list of instances in the future?
-GB_Instance* g_gbinstance = nullptr;
-
 XrResult xrGetInstanceProcAddr(XrInstance instance, const char* name, PFN_xrVoidFunction* function) {
     try {
         *function = GameBridge::openxr_functions.at(name);
     }
     catch (std::out_of_range& e) {
+        LOG(WARNING) << "FUNCTION UNSUPPORTED: " << name << " Error: " << e.what();
         return XR_ERROR_FUNCTION_UNSUPPORTED;
     }
     catch (std::exception& e) {
@@ -65,15 +63,14 @@ XrResult xrEnumerateInstanceExtensionProperties(const char* layerName, uint32_t 
         return XR_SUCCESS;
     }
     // Passed array not large enough
-    else if (propertyCapacityInput < array_size) {
+    if (propertyCapacityInput < array_size) {
         return XR_ERROR_SIZE_INSUFFICIENT;
     }
     // Return whether the extension exists
-    else {
-        // Fill array
-        memcpy_s(properties, propertyCapacityInput * sizeof(XrExtensionProperties), supported_extensions.data(), array_size * sizeof(XrExtensionProperties));
-        return XR_SUCCESS;
-    }
+
+    // Fill array
+    memcpy_s(properties, propertyCapacityInput * sizeof(XrExtensionProperties), supported_extensions.data(), array_size * sizeof(XrExtensionProperties));
+    return XR_SUCCESS;
 }
 
 XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* instance) {
@@ -159,55 +156,6 @@ XrResult xrDestroyInstance(XrInstance instance) {
     return test_return;
 }
 
-std::vector<IDXGIAdapter*> EnumerateAdapters(void) {
-    IDXGIAdapter* adapter;
-    std::vector<IDXGIAdapter*> adapters;
-    IDXGIFactory1* factory = NULL;
-
-    // Create a DXGIFactory object.
-    HRESULT err = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory);
-    if (FAILED(err)) {
-        LOG(ERROR) << "Could not create DXGIFactory with error: " << err;
-        return adapters;
-    }
-
-    for (UINT i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
-        adapters.push_back(adapter);
-    }
-
-    if (factory) {
-        factory->Release();
-    }
-
-    return adapters;
-}
-
-std::map<uint32_t, DXGI_ADAPTER_DESC> DetermineDeviceScores(std::vector<IDXGIAdapter*> adapters) {
-    // VRAM
-    uint32_t dedicated_memory_modifier = 2;
-    // RAM used only by the GPU (integrated graphics)
-    uint32_t dedicated_system_memory_modifier = 1;
-    // CPU ram shared with the GPU
-    uint32_t shared_memory_modifier = 0.1;
-
-    std::map<uint32_t, DXGI_ADAPTER_DESC> adapter_scores;
-    for (auto adapter : adapters) {
-        DXGI_ADAPTER_DESC adapter_desc;
-        adapter->GetDesc(&adapter_desc);
-
-        uint32_t adapter_score = 0;
-
-        adapter_score += dedicated_memory_modifier * adapter_desc.DedicatedVideoMemory;
-        adapter_score += dedicated_system_memory_modifier * adapter_desc.DedicatedSystemMemory;
-        adapter_score += shared_memory_modifier * adapter_desc.SharedSystemMemory;
-
-        // TODO If a pc has two identical GPU'S the first one may be overwritten here
-        adapter_scores[adapter_score] = adapter_desc;
-    }
-
-    return adapter_scores;
-}
-
 // DX11 and DX12 requirements functions have the same logic, they do have different out types
 XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements) {
     auto adapters = EnumerateAdapters();
@@ -228,6 +176,9 @@ XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
 
         system.feature_level = D3D_FEATURE_LEVEL_11_0;
         system.features_enumerated = true;
+
+        //GB_Instance gb_instance = instances.at(instance);
+        g_gbinstance->active_graphics_backend = GraphicsBackend::D3D11;
     }
     catch (std::out_of_range& e) {
         return XR_ERROR_SYSTEM_INVALID;
@@ -262,6 +213,12 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
 
         system.feature_level = D3D_FEATURE_LEVEL_11_0;
         system.features_enumerated = true;
+
+        //GB_Instance gb_instance = instances.at(instance);
+        //TODO Do I need this in both? Maybe only in system sincen that the device that renders in the end
+        g_gbinstance->active_graphics_backend = GraphicsBackend::D3D12;
+        system.active_graphics_backend = GraphicsBackend::D3D12;
+        LOG(INFO) << "";
     }
     catch (std::out_of_range& e) {
         return XR_ERROR_SYSTEM_INVALID;
@@ -331,7 +288,12 @@ XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* cre
 
     XrActionSet handle = reinterpret_cast<XrActionSet>(string_hasher(action_set_name));
 
-    auto pair = action_sets.insert({ handle, GB_ActionSet{ instance, createInfo->priority, localized_action_set_name } });
+    GB_ActionSet new_action_set;
+    new_action_set.instance = instance;
+    new_action_set.priority = createInfo->priority;
+    new_action_set.localized_name = localized_action_set_name;
+
+    auto pair = action_sets.insert({ handle,  new_action_set });
     if (pair.second) {
         *actionSet = handle;
     }
@@ -427,10 +389,24 @@ XrResult xrDestroyAction(XrAction action) {
 }
 
 XrResult xrAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo* attachInfo) {
-    attachInfo->countActionSets;
-    attachInfo->actionSets;
+    try {
+        const std::vector<XrActionSet> attach_info_sets(attachInfo->actionSets, attachInfo->actionSets + attachInfo->countActionSets);
 
-    return test_return;
+        for (uint32_t i = 0; i < attach_info_sets.size(); i++) {
+            GB_ActionSet& gb_action_set = action_sets.at(attach_info_sets[i]);
+            gb_action_set.session = session;
+        }
+    }
+    catch (std::out_of_range& e) {
+        LOG(ERROR) << "Action does not exist";
+        return XR_ERROR_HANDLE_INVALID;
+    }
+    catch (std::exception& e) {
+        LOG(ERROR) << "Exception occurred: " << e.what();
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    return XR_SUCCESS;
 }
 
 XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrInteractionProfileSuggestedBinding* suggestedBindings) {

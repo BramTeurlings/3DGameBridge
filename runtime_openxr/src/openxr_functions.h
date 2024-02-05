@@ -1,26 +1,16 @@
 #pragma once
 
 #include <string>
-#include <functional>
 #include <unordered_map>
 
 #include "openxr_includes.h"
 
 inline static XrResult test_return = XR_ERROR_RUNTIME_FAILURE;
 
-inline XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t* formatCountOutput, int64_t* formats) { return test_return; };
-inline XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t* imageCountOutput, XrSwapchainImageBaseHeader* images) { return test_return; };
-inline XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoundSourcesForActionEnumerateInfo* enumerateInfo, uint32_t sourceCapacityInput, uint32_t* sourceCountOutput, XrPath* sources) { return test_return; };
 
 inline XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData) { return test_return; };
 inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
 inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
-
-inline XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* createInfo, XrSwapchain* swapchain) { return test_return; };
-inline XrResult xrDestroySwapchain(XrSwapchain swapchain) { return test_return; };
-inline XrResult xrAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo* acquireInfo, uint32_t* index) { return test_return; };
-inline XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo* waitInfo) { return test_return; };
-inline XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo) { return test_return; };
 
 inline XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) { return test_return; };
 inline XrResult xrEndSession(XrSession session) { return test_return; };
@@ -69,7 +59,7 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
 
 namespace GameBridge {
     const std::unordered_map<std::string, PFN_xrVoidFunction> openxr_functions {
-        { "rGetInstanceProcAddr", reinterpret_cast<PFN_xrVoidFunction>(xrGetInstanceProcAddr)},
+        { "rGetInstanceProcAddr",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetInstanceProcAddr)},
         { "xrEnumerateInstanceExtensionProperties",     reinterpret_cast<PFN_xrVoidFunction>(xrEnumerateInstanceExtensionProperties) },
         { "xrCreateInstance",                           reinterpret_cast<PFN_xrVoidFunction>(xrCreateInstance) },
         { "xrDestroyInstance",                          reinterpret_cast<PFN_xrVoidFunction>(xrDestroyInstance) },
@@ -78,7 +68,7 @@ namespace GameBridge {
         { "xrResultToString",                           reinterpret_cast<PFN_xrVoidFunction>(xrResultToString) },
         { "xrStructureTypeToString",                    reinterpret_cast<PFN_xrVoidFunction>(xrStructureTypeToString) },
         { "xrGetSystem",                                reinterpret_cast<PFN_xrVoidFunction>(xrGetSystem) },
-        { "xrGetSystemProperties ",                     reinterpret_cast<PFN_xrVoidFunction>(xrGetSystemProperties) },
+        { "xrGetSystemProperties",                      reinterpret_cast<PFN_xrVoidFunction>(xrGetSystemProperties) },
         { "xrEnumerateEnvironmentBlendModes",           reinterpret_cast<PFN_xrVoidFunction>(xrEnumerateEnvironmentBlendModes) },
         { "xrCreateSession",                            reinterpret_cast<PFN_xrVoidFunction>(xrCreateSession) },
         { "xrDestroySession",                           reinterpret_cast<PFN_xrVoidFunction>(xrDestroySession) },
@@ -125,8 +115,8 @@ namespace GameBridge {
         { "xrStopHapticFeedback",                       reinterpret_cast<PFN_xrVoidFunction>(xrStopHapticFeedback) },
 
         // Graphics extensions
-        //{ "xrGetD3D11GraphicsRequirementsKHR",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D11GraphicsRequirementsKHR) },
-        { "xrGetD3D12GraphicsRequirementsKHR",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D12GraphicsRequirementsKHR) }
+        //{ "xrGetD3D11GraphicsRequirementsKHR",          reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D11GraphicsRequirementsKHR) },
+        { "xrGetD3D12GraphicsRequirementsKHR",          reinterpret_cast<PFN_xrVoidFunction>(xrGetD3D12GraphicsRequirementsKHR) }
     };
 
     const std::vector<XrExtensionProperties> supported_extensions{

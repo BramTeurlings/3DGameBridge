@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 #include "openxr_includes.h"
 
@@ -14,6 +15,8 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
 
 // Spaces
 XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInput, uint32_t* spaceCountOutput, XrReferenceSpaceType* spaces);
+
+// Returns a newly create reference space or the space that already exists
 XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space);
 XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df* bounds);
 XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space);
@@ -21,21 +24,77 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
 XrResult xrDestroySpace(XrSpace space);
 
 namespace  GameBridge {
+    // System dummy values
+    enum class GraphicsBackend {
+        undefined = 0,
+        D3D11 = 1,
+        D3D12 = 2,
+        Vulkan = 3,
+        OpenGL = 4
+    };
+
+    struct GBVector2i
+    {
+        uint32_t x;
+        uint32_t y;
+    };
+
+    inline GBVector2i GetDummyScreenResolution() {
+        //TODO dependent on the SR screen, hopefully we can set reset this later on runtime. It would be cool to setup everything without having to connect to the sr service since that might take some time.
+        // MS docs: The width/height of the client area for a full-screen window on the primary display monitor, in pixels.
+        const uint32_t primary_display_res_x = static_cast<uint32_t>(GetSystemMetrics(SM_CXSCREEN));
+        const uint32_t primary_display_res_y = static_cast<uint32_t>(GetSystemMetrics(SM_CYSCREEN));
+        return { primary_display_res_x, primary_display_res_y };
+    }
+
+    inline XrSystemProperties get_dummy_system_properties() {
+        auto screen_resolution = GameBridge::GetDummyScreenResolution();
+
+        XrSystemGraphicsProperties g_props{};
+        g_props.maxLayerCount = 1;
+        g_props.maxSwapchainImageWidth = screen_resolution.x;
+        g_props.maxSwapchainImageHeight = screen_resolution.y;
+
+        XrSystemTrackingProperties t_props{};
+        t_props.positionTracking = false;
+        t_props.orientationTracking = false;
+
+        XrSystemProperties sys_props{
+            XR_TYPE_SYSTEM_PROPERTIES,
+            nullptr,
+            1,
+            0x354B, // USB Vendor ID
+            "SR Monitor",
+            g_props,
+            t_props
+        };
+        return sys_props;
+    }
+
     enum class SRDisplay {
         SR_DISPLAY
     };
 
-    class GB_System {
-    public:
+    struct GB_System {
         XrInstance instance;
         XrSystemId id;
         XrFormFactor requested_formfactor;
         SRDisplay sr_device;
         D3D_FEATURE_LEVEL feature_level;
         bool features_enumerated = false;
+        GraphicsBackend active_graphics_backend;
     };
 
-    struct GB_Space {
+    // Spaces are basically transformation matrices.
+    // They transform a point/orientation with respect to an XrSpace of the applications choosing
+    struct GB_ReferenceSpace {
+        XrSession session;
+        XrSpace handle;
+        XrReferenceSpaceType space_type;
+        XrPosef pose_in_reference_space;
+    };
+
+    struct GB_ActionSpace {
         XrSession session;
         XrSpace handle;
         XrAction action;
