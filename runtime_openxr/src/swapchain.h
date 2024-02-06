@@ -1,9 +1,6 @@
 #pragma once
 
 #include "openxr_includes.h"
-
-#include <map>
-
 #include "session.h"
 
 XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t* formatCountOutput, int64_t* formats);
@@ -16,82 +13,49 @@ XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitI
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo);
 
 namespace GameBridge {
-    inline std::vector<IDXGIAdapter*> EnumerateAdapters();
-    inline std::map<uint32_t, DXGI_ADAPTER_DESC> DetermineDeviceScores(std::vector<IDXGIAdapter*> adapters);
-
     class GB_Display
     {
         // The main window class name.
-        std::string szWindowClass = "DesktopApp";
+        std::string window_class = "Game Bridge Window";
 
         // The string that appears in the application's title bar.
-        std::string szTitle = "Windows Desktop Guided Tour Application";
+        std::string title = "XR Game Bridge";
 
+        HWND h_wnd = 0;
 
-        bool Initialize();
-
+    public:
         // Returns the window of the application or false if none exist
-        bool CreateApplicationWindow(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow);
-
-        // Create swapchain
-        bool CreateSwapChain();
-
-        // Create swapchain for a window
-        bool CreateSwapChain(HWND hwnd);
+        bool CreateApplicationWindow(HINSTANCE hInstance, int nCmdShow);
     };
 
+    class GB_GraphicsDevice
+    {
+        static const unsigned short back_buffer_count = 2;
 
+        ComPtr<ID3D12Device> d3d12_device;
+        ComPtr<IDXGISwapChain3> swap_chain;
+        ComPtr<ID3D12CommandQueue> command_queue;
+        ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+        ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+        ComPtr<ID3D12Resource> render_targets[back_buffer_count];
+        ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+        uint32_t descriptor_size = 0;
+        uint32_t frame_index = 0;
 
-    // Stored instance handle for use in Win32 API calls such as FindResource
-    HINSTANCE hInst;
+    public:
+        static void CreateDXGIFactory(IDXGIFactory4** factory);
+        static void GetGraphicsAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter);
 
-    void MessageLoop() {
-        // Start the message loop. 
+        // Creates device
+        bool Initialize();
+        bool Initialize(ID3D12Device* device, ID3D12CommandQueue* queue);
 
-        // Main message loop:
-        MSG msg;
-        while (GetMessage(&msg, NULL, 0, 0)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
+        // Create swap_chain
+        bool CreateSwapChain();
 
-    //
-    //  PURPOSE:  Processes messages for the main window.
-    //
-    //  WM_PAINT    - Paint the main window
-    //  WM_DESTROY  - post a quit message and return
-    LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-        PAINTSTRUCT ps;
-        HDC hdc;
-        std::string greeting ("Hello, Windows desktop!");
+        // Create swap_chain for a window
+        bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
 
-        switch (message) {
-        case WM_PAINT:
-            hdc = BeginPaint(hWnd, &ps);
-
-            // Here your application is laid out.
-            // For this introduction, we just print out "Hello, Windows desktop!"
-            // in the top left corner.
-            TextOut(hdc,
-                5, 5,
-                greeting.data(),  (greeting.size()));
-            // End application-specific layout section.
-
-            EndPaint(hWnd, &ps);
-            break;
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            break;
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
-            break;
-        }
-
-        return 0;
-    }
-
-    bool InitWindow(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow) {
-
-    }
+        IDXGISwapChain1* GetSwapChain();
+    };
 }

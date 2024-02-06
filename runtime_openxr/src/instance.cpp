@@ -158,11 +158,13 @@ XrResult xrDestroyInstance(XrInstance instance) {
 
 // DX11 and DX12 requirements functions have the same logic, they do have different out types
 XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D11KHR* graphicsRequirements) {
-    auto adapters = EnumerateAdapters();
-    auto adapter_scores = DetermineDeviceScores(adapters);
+    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> hardwareAdapter;
+    GB_GraphicsDevice::CreateDXGIFactory(&factory);
+    GB_GraphicsDevice::GetGraphicsAdapter(factory.Get(), &hardwareAdapter, true);
 
-    if (adapter_scores.size() == 0) {
-        LOG(ERROR) << "No devices found";
+    if (factory == nullptr) {
+        LOG(ERROR) << "No suitable device found";
         return XR_ERROR_SYSTEM_INVALID;
     }
 
@@ -188,18 +190,22 @@ XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     }
 
     // Give graphics requirements to the connected application
-    graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
+    DXGI_ADAPTER_DESC1 desc;
+    hardwareAdapter->GetDesc1(&desc);
+    graphicsRequirements->adapterLuid = desc.AdapterLuid;
     graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
     return XR_SUCCESS;
 }
 
 XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId systemId, XrGraphicsRequirementsD3D12KHR* graphicsRequirements) {
-    auto adapters = EnumerateAdapters();
-    auto adapter_scores = DetermineDeviceScores(adapters);
+    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> hardwareAdapter;
+    GB_GraphicsDevice::CreateDXGIFactory(&factory);
+    GB_GraphicsDevice::GetGraphicsAdapter(factory.Get(), &hardwareAdapter, true);
 
-    if (adapter_scores.size() == 0) {
-        LOG(ERROR) << "No devices found";
+    if (factory == nullptr) {
+        LOG(ERROR) << "No suitable device found";
         return XR_ERROR_SYSTEM_INVALID;
     }
 
@@ -228,7 +234,9 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     }
 
     // Give graphics requirements to the connected application
-    graphicsRequirements->adapterLuid = adapter_scores.begin()->second.AdapterLuid;
+    DXGI_ADAPTER_DESC1 desc;
+    hardwareAdapter->GetDesc1(&desc);
+    graphicsRequirements->adapterLuid = desc.AdapterLuid;
     graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
     return XR_SUCCESS;

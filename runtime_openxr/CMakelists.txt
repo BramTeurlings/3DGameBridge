@@ -21,6 +21,8 @@ add_library(RuntimeOpenXR SHARED
 		src/session.cpp
 		src/swapchain.h
 		src/swapchain.cpp
+		src/settings.h
+		src/settings.cpp
 		
 		../third-party/easyloggingpp/src/easylogging++.cc
 )
@@ -34,6 +36,7 @@ target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_GRAPHICS_API_D3D12)
 # Include OpenXR
 target_include_directories(RuntimeOpenXR PRIVATE ../third-party/OpenXR-SDK/include)
 target_include_directories(RuntimeOpenXR PRIVATE ../third-party/easyloggingpp/src)
+target_include_directories(RuntimeOpenXR PRIVATE ../third-party/DirectX-Headers/include/DirectX-Headers/include)
 
 # Link dependancies
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})

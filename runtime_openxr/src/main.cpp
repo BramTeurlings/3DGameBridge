@@ -2,33 +2,23 @@
 #include <format>
 
 #include <easylogging++.h>
-//
-
 #include <openxr/openxr.h>
+#include "settings.h"
 
 INITIALIZE_EASYLOGGINGPP
-
 
 //int main()
 //{
 //    return 0;
 //}
 
-struct RuntimeSettings {
-    bool support_d3d12 = true;
-    bool support_d3d11 = true;
-    bool support_vk = false;
-    bool support_gl = false;
-} static g_runtime_settings;
-
-
-BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
+BOOL WINAPI DllMain(HINSTANCE hInst, DWORD fdwReason, LPVOID) {
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
     {
         LOG(INFO) << "DLL_PROCESS_ATTACH";
 
-        LOG(INFO) << "SR Hydra loaded";
+        LOG(INFO) << "XR Game Bridge Loaded";
 
         LOG(INFO) << "Game Bridge: VERSION";
 
@@ -37,16 +27,18 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
         LOG(INFO) << "Process: ";
         LOG(INFO) << "Executable: ";
 
-        LOG(INFO) << "Support D3D11 " << (g_runtime_settings.support_d3d11 ? "TRUE" : "FALSE");
-        LOG(INFO) << "Support D3D12 " << (g_runtime_settings.support_d3d12 ? "TRUE" : "FALSE");
-        LOG(INFO) << "Support GL " << (g_runtime_settings.support_gl ? "TRUE" : "FALSE");
-        LOG(INFO) << "Support VK " << (g_runtime_settings.support_vk ? "TRUE" : "FALSE");
+        LOG(INFO) << "Support D3D11 " << (GameBridge::g_runtime_settings.support_d3d11 ? "TRUE" : "FALSE");
+        LOG(INFO) << "Support D3D12 " << (GameBridge::g_runtime_settings.support_d3d12 ? "TRUE" : "FALSE");
+        LOG(INFO) << "Support GL " << (GameBridge::g_runtime_settings.support_gl ? "TRUE" : "FALSE");
+        LOG(INFO) << "Support VK " << (GameBridge::g_runtime_settings.support_vk ? "TRUE" : "FALSE");
 
         //if (FClientSettings::ClientSettings.AllowVK)
         //{
         //    int Status = gladLoaderLoadVulkan(nullptr, nullptr, nullptr);
         //    Log(FLogOpenXRInterface, Trace, "GLAD VK status: %i", Status);
         //}
+
+        GameBridge::g_runtime_settings.hInst = hInst;
 
         break;
     }
@@ -55,7 +47,7 @@ BOOL WINAPI DllMain(HINSTANCE, DWORD fdwReason, LPVOID) {
     {
         LOG(INFO) << "DLL_PROCESS_DETACH";
 
-        LOG(INFO) << "Game Bridge unloaded";
+        LOG(INFO) << "XR Game Bridge Unloaded";
         break;
     }
 
