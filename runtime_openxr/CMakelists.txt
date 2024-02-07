@@ -23,6 +23,8 @@ add_library(RuntimeOpenXR SHARED
 		src/swapchain.cpp
 		src/settings.h
 		src/settings.cpp
+		src/events.h
+		src/events.cpp
 		
 		../third-party/easyloggingpp/src/easylogging++.cc
 )
@@ -42,6 +44,7 @@ target_include_directories(RuntimeOpenXR PRIVATE ../third-party/DirectX-Headers/
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+		3DGameBridge
 		simulatedreality
 		srDirectX::srDirectX
 )

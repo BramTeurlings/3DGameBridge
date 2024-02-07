@@ -2,6 +2,6 @@
 
 #define DllExport extern "C" __declspec(dllexport)
 
-//namespace GameBridge{};
+//namespace XRGameBridge{};
 
-//namespace GB = GameBridge;
+//namespace GB = XRGameBridge;

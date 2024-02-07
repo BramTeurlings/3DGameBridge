@@ -8,6 +8,9 @@
 #include "swapchain.h"
 #include "system.h"
 
+#include "game_bridge.h"
+#include "event_manager.h"
+
 //TODO fix versioning
 #define RUNTIME_VERSION_MAYOR 0
 #define RUNTIME_VERSION_MINOR 0
@@ -42,7 +45,7 @@ XrResult xrAttachSessionActionSets(XrSession session, const XrSessionActionSetsA
 // Suggested bindings
 XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrInteractionProfileSuggestedBinding* suggestedBindings);
 
-namespace GameBridge {
+namespace XRGameBridge {
     //// Handle functions
     //template<typename T>
     //T PtrToXrHandle() { return T(); };
@@ -83,6 +86,8 @@ namespace GameBridge {
 
     // Hash class
     inline std::hash<std::string> string_hasher;
+
+    inline GameBridge* g_game_bridge_instance;
 
     // Data
     // The key is the string hash of an action set path. The same hash is being used for action set handles

@@ -19,11 +19,11 @@
 //
 //} static g_openxr_stuff;
 
-using namespace GameBridge;
+using namespace XRGameBridge;
 
 XrResult xrGetInstanceProcAddr(XrInstance instance, const char* name, PFN_xrVoidFunction* function) {
     try {
-        *function = GameBridge::openxr_functions.at(name);
+        *function = openxr_functions.at(name);
     }
     catch (std::out_of_range& e) {
         LOG(WARNING) << "FUNCTION UNSUPPORTED: " << name << " Error: " << e.what();
@@ -138,13 +138,15 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
     g_gbinstance = new GB_Instance();
     *instance = reinterpret_cast<XrInstance>(g_gbinstance);
 
+    g_game_bridge_instance = new GameBridge(EventManager());
+
     LOG(INFO) << "New GameBridge Instance created";
     return XR_SUCCESS;
 }
 
 XrResult xrGetInstanceProperties(XrInstance instance, XrInstanceProperties* instanceProperties) {
     // TODO Make a list of instances to check whether passed instances are valid or not
-    GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
 
     strcpy_s(instanceProperties->runtimeName, XR_MAX_RUNTIME_NAME_SIZE, gb_instance->runtime_name.data());
     instanceProperties->runtimeVersion = gb_instance->runtime_version;
@@ -421,7 +423,7 @@ XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrIntera
     // TODO not implemented since we may not need this for now https://registry.khronos.org/OpenXR/specs/1.0/html/xrspec.html#semantic-path-interaction-profiles
     // Vendor specific input mappings
 
-    GameBridge::GB_Instance* gb_instance = reinterpret_cast<GameBridge::GB_Instance*>(instance);
+    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
     suggestedBindings = &gb_instance->suggested_bindings;
     return XR_SUCCESS;
 };

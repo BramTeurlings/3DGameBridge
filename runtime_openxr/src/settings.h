@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 
-namespace GameBridge {
+namespace XRGameBridge {
     struct GB_RuntimeSettings {
         bool support_d3d12 = true;
         bool support_d3d11 = false;

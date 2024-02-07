@@ -32,7 +32,7 @@ enum GAME_BRIDGE_API GameBridgeHotkeyManagerInitialize {
 };
 
 // Event manager types
-enum GAME_BRIDGE_API GameBridgeEventManagerType {
+enum GAME_BRIDGE_API EventStreamType {
     GB_MANAGER_EVENT_TYPE_HOTKEY,
     GB_MANAGER_EVENT_TYPE_PLATFORM,
     GB_MANAGER_EVENT_TYPE_WEAVER

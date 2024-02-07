@@ -26,13 +26,13 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
 
     *systemId = system_creation_count;
 
-    GameBridge::GB_System system;
+    XRGameBridge::GB_System system;
     system.id = *systemId;
     system.instance = instance;
     system.requested_formfactor = requested_formfactor;
-    system.sr_device = GameBridge::SRDisplay::SR_DISPLAY;
+    system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
 
-    GameBridge::systems.insert({*systemId, system});
+    XRGameBridge::systems.insert({*systemId, system});
 
     //system_creation_count++; // OpenXR supports only a single system?
     return XR_SUCCESS;
@@ -40,7 +40,7 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
 
 XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties) {
     try {
-        GameBridge::GB_System& system = GameBridge::systems.at(systemId);
+        XRGameBridge::GB_System& system = XRGameBridge::systems.at(systemId);
     }
     catch (std::out_of_range& e) {
         return XR_ERROR_SYSTEM_INVALID;
@@ -49,7 +49,7 @@ XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSyste
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
-    *properties = GameBridge::get_dummy_system_properties();
+    *properties = XRGameBridge::get_dummy_system_properties();
 
     return XR_SUCCESS;
 }
@@ -120,7 +120,7 @@ XrResult xrGetViewConfigurationProperties(XrInstance instance, XrSystemId system
 XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrViewConfigurationView* views) {
     XrResult res = XR_ERROR_RUNTIME_FAILURE;
 
-    auto screen_resolution = GameBridge::GetDummyScreenResolution();
+    auto screen_resolution = XRGameBridge::GetDummyScreenResolution();
     std::vector<XrViewConfigurationView> supported_views;
 
     if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
@@ -159,7 +159,7 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
 }
 
 XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInput, uint32_t* spaceCountOutput, XrReferenceSpaceType* spaces) {
-    GameBridge::GB_Session* gb_session = reinterpret_cast<GameBridge::GB_Session*>(session);
+    XRGameBridge::GB_Session* gb_session = reinterpret_cast<XRGameBridge::GB_Session*>(session);
 
     std::array reference_space_types{
         XR_REFERENCE_SPACE_TYPE_VIEW,
@@ -185,7 +185,7 @@ XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInp
 XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space) {
     static uint64_t reference_space_count = 1;
     XrSpace handle = reinterpret_cast<XrSpace>(reference_space_count);
-    GameBridge::GB_ReferenceSpace new_space;
+    XRGameBridge::GB_ReferenceSpace new_space;
     new_space.session = session;
     new_space.handle = handle;
     new_space.pose_in_reference_space = createInfo->poseInReferenceSpace;
@@ -196,7 +196,7 @@ XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateI
         return XR_ERROR_REFERENCE_SPACE_UNSUPPORTED;
     }
 
-    const auto inserted = GameBridge::reference_spaces.insert({ handle, new_space });
+    const auto inserted = XRGameBridge::reference_spaces.insert({ handle, new_space });
     if (!inserted.second) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
@@ -212,7 +212,7 @@ XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType r
 }
 
 XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space) {
-    GameBridge::GB_ActionSpace new_space{};
+    XRGameBridge::GB_ActionSpace new_space{};
     new_space.session = session;
     new_space.action = createInfo->action;
     new_space.sub_action_path = createInfo->subactionPath;
@@ -221,7 +221,7 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
     // Add action handle to sub action handle for a space handle hash
     XrSpace handle = reinterpret_cast<XrSpace>(reinterpret_cast<uint64_t>(new_space.action) + createInfo->subactionPath);
     *space = handle;
-    GameBridge::action_spaces.insert({ handle, new_space });
+    XRGameBridge::action_spaces.insert({ handle, new_space });
     return XR_SUCCESS;
 }
 

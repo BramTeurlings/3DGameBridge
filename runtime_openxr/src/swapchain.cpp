@@ -12,11 +12,11 @@
 #include "system.h"
 
 XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t* formatCountOutput, int64_t* formats) {
-    GameBridge::GraphicsBackend backend;
+    XRGameBridge::GraphicsBackend backend;
 
     try {
-        GameBridge::GB_Session& gb_session = GameBridge::sessions.at(session);
-        GameBridge::GB_System& gb_system = GameBridge::systems.at(gb_session.system);
+        XRGameBridge::GB_Session& gb_session = XRGameBridge::sessions.at(session);
+        XRGameBridge::GB_System& gb_system = XRGameBridge::systems.at(gb_session.system);
         backend = gb_system.active_graphics_backend;
     }
     catch (std::out_of_range& e) {
@@ -27,22 +27,23 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
     }
 
     std::vector<int64_t> supported_swapchain_formats;
-    if (backend == GameBridge::GraphicsBackend::D3D12) {
+    if (backend == XRGameBridge::GraphicsBackend::D3D12) {
         supported_swapchain_formats.push_back(DXGI_FORMAT_R8G8B8A8_UNORM);
         supported_swapchain_formats.push_back(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
     }
-    if (backend == GameBridge::GraphicsBackend::D3D11) {
+    if (backend == XRGameBridge::GraphicsBackend::D3D11) {
         // not implemented
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
-    *formatCountOutput = supported_swapchain_formats.size();
+    uint32_t count = supported_swapchain_formats.size();
+    *formatCountOutput = count;
 
     if (formatCapacityInput == 0) {
         return XR_SUCCESS;
     }
     // Passed array not large enough
-    if (formatCapacityInput < 1) {
+    if (formatCapacityInput < count) {
         return XR_ERROR_SIZE_INSUFFICIENT;
     }
 
@@ -52,10 +53,25 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
 }
 
 XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* createInfo, XrSwapchain* swapchain) {
-    GameBridge::GB_Display display;
-    display.CreateApplicationWindow(GameBridge::g_runtime_settings.hInst, true);
+    static uint32_t swapchain_creation_count = 1;
+    // Create window
+    XRGameBridge::g_display.CreateApplicationWindow(XRGameBridge::g_runtime_settings.hInst, true);
+    XrSwapchain handle = reinterpret_cast<XrSwapchain>(swapchain_creation_count);
 
-    return XR_ERROR_RUNTIME_FAILURE;
+    // Create entry in the list
+    XRGameBridge::GB_GraphicsDevice& graphics_device = XRGameBridge::g_graphics_devices[handle];
+
+    // Create swap chain
+    XRGameBridge::GB_Session gb_session = XRGameBridge::sessions[session];
+    graphics_device.Initialize(gb_session.d3d12_device, gb_session.command_queue);
+    if(graphics_device.CreateSwapChain(createInfo, XRGameBridge::g_display.GetWindowHandle()))
+    {
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    *swapchain = handle;
+    swapchain_creation_count++;
+    return XR_SUCCESS;
 }
 
 XrResult xrDestroySwapchain(XrSwapchain swapchain) {
@@ -63,7 +79,38 @@ XrResult xrDestroySwapchain(XrSwapchain swapchain) {
 }
 
 XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t* imageCountOutput, XrSwapchainImageBaseHeader* images) {
-    return XR_ERROR_RUNTIME_FAILURE;
+    auto gb_graphics_device = XRGameBridge::g_graphics_devices[swapchain];
+    uint32_t count = gb_graphics_device.GetBufferCount();
+
+    *imageCountOutput = count;
+
+    if (imageCapacityInput == 0) {
+        return XR_SUCCESS;
+    }
+    // Passed array not large enough
+    if (imageCapacityInput < count) {
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    if (XRGameBridge::g_runtime_settings.support_d3d12) {
+        if(images[0].type != XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR)
+        {
+            LOG(ERROR) << "structure type incompatible";
+            return XR_ERROR_VALIDATION_FAILURE;
+        }
+
+        std::vector<XrSwapchainImageD3D12KHR> xr_images;
+        auto directx_images = gb_graphics_device.GetImages();
+        for (uint32_t i = 0; i < count; i++) {
+            XrSwapchainImageD3D12KHR image{};
+            image.texture = directx_images[i].Get();
+            xr_images.push_back(image);
+        }
+
+        // Fill array
+        memcpy_s(images, imageCapacityInput * sizeof(XrSwapchainImageD3D12KHR), xr_images.data(), xr_images.size() * sizeof(XrSwapchainImageD3D12KHR));
+        return XR_SUCCESS;
+    }
 }
 
 XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoundSourcesForActionEnumerateInfo* enumerateInfo, uint32_t sourceCapacityInput, uint32_t* sourceCountOutput, XrPath* sources) {
@@ -82,7 +129,7 @@ XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageRe
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
-namespace GameBridge {
+namespace XRGameBridge {
     void MessageLoop() {
         // Start the message loop.
 
@@ -160,8 +207,11 @@ namespace GameBridge {
         return true;
     }
 
+    HWND GB_Display::GetWindowHandle() {
+        return h_wnd;
+    }
+
     void GB_GraphicsDevice::CreateDXGIFactory(IDXGIFactory4** factory) {
-        factory = nullptr;
         // Create a DXGIFactory object.
         UINT dxgi_factory_flags = 0;
         HRESULT err = CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(factory));
@@ -238,9 +288,10 @@ namespace GameBridge {
         return true;
     }
 
-    bool GB_GraphicsDevice::Initialize(ID3D12Device* device, ID3D12CommandQueue* queue) {
-        //TODO set values
-        return false;
+    bool GB_GraphicsDevice::Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue) {
+        d3d12_device = device;
+        command_queue = queue;
+        return true;
     }
 
     bool GB_GraphicsDevice::CreateSwapChain() {
@@ -314,11 +365,11 @@ namespace GameBridge {
 
             // Create a RTV for each frame.
             for (uint32_t i = 0; i < back_buffer_count; i++) {
-                if (FAILED(swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_targets[i])))) {
+                if (FAILED(swap_chain->GetBuffer(i, IID_PPV_ARGS(&back_buffers[i])))) {
                     LOG(ERROR) << "Failed to create rtv";
                     return false;
                 }
-                d3d12_device->CreateRenderTargetView(render_targets[i].Get(), nullptr, rtvHandle);
+                d3d12_device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtvHandle);
                 rtvHandle.Offset(i, descriptor_size);
             }
         }
@@ -331,8 +382,16 @@ namespace GameBridge {
         return false;
     }
 
-    IDXGISwapChain1* GB_GraphicsDevice::GetSwapChain()
+    std::array<ComPtr<ID3D12Resource>, GB_GraphicsDevice::back_buffer_count> GB_GraphicsDevice::GetImages()
     {
+        return back_buffers;
+    }
+
+    uint32_t GB_GraphicsDevice::GetBufferCount() {
+        return back_buffer_count;
+    }
+
+    IDXGISwapChain1* GB_GraphicsDevice::GetSwapChain() {
         return swap_chain.Get();
     }
 }

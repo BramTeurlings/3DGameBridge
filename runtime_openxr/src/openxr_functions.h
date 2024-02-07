@@ -7,8 +7,6 @@
 
 inline static XrResult test_return = XR_ERROR_RUNTIME_FAILURE;
 
-
-inline XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData) { return test_return; };
 inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
 inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
 
@@ -57,7 +55,7 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
 //XrResult xrGetDisplayRefreshRateFB(XrSession session, float* displayRefreshRate);
 //XrResult xrRequestDisplayRefreshRateFB(XrSession session, float displayRefreshRate);
 
-namespace GameBridge {
+namespace XRGameBridge {
     const std::unordered_map<std::string, PFN_xrVoidFunction> openxr_functions {
         { "rGetInstanceProcAddr",                       reinterpret_cast<PFN_xrVoidFunction>(xrGetInstanceProcAddr)},
         { "xrEnumerateInstanceExtensionProperties",     reinterpret_cast<PFN_xrVoidFunction>(xrEnumerateInstanceExtensionProperties) },

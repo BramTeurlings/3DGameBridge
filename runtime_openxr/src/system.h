@@ -23,7 +23,7 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location);
 XrResult xrDestroySpace(XrSpace space);
 
-namespace  GameBridge {
+namespace  XRGameBridge {
     // System dummy values
     enum class GraphicsBackend {
         undefined = 0,
@@ -48,7 +48,7 @@ namespace  GameBridge {
     }
 
     inline XrSystemProperties get_dummy_system_properties() {
-        auto screen_resolution = GameBridge::GetDummyScreenResolution();
+        auto screen_resolution = XRGameBridge::GetDummyScreenResolution();
 
         XrSystemGraphicsProperties g_props{};
         g_props.maxLayerCount = 1;
