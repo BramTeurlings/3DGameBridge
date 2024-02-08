@@ -25,6 +25,8 @@ add_library(RuntimeOpenXR SHARED
 		src/settings.cpp
 		src/events.h
 		src/events.cpp
+		src/actions.h
+		src/actions.cpp
 		
 		../third-party/easyloggingpp/src/easylogging++.cc
 )
@@ -47,4 +49,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		3DGameBridge
 		simulatedreality
 		srDirectX::srDirectX
+)
+
+# Copy dependancies
+add_custom_command(
+    TARGET RuntimeOpenXR POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:3DGameBridge>" "$<TARGET_FILE_DIR:RuntimeOpenXR>"
+	DEPENDS 3DGameBridge
 )

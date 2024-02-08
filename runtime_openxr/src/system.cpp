@@ -179,7 +179,7 @@ XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInp
 
     memcpy_s(spaces, spaceCapacityInput * sizeof(XrReferenceSpaceType), reference_space_types.data(), reference_space_types.size() * sizeof(XrReferenceSpaceType));
     return XR_SUCCESS;
-}
+ }
 
 #include "openxr_functions.h"
 XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space) {

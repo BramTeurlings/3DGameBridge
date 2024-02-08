@@ -7,6 +7,7 @@
 
 #include "openxr_functions.h"
 #include "swapchain.h"
+#include "game_bridge_structs.h"
 
 //class OpenXRContainers {
 //public:
@@ -93,11 +94,11 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
     XrApplicationInfo app_info = createInfo->applicationInfo;
     std::string app_name = app_info.applicationName;
 
-    LOG(INFO) << "Application name: "       << app_name;
-    LOG(INFO) << "Api version: "            << app_info.apiVersion;
-    LOG(INFO) << "Application version: "    << app_info.applicationVersion;
-    LOG(INFO) << "Engine: "                 << app_info.engineName;
-    LOG(INFO) << "Engine version: "         << app_info.engineVersion;
+    LOG(INFO) << "Application name: " << app_name;
+    LOG(INFO) << "Api version: " << app_info.apiVersion;
+    LOG(INFO) << "Application version: " << app_info.applicationVersion;
+    LOG(INFO) << "Engine: " << app_info.engineName;
+    LOG(INFO) << "Engine version: " << app_info.engineVersion;
 
     if (app_name.empty()) {
         return XR_ERROR_NAME_INVALID;
@@ -114,20 +115,16 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
     const char* const* api_extensions = createInfo->enabledExtensionNames;
     // Create set of application extensions
     std::set <std::string> application_extensions;
-    for(uint32_t i  = 0; i < createInfo->enabledExtensionCount; i++)
-    {
+    for (uint32_t i = 0; i < createInfo->enabledExtensionCount; i++) {
         application_extensions.insert(application_extensions.end(), api_extensions[i]);
     }
     // Remove our extensions from application extensions
-    for (auto extension : supported_extensions)
-    {
+    for (auto extension : supported_extensions) {
         application_extensions.erase(extension.extensionName);
     }
-    if(!application_extensions.empty())
-    {
+    if (!application_extensions.empty()) {
         LOG(ERROR) << "Unsupported extensions: ";
-        for(auto extension : application_extensions)
-        {
+        for (auto extension : application_extensions) {
             LOG(ERROR) << "\t" << extension;
         }
 
@@ -138,7 +135,7 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
     g_gbinstance = new GB_Instance();
     *instance = reinterpret_cast<XrInstance>(g_gbinstance);
 
-    g_game_bridge_instance = new GameBridge(EventManager());
+    InitializeGameBridge();
 
     LOG(INFO) << "New GameBridge Instance created";
     return XR_SUCCESS;
@@ -244,8 +241,7 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     return XR_SUCCESS;
 }
 
-XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* path)
-{
+XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* path) {
     XrPath xr_path = string_hasher(pathString);
     *path = xr_path;
 
@@ -260,24 +256,20 @@ XrResult xrStringToPath(XrInstance instance, const char* pathString, XrPath* pat
     return XR_SUCCESS;
 }
 
-XrResult xrPathToString(XrInstance instance, XrPath path, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer)
-{
+XrResult xrPathToString(XrInstance instance, XrPath path, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer) {
     std::string string_path = xrpath_storage[path];
 
-    if(string_path.empty()) 
-    {
+    if (string_path.empty()) {
         return XR_ERROR_PATH_INVALID;
     }
 
     uint32_t path_size = static_cast<uint32_t>(string_path.size());
     *bufferCountOutput = path_size;
 
-    if(bufferCapacityInput == 0)
-    {
+    if (bufferCapacityInput == 0) {
         return XR_SUCCESS;
     }
-    if(bufferCapacityInput < path_size)
-    {
+    if (bufferCapacityInput < path_size) {
         return XR_ERROR_SIZE_INSUFFICIENT;
     }
 
@@ -335,10 +327,10 @@ XrResult xrDestroyActionSet(XrActionSet actionSet) {
     // Remove actions linked to the action set
     std::erase_if(actions, [&](const auto& item)-> bool {
         auto const& [key, value] = item;
-            if (value.action_set == actionSet) {
-                return true;
-            }
-            return false;
+        if (value.action_set == actionSet) {
+            return true;
+        }
+        return false;
         }
     );
 
@@ -426,4 +418,39 @@ XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrIntera
     GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
     suggestedBindings = &gb_instance->suggested_bindings;
     return XR_SUCCESS;
+}
+
+XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData)
+{
+    auto& event_manager = g_game_bridge_instance->GetEventManager();
+
+    uint32_t event_type;
+    size_t size;
+    void* data = nullptr;
+    g_openxr_event_stream_reader->GetNextEvent(event_type, size, &data);
+    if(event_type == GB_EVENT_NULL)
+    {
+        return XR_EVENT_UNAVAILABLE;
+    }
+
+    if (event_type == XR_SESSION_STATE_READY) {
+        XrEventDataSessionStateChanged* state_change = reinterpret_cast<XrEventDataSessionStateChanged*>(data);
+        XrEventDataBuffer* state_change_B = reinterpret_cast<XrEventDataBuffer*>(data);
+        uint32_t objsize = sizeof(XrEventDataSessionStateChanged);
+        eventData->type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED;
+        memcpy_s(eventData, XR_MAX_EVENT_DATA_SIZE, data, objsize);
+    }
+    return XR_SUCCESS;
+}
+
+void XRGameBridge::InitializeGameBridge() {
+    if (g_game_bridge_instance == nullptr) {
+        g_game_bridge_instance = new GameBridge(EventManager());
+        auto& event_manager = g_game_bridge_instance->GetEventManager();
+        g_openxr_event_stream_writer = event_manager.CreateEventStream(SRGB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE, 300, XR_MAX_EVENT_DATA_SIZE);
+        g_openxr_event_stream_reader = event_manager.GetEventStreamReader(SRGB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE);
+
+
+        //g_openxr_event_stream_writer->SubmitEvent(XR_TYPE_EVENT_DATA_EVENTS_LOST, 200, nullptr);
+    }
 };

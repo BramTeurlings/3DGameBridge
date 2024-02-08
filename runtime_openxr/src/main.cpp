@@ -13,6 +13,9 @@ INITIALIZE_EASYLOGGINGPP
 //}
 
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD fdwReason, LPVOID) {
+    el::Configurations defaultConf;
+    defaultConf.setGlobally(el::ConfigurationType::Format, "%date %level %loc %msg");
+
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
     {

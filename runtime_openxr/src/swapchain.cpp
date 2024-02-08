@@ -49,6 +49,11 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
 
     // Fill array
     memcpy_s(formats, formatCapacityInput * sizeof(int64_t), supported_swapchain_formats.data(), supported_swapchain_formats.size() * sizeof(int64_t));
+
+    //TODO Is this the right place set the session state to ready?
+    XRGameBridge::GB_Session& gb_session = XRGameBridge::sessions[session];
+    XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_READY);
+
     return XR_SUCCESS;
 }
 

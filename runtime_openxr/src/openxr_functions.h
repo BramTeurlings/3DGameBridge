@@ -10,9 +10,6 @@ inline static XrResult test_return = XR_ERROR_RUNTIME_FAILURE;
 inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
 inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
 
-inline XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) { return test_return; };
-inline XrResult xrEndSession(XrSession session) { return test_return; };
-inline XrResult xrRequestExitSession(XrSession session) { return test_return; };
 inline XrResult xrWaitFrame(XrSession session, const XrFrameWaitInfo* frameWaitInfo, XrFrameState* frameState) { return test_return; };
 inline XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeginInfo) { return test_return; };
 inline XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) { return test_return; };
@@ -22,11 +19,7 @@ inline XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLoc
 
 
 inline XrResult xrGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState* interactionProfile) { return test_return; };
-inline XrResult xrGetActionStateBoolean(XrSession session, const XrActionStateGetInfo* getInfo, XrActionStateBoolean* state) { return test_return; };
-inline XrResult xrGetActionStateFloat(XrSession session, const XrActionStateGetInfo* getInfo, XrActionStateFloat* state) { return test_return; };
-inline XrResult xrGetActionStateVector2f(XrSession session, const XrActionStateGetInfo* getInfo, XrActionStateVector2f* state) { return test_return; };
-inline XrResult xrGetActionStatePose(XrSession session, const XrActionStateGetInfo* getInfo, XrActionStatePose* state) { return test_return; };
-inline XrResult xrSyncActions(XrSession session, const XrActionsSyncInfo* syncInfo) { return test_return; };
+
 inline XrResult xrGetInputSourceLocalizedName(XrSession session, const XrInputSourceLocalizedNameGetInfo* getInfo, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer) { return test_return; };
 inline XrResult xrApplyHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo, const XrHapticBaseHeader* hapticFeedback) { return test_return; };
 inline XrResult xrStopHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo) { return test_return; };

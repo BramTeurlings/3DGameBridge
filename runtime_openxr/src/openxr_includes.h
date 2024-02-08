@@ -25,3 +25,6 @@ template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 #include <openxr/openxr.h>
 #include <openxr/openxr_loader_negotiation.h>
 #include <openxr/openxr_platform.h>
+
+// Extra
+#include "easylogging++.h"
