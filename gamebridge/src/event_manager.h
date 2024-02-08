@@ -55,7 +55,7 @@ public:
     * @param data Pointer to the data of the event
     * \return Event type enum.
     */
-    GB_EVENT GetNextEvent(uint32_t& event_type, size_t& size, void* data);
+    GB_EVENT GetNextEvent(uint32_t& event_type, size_t& size, void** data);
 
     /**
      * \brief Sets the read index back to the beginning of the buffer.

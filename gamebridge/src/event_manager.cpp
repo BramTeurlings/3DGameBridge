@@ -9,7 +9,7 @@ EventStreamReader::EventStreamReader(EventStream stream) : event_stream(stream) 
 
 // TODO Reserve data at the start of the buffer containing a boolean saying the stream is allowed to be read.
 // TODO this way we can tell whether an EOS message has been written so it's safe to read
-GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, void *data) {
+GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, void** data) {
     EventHeader const* header = reinterpret_cast<EventHeader*>(next);
     size = header->size;
     event_type = header->event_type;
@@ -20,7 +20,7 @@ GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, voi
     }
 
     // TODO Data is never read after assignment here.
-    data = next + sizeof(EventHeader);
+    *data = next + sizeof(EventHeader);
     next = next + sizeof(EventHeader) + size;
 
     return event_type;
