@@ -15,8 +15,8 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
     XRGameBridge::GraphicsBackend backend;
 
     try {
-        XRGameBridge::GB_Session& gb_session = XRGameBridge::sessions.at(session);
-        XRGameBridge::GB_System& gb_system = XRGameBridge::systems.at(gb_session.system);
+        XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions.at(session);
+        XRGameBridge::GB_System& gb_system = XRGameBridge::g_systems.at(gb_session.system);
         backend = gb_system.active_graphics_backend;
     }
     catch (std::out_of_range& e) {
@@ -51,7 +51,7 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
     memcpy_s(formats, formatCapacityInput * sizeof(int64_t), supported_swapchain_formats.data(), supported_swapchain_formats.size() * sizeof(int64_t));
 
     //TODO Is this the right place set the session state to ready?
-    XRGameBridge::GB_Session& gb_session = XRGameBridge::sessions[session];
+    XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_READY);
 
     return XR_SUCCESS;
@@ -67,7 +67,7 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     XRGameBridge::GB_GraphicsDevice& graphics_device = XRGameBridge::g_graphics_devices[handle];
 
     // Create swap chain
-    XRGameBridge::GB_Session gb_session = XRGameBridge::sessions[session];
+    XRGameBridge::GB_Session gb_session = XRGameBridge::g_sessions[session];
     graphics_device.Initialize(gb_session.d3d12_device, gb_session.command_queue);
     if(graphics_device.CreateSwapChain(createInfo, XRGameBridge::g_display.GetWindowHandle()))
     {
@@ -119,18 +119,22 @@ XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacit
 }
 
 XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoundSourcesForActionEnumerateInfo* enumerateInfo, uint32_t sourceCapacityInput, uint32_t* sourceCountOutput, XrPath* sources) {
+    LOG(INFO) << "Called " << __func__;
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
 XrResult xrAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo* acquireInfo, uint32_t* index) {
+    LOG(INFO) << "Called " << __func__;
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
 XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo* waitInfo) {
+    LOG(INFO) << "Called " << __func__;
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo) {
+    LOG(INFO) << "Called " << __func__;
     return XR_ERROR_RUNTIME_FAILURE;
 }
 

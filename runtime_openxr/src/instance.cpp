@@ -2,8 +2,9 @@
 
 #include <stdexcept>
 #include <vector>
-#include <easylogging++.h>
 #include <set>
+
+#include <easylogging++.h>
 
 #include "openxr_functions.h"
 #include "swapchain.h"
@@ -168,7 +169,7 @@ XrResult xrGetD3D11GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     }
 
     try {
-        GB_System& system = systems.at(systemId);
+        GB_System& system = g_systems.at(systemId);
 
         if (system.instance != instance) {
             LOG(ERROR) << "Instance not bound to this system";
@@ -209,7 +210,7 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     }
 
     try {
-        GB_System& system = systems.at(systemId);
+        GB_System& system = g_systems.at(systemId);
 
         if (system.instance != instance) {
             LOG(ERROR) << "Instance not bound to this system";
@@ -284,7 +285,7 @@ XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* cre
 
     if (action_set_name.empty() || localized_action_set_name.empty()) {
         // Specification says to return XR_ERROR_LOCALIZED_NAME_INVALID when either of the names ar empty.
-        // Doing it just in case but we might not care about it since we may not want to process input actions for SR.
+        // Doing it just in case but we might not care about it since we may not want to process input g_actions for SR.
         return XR_ERROR_LOCALIZED_NAME_INVALID;
     }
 
@@ -295,7 +296,7 @@ XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* cre
     new_action_set.priority = createInfo->priority;
     new_action_set.localized_name = localized_action_set_name;
 
-    auto pair = action_sets.insert({ handle,  new_action_set });
+    auto pair = g_action_sets.insert({ handle,  new_action_set });
     if (pair.second) {
         *actionSet = handle;
     }
@@ -310,10 +311,10 @@ XrResult xrCreateActionSet(XrInstance instance, const XrActionSetCreateInfo* cre
 
 XrResult xrDestroyActionSet(XrActionSet actionSet) {
     try {
-        GB_ActionSet& to_delete = action_sets.at(actionSet);
+        GB_ActionSet& to_delete = g_action_sets.at(actionSet);
 
         LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
-        action_sets.erase(actionSet);
+        g_action_sets.erase(actionSet);
     }
     catch (std::out_of_range& e) {
         LOG(ERROR) << "Action set not found";
@@ -324,8 +325,8 @@ XrResult xrDestroyActionSet(XrActionSet actionSet) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
-    // Remove actions linked to the action set
-    std::erase_if(actions, [&](const auto& item)-> bool {
+    // Remove g_actions linked to the action set
+    std::erase_if(g_actions, [&](const auto& item)-> bool {
         auto const& [key, value] = item;
         if (value.action_set == actionSet) {
             return true;
@@ -339,7 +340,7 @@ XrResult xrDestroyActionSet(XrActionSet actionSet) {
 
 XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createInfo, XrAction* action) {
     try {
-        GB_ActionSet& gb_action_set = action_sets.at(actionSet);
+        GB_ActionSet& gb_action_set = g_action_sets.at(actionSet);
     }
     catch (std::out_of_range& e) {
         LOG(ERROR) << "Action set does not exist";
@@ -358,8 +359,8 @@ XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createI
 
     XrAction handle = reinterpret_cast<XrAction>(string_hasher(createInfo->actionName));
 
-    // TODO Can only register unique action names. I cannot register the same action handles to different actions sets. Is this a problem?
-    auto pair = actions.insert({ handle, new_action });
+    // TODO Can only register unique action names. I cannot register the same action handles to different g_actions sets. Is this a problem?
+    auto pair = g_actions.insert({ handle, new_action });
     if (pair.second) {
         *action = handle;
     }
@@ -373,10 +374,10 @@ XrResult xrCreateAction(XrActionSet actionSet, const XrActionCreateInfo* createI
 
 XrResult xrDestroyAction(XrAction action) {
     try {
-        GB_Action& to_delete = actions.at(action);
+        GB_Action& to_delete = g_actions.at(action);
 
         LOG(INFO) << "Unregistered action: " << to_delete.localized_name;
-        actions.erase(action);
+        g_actions.erase(action);
     }
     catch (std::out_of_range& e) {
         LOG(ERROR) << "Action does not exist";
@@ -395,7 +396,7 @@ XrResult xrAttachSessionActionSets(XrSession session, const XrSessionActionSetsA
         const std::vector<XrActionSet> attach_info_sets(attachInfo->actionSets, attachInfo->actionSets + attachInfo->countActionSets);
 
         for (uint32_t i = 0; i < attach_info_sets.size(); i++) {
-            GB_ActionSet& gb_action_set = action_sets.at(attach_info_sets[i]);
+            GB_ActionSet& gb_action_set = g_action_sets.at(attach_info_sets[i]);
             gb_action_set.session = session;
         }
     }

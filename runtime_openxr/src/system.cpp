@@ -32,7 +32,7 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
     system.requested_formfactor = requested_formfactor;
     system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
 
-    XRGameBridge::systems.insert({*systemId, system});
+    XRGameBridge::g_systems.insert({*systemId, system});
 
     //system_creation_count++; // OpenXR supports only a single system?
     return XR_SUCCESS;
@@ -40,7 +40,7 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
 
 XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties) {
     try {
-        XRGameBridge::GB_System& system = XRGameBridge::systems.at(systemId);
+        XRGameBridge::GB_System& system = XRGameBridge::g_systems.at(systemId);
     }
     catch (std::out_of_range& e) {
         return XR_ERROR_SYSTEM_INVALID;
@@ -196,7 +196,7 @@ XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateI
         return XR_ERROR_REFERENCE_SPACE_UNSUPPORTED;
     }
 
-    const auto inserted = XRGameBridge::reference_spaces.insert({ handle, new_space });
+    const auto inserted = XRGameBridge::g_reference_spaces.insert({ handle, new_space });
     if (!inserted.second) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
@@ -221,14 +221,16 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
     // Add action handle to sub action handle for a space handle hash
     XrSpace handle = reinterpret_cast<XrSpace>(reinterpret_cast<uint64_t>(new_space.action) + createInfo->subactionPath);
     *space = handle;
-    XRGameBridge::action_spaces.insert({ handle, new_space });
+    XRGameBridge::g_action_spaces.insert({ handle, new_space });
     return XR_SUCCESS;
 }
 
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) {
+    LOG(INFO) << "Called " << __func__;
     return test_return;
 }
 
 XrResult xrDestroySpace(XrSpace space) {
+    LOG(INFO) << "Called " << __func__;
     return test_return;
 }

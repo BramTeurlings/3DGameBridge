@@ -103,11 +103,13 @@ namespace XRGameBridge {
 
     // TODO a list of instances in the future?
     //inline std::unordered_map<XrInstance, GB_Instance> instances;
-    inline std::unordered_map<XrSession, GB_Session> sessions;
-    inline std::unordered_map<XrSystemId, GB_System> systems;
-    inline std::unordered_map<XrActionSet, GB_ActionSet> action_sets;
-    inline std::unordered_map<XrAction, GB_Action> actions;
-    inline std::unordered_map<XrSpace, GB_ReferenceSpace> reference_spaces;
-    inline std::unordered_map<XrSpace, GB_ActionSpace> action_spaces;
-    inline std::unordered_map<XrSpace, GB_Display> displays;
+    inline std::unordered_map<XrSession, GB_Session> g_sessions;
+    inline std::unordered_map<XrSystemId, GB_System> g_systems;
+    // OpenXR makes a distinction between active and inactive action sets, only active ones have to be updated.
+    // Since we don't plan on handling VR actions I left this distinction out, but it might be good to have later.
+    inline std::unordered_map<XrActionSet, GB_ActionSet> g_action_sets;
+    inline std::unordered_map<XrAction, GB_Action> g_actions;
+    inline std::unordered_map<XrSpace, GB_ReferenceSpace> g_reference_spaces;
+    inline std::unordered_map<XrSpace, GB_ActionSpace> g_action_spaces;
+    inline std::unordered_map<XrSpace, GB_Display> g_displays;
 }
