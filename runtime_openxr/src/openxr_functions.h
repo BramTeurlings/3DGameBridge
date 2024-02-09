@@ -10,13 +10,7 @@ inline static XrResult test_return = XR_ERROR_RUNTIME_FAILURE;
 inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
 inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
 
-inline XrResult xrWaitFrame(XrSession session, const XrFrameWaitInfo* frameWaitInfo, XrFrameState* frameState) { return test_return; };
-inline XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeginInfo) { return test_return; };
-inline XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) { return test_return; };
-
 inline XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) { return test_return; };
-
-
 
 inline XrResult xrGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState* interactionProfile) { return test_return; };
 
