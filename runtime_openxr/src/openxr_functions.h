@@ -5,18 +5,14 @@
 
 #include "openxr_includes.h"
 
-inline static XrResult test_return = XR_ERROR_RUNTIME_FAILURE;
+inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { LOG(INFO) << "Called " << __func__;return XR_ERROR_RUNTIME_FAILURE;}
+inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE; }
 
-inline XrResult xrResultToString(XrInstance instance, XrResult value, char buffer[XR_MAX_RESULT_STRING_SIZE]) { return test_return; };
-inline XrResult xrStructureTypeToString(XrInstance instance, XrStructureType value, char buffer[XR_MAX_STRUCTURE_NAME_SIZE]) { return test_return; };
+inline XrResult xrGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState* interactionProfile) { LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE; }
 
-inline XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) { return test_return; };
-
-inline XrResult xrGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState* interactionProfile) { return test_return; };
-
-inline XrResult xrGetInputSourceLocalizedName(XrSession session, const XrInputSourceLocalizedNameGetInfo* getInfo, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer) { return test_return; };
-inline XrResult xrApplyHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo, const XrHapticBaseHeader* hapticFeedback) { return test_return; };
-inline XrResult xrStopHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo) { return test_return; };
+inline XrResult xrGetInputSourceLocalizedName(XrSession session, const XrInputSourceLocalizedNameGetInfo* getInfo, uint32_t bufferCapacityInput, uint32_t* bufferCountOutput, char* buffer) { LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE; }
+inline XrResult xrApplyHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo, const XrHapticBaseHeader* hapticFeedback) { LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE; }
+inline XrResult xrStopHapticFeedback(XrSession session, const XrHapticActionInfo* hapticActionInfo) { LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE; }
 
 
 // Forward declarations not defined in openxr header (implemented)

@@ -57,12 +57,13 @@ XrResult xrDestroySession(XrSession session) {
     // That's very unwanted. So let's not do that
     // Swap chains depend on the session since it's holds the device and command queue, so swap chains should be destroyed on session destroy.
     // Also action sets/g_actions attached to the session should be destroyed
-    return test_return;
+    LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }
 
 XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) {
 
     // TODO check if view configuration type is supported
+    // TODO, move SESSION_READY logic to here, check here whether all components are initialized for the session to be put on READY.
 
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     if (gb_session.session_state == XR_SESSION_STATE_IDLE) {
@@ -89,21 +90,57 @@ XrResult xrRequestExitSession(XrSession session) {
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
-bool block_next_frame = false;
+// TODO Use frame display time as frame ids
 XrResult xrWaitFrame(XrSession session, const XrFrameWaitInfo* frameWaitInfo, XrFrameState* frameState) {
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
+    bool should_wait = true;
 
-    frameState->predictedDisplayPeriod;
-    frameState->predictedDisplayTime;
+    // Blocking wait, blocks until BeginFrame was called
+    while (should_wait) {
+        if (gb_session.wait_frame_state_mutex.try_lock()) {
+            if (gb_session.wait_frame_state == XRGameBridge::NewFrameAllowed) {
+                gb_session.wait_frame_state = XRGameBridge::NewFrameBusy;
+                break;
+            }
+        }
+        gb_session.wait_frame_state_mutex.unlock();
+        std::this_thread::sleep_for(ch::nanoseconds(10));
+    }
+
+    gb_session.wait_frame_state_mutex.unlock();
+
+    // Time point since session epoch + 16 milliseconds
+    // Super simple version of this for now I guess
+    uint32_t nanoseconds = 1.0 / 60.0 * 1000 * 1000 * 1000;
+    auto refresh_rate = ch::nanoseconds(nanoseconds);
+    auto display_period = ch::nanoseconds(refresh_rate);
+    auto display_time = ch::high_resolution_clock::now() - gb_session.session_epoch + refresh_rate;
+
+    frameState->predictedDisplayPeriod = display_period.count();
+    frameState->predictedDisplayTime = display_time.count();
     frameState->shouldRender = true;
+
+    //LOG(INFO) << "Called " << __func__;
+    return XR_SUCCESS;
 }
 
 XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeginInfo) {
-    block_next_frame = false;
+    XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
+
+    std::lock_guard guard(gb_session.wait_frame_state_mutex);
+    if (gb_session.wait_frame_state != XRGameBridge::NewFrameBusy) {
+        return XR_ERROR_CALL_ORDER_INVALID;
+    }
+
+    gb_session.wait_frame_state = XRGameBridge::FrameState::NewFrameAllowed;
+
+    //LOG(INFO) << "Called " << __func__;
+    return XR_SUCCESS;
 }
 
 XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
-
+    LOG(INFO) << "Called " << __func__;
+    return XR_SUCCESS;
 }
 
 void XRGameBridge::ChangeSessionState(GB_Session& session, XrSessionState state) {

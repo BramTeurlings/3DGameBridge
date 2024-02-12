@@ -67,7 +67,7 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     XRGameBridge::GB_GraphicsDevice& graphics_device = XRGameBridge::g_graphics_devices[handle];
 
     // Create swap chain
-    XRGameBridge::GB_Session gb_session = XRGameBridge::g_sessions[session];
+    XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     graphics_device.Initialize(gb_session.d3d12_device, gb_session.command_queue);
     if(graphics_device.CreateSwapChain(createInfo, XRGameBridge::g_display.GetWindowHandle()))
     {

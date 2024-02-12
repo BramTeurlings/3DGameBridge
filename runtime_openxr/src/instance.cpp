@@ -153,7 +153,7 @@ XrResult xrGetInstanceProperties(XrInstance instance, XrInstanceProperties* inst
 }
 
 XrResult xrDestroyInstance(XrInstance instance) {
-    return test_return;
+    LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }
 
 // DX11 and DX12 requirements functions have the same logic, they do have different out types

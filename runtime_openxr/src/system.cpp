@@ -158,6 +158,60 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     return res;
 }
 
+XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views)
+{
+    XrView view1, view2;
+    view1.type = XR_TYPE_VIEW;
+    view1.next = nullptr;
+    view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {-2, 0, 0} }; // Orientation, Position
+    view1.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
+
+    view2.type = XR_TYPE_VIEW;
+    view2.next = nullptr;
+    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {2, 0, 0} }; // Orientation, Position
+    view2.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
+
+    std::vector<XrView> sr_views;
+
+    //TODO Don't understand this, for some reason it wants a single view for stereo output.
+    // Should change this later
+    if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
+        sr_views = { view1 };
+    }
+    else if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
+        sr_views = { view1, view2 };
+    }
+
+    *viewCountOutput = sr_views.size();
+
+    // Request for the extension array or the extension array itself
+    if (viewCapacityInput == 0) {
+        return XR_SUCCESS;
+    }
+    // Passed array not large enough
+    if (viewCapacityInput < sr_views.size()) {
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    viewLocateInfo->displayTime;
+
+    XRGameBridge::GB_ReferenceSpace& gb_ref_space = XRGameBridge::g_reference_spaces[viewLocateInfo->space];
+    if(gb_ref_space.space_type == XR_REFERENCE_SPACE_TYPE_VIEW) // Camera space
+    {
+        gb_ref_space.pose_in_reference_space.position;
+    }
+    if (gb_ref_space.space_type == XR_REFERENCE_SPACE_TYPE_LOCAL) { // World space
+        //view1.pose.position += gb_ref_space.pose_in_reference_space.position;
+        LOG(INFO) << "World space not implemented: " << __func__;
+    }
+
+    viewState->viewStateFlags = XR_VIEW_STATE_POSITION_VALID_BIT | XR_VIEW_STATE_ORIENTATION_VALID_BIT;
+
+    memcpy_s(views, viewCapacityInput * sizeof(XrView), sr_views.data(), sr_views.size() * sizeof(XrView));
+
+    return XR_SUCCESS;
+}
+
 XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInput, uint32_t* spaceCountOutput, XrReferenceSpaceType* spaces) {
     XRGameBridge::GB_Session* gb_session = reinterpret_cast<XRGameBridge::GB_Session*>(session);
 
@@ -208,7 +262,7 @@ XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateI
 }
 
 XrResult xrGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df* bounds) {
-    return test_return;
+    LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }
 
 XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* createInfo, XrSpace* space) {
@@ -226,11 +280,9 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
 }
 
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) {
-    LOG(INFO) << "Called " << __func__;
-    return test_return;
+    LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }
 
 XrResult xrDestroySpace(XrSpace space) {
-    LOG(INFO) << "Called " << __func__;
-    return test_return;
+    LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }

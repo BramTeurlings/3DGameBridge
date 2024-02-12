@@ -21,6 +21,14 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo);
 namespace ch = std::chrono;
 
 namespace XRGameBridge {
+    enum FrameState {
+        NewFrameAllowed,
+        NewFrameBusy,
+        Waiting,
+        Rendering,
+        Ended
+    };
+
     struct GB_Session {
         XrSession id;
         XrInstance instance;
@@ -31,49 +39,45 @@ namespace XRGameBridge {
 
         //std
         std::chrono::high_resolution_clock::time_point session_epoch;
+        FrameState wait_frame_state;
+        std::mutex wait_frame_state_mutex;
 
         // DirectX 12
         ComPtr<ID3D12Device> d3d12_device;
         ComPtr<ID3D12CommandQueue> command_queue;
     };
 
-    enum FrameState {
-        Waiting,
-        Rendering,
-        Ended
-    };
-
     class GB_FrameTimer {
         uint32_t frame_index = 0;
         FrameState state = Waiting;
 
-        std::chrono::high_resolution_clock::time_point last_frame;
+        std::chrono::high_resolution_clock::time_point last_frame_start;
         std::chrono::high_resolution_clock::duration last_frame_time;
-        std::chrono::high_resolution_clock::duration next_ren;
+        std::chrono::high_resolution_clock::duration next_frame_time;
 
         GB_FrameTimer() = delete;
         GB_FrameTimer(GB_FrameTimer& other) = delete;
         GB_FrameTimer(GB_FrameTimer&& other) = delete;
 
         explicit GB_FrameTimer(uint32_t frame_index) : frame_index(frame_index) {
-
         }
 
         void StartNewFrame(uint32_t frame_id) {
-
         }
 
         void EndFrame(uint32_t frame_id) {
-
         }
 
         uint64_t GetNextRenderTimeNanoseconds() {
-
+            //auto display_time = ch::high_resolution_clock::now() - last_frame_start;
+            //next_frame_time = ch::high_resolution_clock::now() + ch::milliseconds(33);
+            //last_frame_start = ch::high_resolution_clock::now();
+            //return ch::time_point_cast<ch::nanoseconds>(ch::high_resolution_clock::now() + ch::milliseconds(3));
         }
 
         uint64_t GetFrameTime() {
-            last_frame_time = ch::high_resolution_clock::now() - last_frame;
-            return ch::duration_cast<ch::nanoseconds>(last_frame_time).count();
+            //last_frame_time = ch::high_resolution_clock::now() - last_frame;
+            //return ch::duration_cast<ch::nanoseconds>(last_frame_time).count();
         }
     };
 
