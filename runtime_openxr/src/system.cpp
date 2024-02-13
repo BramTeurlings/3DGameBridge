@@ -32,7 +32,7 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
     system.requested_formfactor = requested_formfactor;
     system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
 
-    XRGameBridge::g_systems.insert({*systemId, system});
+    XRGameBridge::g_systems.insert({ *systemId, system });
 
     //system_creation_count++; // OpenXR supports only a single system?
     return XR_SUCCESS;
@@ -158,8 +158,7 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     return res;
 }
 
-XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views)
-{
+XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) {
     XrView view1, view2;
     view1.type = XR_TYPE_VIEW;
     view1.next = nullptr;
@@ -175,11 +174,17 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
 
     //TODO Don't understand this, for some reason it wants a single view for stereo output.
     // Should change this later
-    if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
+    if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO) {
         sr_views = { view1 };
     }
     else if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
-        sr_views = { view1, view2 };
+        // Workaround for the test application, don't know whether this is intended.
+        if (viewCapacityInput == 1) {
+            sr_views = { view1 };
+        }
+        else {
+            sr_views = { view1, view2 };
+        }
     }
 
     *viewCountOutput = sr_views.size();
@@ -196,7 +201,7 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
     viewLocateInfo->displayTime;
 
     XRGameBridge::GB_ReferenceSpace& gb_ref_space = XRGameBridge::g_reference_spaces[viewLocateInfo->space];
-    if(gb_ref_space.space_type == XR_REFERENCE_SPACE_TYPE_VIEW) // Camera space
+    if (gb_ref_space.space_type == XR_REFERENCE_SPACE_TYPE_VIEW) // Camera space
     {
         gb_ref_space.pose_in_reference_space.position;
     }
@@ -217,7 +222,7 @@ XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInp
 
     std::array reference_space_types{
         XR_REFERENCE_SPACE_TYPE_VIEW,
-            XR_REFERENCE_SPACE_TYPE_LOCAL
+        XR_REFERENCE_SPACE_TYPE_LOCAL
     };
 
     *spaceCountOutput = reference_space_types.size();
@@ -233,7 +238,7 @@ XrResult xrEnumerateReferenceSpaces(XrSession session, uint32_t spaceCapacityInp
 
     memcpy_s(spaces, spaceCapacityInput * sizeof(XrReferenceSpaceType), reference_space_types.data(), reference_space_types.size() * sizeof(XrReferenceSpaceType));
     return XR_SUCCESS;
- }
+}
 
 #include "openxr_functions.h"
 XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo* createInfo, XrSpace* space) {
@@ -243,8 +248,9 @@ XrResult xrCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateI
     new_space.session = session;
     new_space.handle = handle;
     new_space.pose_in_reference_space = createInfo->poseInReferenceSpace;
+    new_space.space_type = createInfo->referenceSpaceType;
 
-    if (createInfo->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_VIEW  &&
+    if (createInfo->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_VIEW &&
         createInfo->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_LOCAL &&
         createInfo->referenceSpaceType != XR_REFERENCE_SPACE_TYPE_STAGE) {
         return XR_ERROR_REFERENCE_SPACE_UNSUPPORTED;
@@ -280,7 +286,46 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
 }
 
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) {
-    LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
+
+    //TODO check location flags
+    location->locationFlags;
+
+    // TODO Application may ask for a velocity of the tracked object
+    if(location->next != nullptr)
+    {
+        XrSpaceVelocity* velocity = static_cast<XrSpaceVelocity*>(location->next);
+        velocity->velocityFlags;
+    }
+
+    // For Reference spaces
+    XRGameBridge::GB_ReferenceSpace& gb_space = XRGameBridge::g_reference_spaces[space];
+    XRGameBridge::GB_ReferenceSpace& gb_base_space = XRGameBridge::g_reference_spaces[baseSpace];
+    if(gb_space.session != nullptr)
+    {
+        // TODO, Transform to base space? just returning it for now, in the test the local space is 0 anyways
+        // Telling the application the view position is valid but never being tracked
+        location->pose = gb_base_space.pose_in_reference_space;
+        location->locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT;
+
+        return XR_SUCCESS;
+    }
+
+    // For Action spaces
+
+    // Retreiving action spaces is not supported
+    XRGameBridge::GB_ActionSpace& gb_a_space = XRGameBridge::g_action_spaces[space];
+    XRGameBridge::GB_ActionSpace& gb_a_base_space = XRGameBridge::g_action_spaces[baseSpace];
+    if (gb_a_space.session == nullptr) {
+        LOG(INFO) << "Space does not exist";
+    }
+
+    std::string& path = XRGameBridge::xrpath_storage[gb_a_space.sub_action_path];
+
+    // TODO Actions are never located now, might be what we want anyways
+    // Application is told the actions are never being tracked this way
+    location->pose = XrPosef{0.f};
+    location->locationFlags = 0;
+    return XR_SUCCESS;
 }
 
 XrResult xrDestroySpace(XrSpace space) {

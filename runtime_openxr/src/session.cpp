@@ -92,6 +92,7 @@ XrResult xrRequestExitSession(XrSession session) {
 
 // TODO Use frame display time as frame ids
 XrResult xrWaitFrame(XrSession session, const XrFrameWaitInfo* frameWaitInfo, XrFrameState* frameState) {
+    // TODO simple implementation so the application can continue. Should when I understand this part better
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     bool should_wait = true;
 
@@ -111,9 +112,18 @@ XrResult xrWaitFrame(XrSession session, const XrFrameWaitInfo* frameWaitInfo, Xr
 
     // Time point since session epoch + 16 milliseconds
     // Super simple version of this for now I guess
+
+    /* As far as I understand:
+     * predictedDisplayTime: The future time point the next image will be displayed at
+     * predictedDisplayPeriod: The amount of time the next image will be visible (presented) on the screen 
+     */
+
+    // 1/60th in nanoseconds
     uint32_t nanoseconds = 1.0 / 60.0 * 1000 * 1000 * 1000;
     auto refresh_rate = ch::nanoseconds(nanoseconds);
+    // Image should be displayed for the <refresh rate> amount of time
     auto display_period = ch::nanoseconds(refresh_rate);
+    // Time since the epoch the application is running now, add the refresh rate to predict the time the next image will be displayed.
     auto display_time = ch::high_resolution_clock::now() - gb_session.session_epoch + refresh_rate;
 
     frameState->predictedDisplayPeriod = display_period.count();

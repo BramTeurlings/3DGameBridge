@@ -34,7 +34,7 @@ namespace XRGameBridge {
 
     class GB_GraphicsDevice
     {
-        static const unsigned short back_buffer_count = 2;
+        static constexpr unsigned short back_buffer_count = 2;
 
         ComPtr<ID3D12Device> d3d12_device;
         ComPtr<ID3D12CommandQueue> command_queue;
@@ -47,7 +47,14 @@ namespace XRGameBridge {
         uint32_t descriptor_size = 0;
         uint32_t frame_index = 0;
 
+        HANDLE fence_event;
+        ComPtr<ID3D12Fence> fence;
+        UINT64 fence_values[back_buffer_count];
+        UINT64 current_fence_value = 0;
+
     public:
+        GB_GraphicsDevice();
+
         static void CreateDXGIFactory(IDXGIFactory4** factory);
         static void GetGraphicsAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter);
 
@@ -63,8 +70,11 @@ namespace XRGameBridge {
         std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetImages();
 
         uint32_t GetBufferCount();
-
-        IDXGISwapChain1* GetSwapChain();
+        IDXGISwapChain3* GetSwapChain();
+        ID3D12Device* GetDevice();
+        ID3D12CommandQueue* GetCommandQueue();
+        uint32_t GetCurrentBackBufferIndex();
+        void WaitForFences(const XrDuration& timeout);
     };
 
     inline GB_Display g_display;

@@ -69,8 +69,7 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     // Create swap chain
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     graphics_device.Initialize(gb_session.d3d12_device, gb_session.command_queue);
-    if(graphics_device.CreateSwapChain(createInfo, XRGameBridge::g_display.GetWindowHandle()))
-    {
+    if (!graphics_device.CreateSwapChain(createInfo, XRGameBridge::g_display.GetWindowHandle())) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
@@ -98,8 +97,7 @@ XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacit
     }
 
     if (XRGameBridge::g_runtime_settings.support_d3d12) {
-        if(images[0].type != XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR)
-        {
+        if (images[0].type != XR_TYPE_SWAPCHAIN_IMAGE_D3D12_KHR) {
             LOG(ERROR) << "structure type incompatible";
             return XR_ERROR_VALIDATION_FAILURE;
         }
@@ -124,13 +122,29 @@ XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoundSource
 }
 
 XrResult xrAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo* acquireInfo, uint32_t* index) {
-    LOG(INFO) << "Called " << __func__;
-    return XR_ERROR_RUNTIME_FAILURE;
+    if (acquireInfo == nullptr) {
+        return XR_SUCCESS;
+    }
+
+    //TODO May only be called again AFTER xrReleaseSwapchainImage has been called. See specification
+    // return XR_ERROR_CALL_ORDER_INVALID
+
+    auto& gb_swapchain = XRGameBridge::g_graphics_devices[swapchain];
+    *index = gb_swapchain.GetCurrentBackBufferIndex();
+
+    return XR_SUCCESS;
 }
 
 XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo* waitInfo) {
-    LOG(INFO) << "Called " << __func__;
-    return XR_ERROR_RUNTIME_FAILURE;
+    //TODO see specification for other waiting requirements
+
+    auto& gb_swapchain = XRGameBridge::g_graphics_devices[swapchain];
+    gb_swapchain.WaitForFences(waitInfo->timeout);
+
+    if (waitInfo->timeout == XR_INFINITE_DURATION) {
+        std::this_thread::sleep_for(ch::nanoseconds(waitInfo->timeout));
+    }
+    return XR_SUCCESS;
 }
 
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo) {
@@ -218,6 +232,9 @@ namespace XRGameBridge {
 
     HWND GB_Display::GetWindowHandle() {
         return h_wnd;
+    }
+
+    GB_GraphicsDevice::GB_GraphicsDevice() {
     }
 
     void GB_GraphicsDevice::CreateDXGIFactory(IDXGIFactory4** factory) {
@@ -309,6 +326,8 @@ namespace XRGameBridge {
     }
 
     bool GB_GraphicsDevice::CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd) {
+        // TODO On failure all objects here should be destroyed
+
         Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
         CreateDXGIFactory(&factory);
 
@@ -388,11 +407,19 @@ namespace XRGameBridge {
             return false;
         }
 
-        return false;
+        // Create fence
+        d3d12_device->CreateFence(fence_values[frame_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+        // Create an event handle to use for frame synchronization.
+        fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (fence_event == nullptr) {
+            HRESULT_FROM_WIN32(GetLastError());
+            return false;
+        }
+
+        return true;
     }
 
-    std::array<ComPtr<ID3D12Resource>, GB_GraphicsDevice::back_buffer_count> GB_GraphicsDevice::GetImages()
-    {
+    std::array<ComPtr<ID3D12Resource>, GB_GraphicsDevice::back_buffer_count> GB_GraphicsDevice::GetImages() {
         return back_buffers;
     }
 
@@ -400,7 +427,37 @@ namespace XRGameBridge {
         return back_buffer_count;
     }
 
-    IDXGISwapChain1* GB_GraphicsDevice::GetSwapChain() {
+    IDXGISwapChain3* GB_GraphicsDevice::GetSwapChain() {
         return swap_chain.Get();
+    }
+
+    ID3D12Device* GB_GraphicsDevice::GetDevice() {
+        return d3d12_device.Get();
+    }
+
+    ID3D12CommandQueue* GB_GraphicsDevice::GetCommandQueue() {
+        return command_queue.Get();
+    }
+
+    uint32_t GB_GraphicsDevice::GetCurrentBackBufferIndex() {
+        // Save current frame fence value before we get the next frame index
+        current_fence_value = fence_values[frame_index];
+        // Schedule a Signal command in the queue.
+        command_queue->Signal(fence.Get(), fence_values[frame_index]);
+
+        frame_index = swap_chain->GetCurrentBackBufferIndex();
+        return frame_index;
+    }
+
+    void GB_GraphicsDevice::WaitForFences(const XrDuration& timeout) {
+        // Should always be called AFTER GetCurrentBackBufferIndex. So GetCompletedValue van be compared to the new frame fence value.
+        if (fence->GetCompletedValue() < fence_values[frame_index]) {
+            // Fire event on completion
+            fence->SetEventOnCompletion(fence_values[frame_index], fence_event);
+            // Wait for the fence to be signaled and fire the event
+            WaitForSingleObjectEx(fence_event, ch::duration_cast<ch::milliseconds>(ch::nanoseconds(timeout)).count(), FALSE);
+        }
+
+        fence_values[frame_index] = current_fence_value;
     }
 }
