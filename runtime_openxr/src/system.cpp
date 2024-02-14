@@ -132,6 +132,8 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
         view.recommendedSwapchainSampleCount = 2; //TODO idk what this means
         view.maxSwapchainSampleCount = 2;
 
+        // TODO Create 2 views here to get 2 swap chains and so a view per eye
+        //supported_views.push_back(view);
         supported_views.push_back(view);
 
         res = XR_SUCCESS;
@@ -159,15 +161,17 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
 }
 
 XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) {
+    // TODO Dummy implementation for locate views, only returning views with a hardcoded offset hoping these are the eye locations
+
     XrView view1, view2;
     view1.type = XR_TYPE_VIEW;
     view1.next = nullptr;
-    view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {-2, 0, 0} }; // Orientation, Position
+    view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
     view1.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
 
     view2.type = XR_TYPE_VIEW;
     view2.next = nullptr;
-    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {2, 0, 0} }; // Orientation, Position
+    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
     view2.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
 
     std::vector<XrView> sr_views;
@@ -178,7 +182,8 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
         sr_views = { view1 };
     }
     else if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
-        // Workaround for the test application, don't know whether this is intended.
+        // TODO For debuggin only
+        // TODO see xrEnumerateViewConfigurationViews, return 2 views there and stereo should return 2 here as well, then remove this branch
         if (viewCapacityInput == 1) {
             sr_views = { view1 };
         }
@@ -286,8 +291,11 @@ XrResult xrCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo* c
 }
 
 XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation* location) {
+    // TODO Return to this with a better understanding of spaces. Are there only single View and Local spaces, or do more of them exist?
+    // TODO Should we have both action and reference spaces in a single array for quicker lookup?
 
-    //TODO check location flags
+
+    // TODO check location flags
     location->locationFlags;
 
     // TODO Application may ask for a velocity of the tracked object
@@ -304,8 +312,8 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
     {
         // TODO, Transform to base space? just returning it for now, in the test the local space is 0 anyways
         // Telling the application the view position is valid but never being tracked
-        location->pose = gb_base_space.pose_in_reference_space;
-        location->locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT;
+        location->pose = gb_space.pose_in_reference_space;
+        location->locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT;
 
         return XR_SUCCESS;
     }

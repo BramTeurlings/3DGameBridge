@@ -1,6 +1,7 @@
 #include "swapchain.h"
 
 #include <stdexcept>
+#include <exception>
 #include <vector>
 
 #include <wrl/client.h>
@@ -73,7 +74,9 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
+    // Couple swap chain to the session
     *swapchain = handle;
+    gb_session.swap_chain = handle;
     swapchain_creation_count++;
     return XR_SUCCESS;
 }
@@ -138,24 +141,27 @@ XrResult xrAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAc
 XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo* waitInfo) {
     //TODO see specification for other waiting requirements
 
-    auto& gb_swapchain = XRGameBridge::g_graphics_devices[swapchain];
-    gb_swapchain.WaitForFences(waitInfo->timeout);
-
-    if (waitInfo->timeout == XR_INFINITE_DURATION) {
-        std::this_thread::sleep_for(ch::nanoseconds(waitInfo->timeout));
+    uint64_t wait_duration = INFINITE;
+    if (waitInfo->timeout != XR_INFINITE_DURATION) {
+        wait_duration = waitInfo->timeout;
     }
-    return XR_SUCCESS;
+
+    auto& gb_swapchain = XRGameBridge::g_graphics_devices[swapchain];
+
+    return gb_swapchain.WaitForFences(wait_duration);
 }
 
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo) {
-    LOG(INFO) << "Called " << __func__;
-    return XR_ERROR_RUNTIME_FAILURE;
+    // Basically tells the runtime that the application is done with an image
+
+    XRGameBridge::g_display.UpdateWindow();
+
+    auto& gb_swapchain = XRGameBridge::g_graphics_devices[swapchain];
+    return gb_swapchain.ReleaseSwapchainImage();
 }
 
 namespace XRGameBridge {
     void MessageLoop() {
-        // Start the message loop.
-
         // Main message loop:
         MSG msg;
         while (GetMessage(&msg, NULL, 0, 0)) {
@@ -164,7 +170,7 @@ namespace XRGameBridge {
         }
     }
 
-    LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    LRESULT CALLBACK GB_Display::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
         PAINTSTRUCT ps;
         HDC hdc;
         std::string greeting("Hello, Windows desktop!");
@@ -225,7 +231,6 @@ namespace XRGameBridge {
         // h_wnd: the value returned from CreateWindow
         // nCmdShow: the fourth parameter from WinMain
         ShowWindow(h_wnd, nCmdShow);
-        UpdateWindow(h_wnd);
 
         return true;
     }
@@ -234,7 +239,14 @@ namespace XRGameBridge {
         return h_wnd;
     }
 
-    GB_GraphicsDevice::GB_GraphicsDevice() {
+    void GB_Display::UpdateWindow()
+    {
+        // Main message loop:
+        MSG msg;
+        if (PeekMessageA(&msg, h_wnd, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
     }
 
     void GB_GraphicsDevice::CreateDXGIFactory(IDXGIFactory4** factory) {
@@ -317,6 +329,18 @@ namespace XRGameBridge {
     bool GB_GraphicsDevice::Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue) {
         d3d12_device = device;
         command_queue = queue;
+
+        // Create present command allocator and command list resources
+        ThrowIfFailed(d3d12_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[COMMAND_RESOURCE_INDEX_PRESENT])));
+        ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[COMMAND_RESOURCE_INDEX_PRESENT].Get(), nullptr, IID_PPV_ARGS(&command_lists[COMMAND_RESOURCE_INDEX_PRESENT])));
+
+        // Create transition command allocator and command list resources
+        ThrowIfFailed(d3d12_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[COMMAND_RESOURCE_INDEX_TRANSITION])));
+        ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[COMMAND_RESOURCE_INDEX_TRANSITION].Get(), nullptr, IID_PPV_ARGS(&command_lists[COMMAND_RESOURCE_INDEX_TRANSITION])));
+
+        command_lists[COMMAND_RESOURCE_INDEX_PRESENT]->Close();
+        command_lists[COMMAND_RESOURCE_INDEX_TRANSITION]->Close();
+
         return true;
     }
 
@@ -397,6 +421,8 @@ namespace XRGameBridge {
                     LOG(ERROR) << "Failed to create rtv";
                     return false;
                 }
+                std::wstringstream ss; ss << "Swapchain Buffer " << i;
+                back_buffers[i]->SetName(ss.str().c_str());
                 d3d12_device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtvHandle);
                 rtvHandle.Offset(i, descriptor_size);
             }
@@ -449,15 +475,76 @@ namespace XRGameBridge {
         return frame_index;
     }
 
-    void GB_GraphicsDevice::WaitForFences(const XrDuration& timeout) {
+    // Wait for the gpu to be done with the image so we can use it for drawing
+    // Must only be called after GetCurrentBackBufferIndex to be sure that the image index is not in use anymore
+    XrResult GB_GraphicsDevice::WaitForFences(const XrDuration& timeout) {
+        // Image state must be IMAGE_STATE_RELEASED before calling this function
+        // Swap chain is initialized in IMAGE_STATE_RELEASED
+        if(current_image_state != IMAGE_STATE_RELEASED)
+        {
+            return XR_ERROR_CALL_ORDER_INVALID;
+        }
+
         // Should always be called AFTER GetCurrentBackBufferIndex. So GetCompletedValue van be compared to the new frame fence value.
         if (fence->GetCompletedValue() < fence_values[frame_index]) {
             // Fire event on completion
             fence->SetEventOnCompletion(fence_values[frame_index], fence_event);
             // Wait for the fence to be signaled and fire the event
-            WaitForSingleObjectEx(fence_event, ch::duration_cast<ch::milliseconds>(ch::nanoseconds(timeout)).count(), FALSE);
+            HRESULT res = WaitForSingleObjectEx(fence_event, ch::duration_cast<ch::milliseconds>(ch::nanoseconds(timeout)).count(), FALSE);
+            if (res == WAIT_TIMEOUT)
+            {
+                return XR_TIMEOUT_EXPIRED;
+            }
         }
 
         fence_values[frame_index] = current_fence_value;
+
+        // Set the image state to waiting to make sure WaitForFences and ReleaseSwapchainImage are called in the correct order
+        current_image_state = IMAGE_STATE_WAITING;
+
+        // Transition the image back to render target so the application knows what state to expect.
+        //TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_TRANSITION, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+        return XR_SUCCESS;
+    }
+
+    XrResult GB_GraphicsDevice::ReleaseSwapchainImage()
+    {
+        // TODO Should release the oldest image in the swap chain according to the spec, this usually already happens implicitly when acquiring images from the swap chain.
+        // When Acquiring, an image is released that has already been presented, that index is then used to render a new image to.
+
+        // TODO We may want to add an extra buffer where the application renders to, then use that image in the weaver to render to the swap chain.
+        // We could the acquire (and thus release) the image from the swap chain here. When the application acquires an image with xrAcquireSwapchainImage, it would get the intermediate image.
+
+        // Image state must be IMAGE_STATE_WAITING before calling this. Image must have waited without timeout.
+        if (current_image_state != IMAGE_STATE_WAITING) {
+            return XR_ERROR_CALL_ORDER_INVALID;
+        }
+
+        // Set the image state to waiting to make sure WaitForFences and ReleaseSwapchainImage are called in the correct order
+        current_image_state = IMAGE_STATE_RELEASED;
+
+        return XR_SUCCESS;
+    }
+
+    void GB_GraphicsDevice::TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after)
+    {
+        // We can't know for sure whether xrWaitSwapchainImage and xrEndFrame are being called from the same thread, so we need to use multiple command allocators/lists
+        //command_allocators[index]->Reset();
+        command_lists[index]->Reset(command_allocators[index].Get(), nullptr);
+        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(back_buffers[frame_index].Get(), state_before, state_after);
+        command_lists[index]->ResourceBarrier(1, &barrier);
+        command_lists[index]->Close();
+
+        ID3D12CommandList* cmd_lists[] = { command_lists[index].Get() };
+        command_queue->ExecuteCommandLists(1, cmd_lists);
+    }
+
+    // Called from xrEndFrame, cause then we know the application is done with rendering this image.
+    void GB_GraphicsDevice::PresentFrame()
+    {
+        TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        swap_chain->Present(1, 0);
+        // barrier to render target
     }
 }

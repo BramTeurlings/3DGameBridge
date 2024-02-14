@@ -35,6 +35,7 @@ namespace XRGameBridge {
         XrSystemId system;
         XrSessionState session_state;
         XrViewConfigurationType view_configuration;
+        XrSwapchain swap_chain;
         //std::vector<XrActionSet> g_action_sets;
 
         //std

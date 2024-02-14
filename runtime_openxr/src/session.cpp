@@ -149,6 +149,16 @@ XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeginInfo)
 }
 
 XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
+    // TODO If no layers are provided then the display must be cleared.
+    //frameEndInfo->layers
+
+    // Present the frame for session
+    XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
+    XRGameBridge::GB_GraphicsDevice& gb_graphics_device = XRGameBridge::g_graphics_devices[gb_session.swap_chain];
+
+    gb_graphics_device.PresentFrame();
+
+
     LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }

@@ -239,6 +239,15 @@ XrResult xrGetD3D12GraphicsRequirementsKHR(XrInstance instance, XrSystemId syste
     graphicsRequirements->adapterLuid = desc.AdapterLuid;
     graphicsRequirements->minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
+#ifdef _DEBUG
+    // Enable the D3D12 debug layer.
+    {
+        ComPtr<ID3D12Debug> debugController;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
+            debugController->EnableDebugLayer();
+        }
+    }
+#endif
     return XR_SUCCESS;
 }
 

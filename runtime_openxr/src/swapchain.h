@@ -16,6 +16,12 @@ XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitI
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo);
 
 namespace XRGameBridge {
+    enum ImageState
+    {
+        IMAGE_STATE_WAITING,
+        IMAGE_STATE_RELEASED
+    };
+
     class GB_Display
     {
         // The main window class name.
@@ -28,8 +34,10 @@ namespace XRGameBridge {
 
     public:
         // Returns the window of the application or false if none exist
+        static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
         bool CreateApplicationWindow(HINSTANCE hInstance, int nCmdShow);
         HWND GetWindowHandle();
+        void UpdateWindow();
     };
 
     class GB_GraphicsDevice
@@ -47,14 +55,17 @@ namespace XRGameBridge {
         uint32_t descriptor_size = 0;
         uint32_t frame_index = 0;
 
+        enum CommandResourceIndex{COMMAND_RESOURCE_INDEX_TRANSITION, COMMAND_RESOURCE_INDEX_PRESENT};
+        std::array<ComPtr<ID3D12CommandAllocator>, 2> command_allocators;
+        std::array<ComPtr<ID3D12GraphicsCommandList>,2 > command_lists;
+
         HANDLE fence_event;
         ComPtr<ID3D12Fence> fence;
         UINT64 fence_values[back_buffer_count];
         UINT64 current_fence_value = 0;
+        ImageState current_image_state = IMAGE_STATE_RELEASED;
 
     public:
-        GB_GraphicsDevice();
-
         static void CreateDXGIFactory(IDXGIFactory4** factory);
         static void GetGraphicsAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter);
 
@@ -74,7 +85,12 @@ namespace XRGameBridge {
         ID3D12Device* GetDevice();
         ID3D12CommandQueue* GetCommandQueue();
         uint32_t GetCurrentBackBufferIndex();
-        void WaitForFences(const XrDuration& timeout);
+        XrResult WaitForFences(const XrDuration& timeout);
+        XrResult ReleaseSwapchainImage();
+
+        void TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
+
+        void PresentFrame();
     };
 
     inline GB_Display g_display;
