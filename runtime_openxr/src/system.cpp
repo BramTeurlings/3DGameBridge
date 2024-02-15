@@ -1,6 +1,7 @@
 #include "system.h"
 
 #include <array>
+#include <complex>
 
 #include "easylogging++.h"
 #include "openxr_includes.h"
@@ -125,6 +126,7 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
 
     if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
         XrViewConfigurationView view{};
+        view.type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
         view.recommendedImageRectWidth = screen_resolution.x;
         view.maxImageRectWidth = screen_resolution.x;
         view.recommendedImageRectHeight = screen_resolution.y;
@@ -160,6 +162,7 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     return res;
 }
 
+constexpr auto M_PI = 3.14159265358979323846;
 XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) {
     // TODO Dummy implementation for locate views, only returning views with a hardcoded offset hoping these are the eye locations
 
@@ -167,11 +170,11 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
     view1.type = XR_TYPE_VIEW;
     view1.next = nullptr;
     view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
-    view1.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
+    view1.fov = { -M_PI/4.0f, M_PI / 4.0f, M_PI / 4.0f, -M_PI / 4.0f }; // FOV angle left, right, up, down
 
     view2.type = XR_TYPE_VIEW;
     view2.next = nullptr;
-    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
+    view2.pose = { {0.0f, 0.0f, .0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
     view2.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
 
     std::vector<XrView> sr_views;
@@ -212,7 +215,7 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
     }
     if (gb_ref_space.space_type == XR_REFERENCE_SPACE_TYPE_LOCAL) { // World space
         //view1.pose.position += gb_ref_space.pose_in_reference_space.position;
-        LOG(INFO) << "World space not implemented: " << __func__;
+        //LOG(INFO) << "World space not implemented: " << __func__;
     }
 
     viewState->viewStateFlags = XR_VIEW_STATE_POSITION_VALID_BIT | XR_VIEW_STATE_ORIENTATION_VALID_BIT;

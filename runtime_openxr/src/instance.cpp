@@ -438,12 +438,18 @@ XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData)
     size_t size;
     void* data = nullptr;
     g_openxr_event_stream_reader->GetNextEvent(event_type, size, &data);
-    if(event_type == GB_EVENT_NULL)
-    {
+    if (event_type == GB_EVENT_NULL) {
         return XR_EVENT_UNAVAILABLE;
     }
 
     if (event_type == XR_SESSION_STATE_READY) {
+        XrEventDataSessionStateChanged* state_change = reinterpret_cast<XrEventDataSessionStateChanged*>(data);
+        XrEventDataBuffer* state_change_B = reinterpret_cast<XrEventDataBuffer*>(data);
+        uint32_t objsize = sizeof(XrEventDataSessionStateChanged);
+        eventData->type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED;
+        memcpy_s(eventData, XR_MAX_EVENT_DATA_SIZE, data, objsize);
+    }
+    else if (event_type == XR_SESSION_STATE_FOCUSED) {
         XrEventDataSessionStateChanged* state_change = reinterpret_cast<XrEventDataSessionStateChanged*>(data);
         XrEventDataBuffer* state_change_B = reinterpret_cast<XrEventDataBuffer*>(data);
         uint32_t objsize = sizeof(XrEventDataSessionStateChanged);

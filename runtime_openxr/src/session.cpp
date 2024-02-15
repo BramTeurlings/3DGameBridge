@@ -77,6 +77,8 @@ XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) 
 
     gb_session.view_configuration = beginInfo->primaryViewConfigurationType;
 
+    XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_FOCUSED);
+
     return XR_SUCCESS;
 }
 
@@ -156,6 +158,8 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     XRGameBridge::GB_GraphicsDevice& gb_graphics_device = XRGameBridge::g_graphics_devices[gb_session.swap_chain];
 
+    auto layer1 = reinterpret_cast<const XrCompositionLayerProjection*>( frameEndInfo->layers[0]);
+
     gb_graphics_device.PresentFrame();
 
 
@@ -175,6 +179,15 @@ void XRGameBridge::ChangeSessionState(GB_Session& session, XrSessionState state)
         state_change.state = XR_SESSION_STATE_READY;
         state_change.time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - session.session_epoch).count();
         g_openxr_event_stream_writer->SubmitEvent(XR_SESSION_STATE_READY, sizeof(XrEventDataSessionStateChanged), &state_change);
+        event_manager.PrepareForEventStreamReading();// TODO FOR DEBUG PURPOSES SHOULD BE REMOVED ASAP
+    }
+    else if (state == XR_SESSION_STATE_FOCUSED) {
+        XrEventDataSessionStateChanged state_change;
+        state_change.type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED;
+        state_change.session = session.id;
+        state_change.state = XR_SESSION_STATE_FOCUSED;
+        state_change.time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - session.session_epoch).count();
+        g_openxr_event_stream_writer->SubmitEvent(XR_SESSION_STATE_FOCUSED, sizeof(XrEventDataSessionStateChanged), &state_change);
         event_manager.PrepareForEventStreamReading();// TODO FOR DEBUG PURPOSES SHOULD BE REMOVED ASAP
     }
 }
