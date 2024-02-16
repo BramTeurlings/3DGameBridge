@@ -18,7 +18,12 @@ XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageRe
 namespace XRGameBridge {
     enum ImageState {
         IMAGE_STATE_WAITING,
-        IMAGE_STATE_RELEASED
+        IMAGE_STATE_RELEASED,
+
+        IMAGE_STATE_ACQUIRED,
+        IMAGE_STATE_RENDER_TARGET,
+        IMAGE_STATE_WEAVING,
+        IMAGE_STATE_DONE_WEAVING
     };
 
     class GB_Display {
@@ -43,36 +48,39 @@ namespace XRGameBridge {
 
     // TODO Use resources instead of creating multiple swap chains? Is that better?
     // UEVR create a lot of swap chains so let's just use images....
-    class GB_ImageSwapContainer {
-        ComPtr<ID3D12Device> d3d12_device;
+    class GB_ProxySwapchain {
         ComPtr<ID3D12CommandQueue> command_queue;
-
-        ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-        ComPtr<ID3D12DescriptorHeap> m_srvHeap;
         std::array<ComPtr<ID3D12Resource>, back_buffer_count> back_buffers;
+        ComPtr<ID3D12DescriptorHeap> rtv_heap;
+        ComPtr<ID3D12DescriptorHeap> srv_heap;
+
+        uint32_t rtv_descriptor_size = 0;
+        uint32_t cbc_srv_uav_descriptor_size = 0;
 
         uint32_t current_frame_index = 0;
+        ImageState current_image_state = IMAGE_STATE_RENDER_TARGET;
+        UINT64 previous_fence_value = 0;
 
-        ImageState current_image_state = IMAGE_STATE_RELEASED;
+        // TODO We are using fences for every image instead of every frame, test if we can use fences per frame only instead
+        HANDLE fence_event;
+        ComPtr<ID3D12Fence> fence;
+        UINT64 fence_values[back_buffer_count];
 
     public:
-        GB_ImageSwapContainer(GB_ImageSwapContainer& other) = delete;
-        GB_ImageSwapContainer(GB_ImageSwapContainer&& other) = delete;
+        GB_ProxySwapchain(GB_ProxySwapchain& other) = delete;
+        GB_ProxySwapchain(GB_ProxySwapchain&& other) = delete;
 
-        GB_ImageSwapContainer();
-        ~GB_ImageSwapContainer();
-
-        XrSwapchain CreateSwapChainImages(ID3D12Device* device, ID3D12CommandQueue* queue, const XrSwapchainCreateInfo* createInfo);
-        void DestroySwapChainImages();
+        bool CreateResources(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo);
+        bool DestroyResources();
 
         // Returns the oldest image index
-        void AcquireNextImage();
+        bool AcquireNextImage(uint32_t& index);
 
         // Waits for an image that has been weaved
-        void WaitForImage();
+        XrResult WaitForImage(const XrDuration& timeout);
 
         // Make the image available for weaving
-        void ReleaseImage();
+        bool ReleaseImage();
     };
 
     class GB_GraphicsDevice {
@@ -83,6 +91,7 @@ namespace XRGameBridge {
         ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
         ComPtr<ID3D12DescriptorHeap> m_srvHeap;
         std::array<ComPtr<ID3D12Resource>, back_buffer_count> back_buffers;
+
         uint32_t rtv_descriptor_size = 0;
         uint32_t frame_index = 0;
 
@@ -106,10 +115,11 @@ namespace XRGameBridge {
         bool Initialize();
         bool Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue);
 
-        // Create swap_chain for a window. hwnd is optional
+        // TODO swapchain is only necessary if we render to the XR Game Bridge window, otherwise we render to the back buffer of UEVR window
         bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
         std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetImages();
 
+        // TODO can probably all be removed
         uint32_t GetBufferCount();
         IDXGISwapChain3* GetSwapChain();
         ID3D12Device* GetDevice();
@@ -117,12 +127,21 @@ namespace XRGameBridge {
         uint32_t GetCurrentBackBufferIndex();
         XrResult WaitForFences(const XrDuration& timeout);
         XrResult ReleaseSwapchainImage();
+        // ~////////////
+
+        void AcquireNextImage();
+        void ComposeImage();
+        void Present();
 
         void TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
 
         void PresentFrame();
     };
 
+    void SetToRenderTarget();
+
     inline GB_Display g_display;
+    inline std::unordered_map<XrSwapchain, GB_ProxySwapchain> g_application_render_targets;
+
     inline std::unordered_map<XrSwapchain, GB_GraphicsDevice> g_graphics_devices;
 }

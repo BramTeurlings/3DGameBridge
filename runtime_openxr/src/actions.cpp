@@ -22,7 +22,7 @@ XrResult xrSyncActions(XrSession session, const XrActionsSyncInfo* syncInfo) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
-    LOG(INFO) << "Called " << __func__;
+    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
@@ -31,7 +31,7 @@ XrResult xrGetActionStateBoolean(XrSession session, const XrActionStateGetInfo* 
     state->currentState = false;
     state->changedSinceLastSync = false;
     state->lastChangeTime = 0;
-    LOG(INFO) << "Called " << __func__;
+    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
@@ -44,7 +44,7 @@ XrResult xrGetActionStateFloat(XrSession session, const XrActionStateGetInfo* ge
     state->changedSinceLastSync = false;
     state->lastChangeTime = 0;
 
-    LOG(INFO) << "Called " << __func__;
+    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
@@ -55,13 +55,13 @@ XrResult xrGetActionStateVector2f(XrSession session, const XrActionStateGetInfo*
     state->changedSinceLastSync = false;
     state->lastChangeTime = 0;
 
-    LOG(INFO) << "Called " << __func__;
+    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
 XrResult xrGetActionStatePose(XrSession session, const XrActionStateGetInfo* getInfo, XrActionStatePose* state) {
     state->isActive = false;
 
-    LOG(INFO) << "Called " << __func__;
+    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }

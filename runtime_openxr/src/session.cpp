@@ -159,11 +159,12 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     XRGameBridge::GB_GraphicsDevice& gb_graphics_device = XRGameBridge::g_graphics_devices[gb_session.swap_chain];
 
     auto layer1 = reinterpret_cast<const XrCompositionLayerProjection*>( frameEndInfo->layers[0]);
+    layer1->views->
 
     gb_graphics_device.PresentFrame();
 
 
-    LOG(INFO) << "Called " << __func__;
+    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
