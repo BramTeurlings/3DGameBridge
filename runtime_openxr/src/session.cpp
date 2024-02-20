@@ -9,7 +9,9 @@
 #include "settings.h"
 
 XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session) {
+    // TODO refactor local scope static variables
     static uint64_t session_creation_count = 1;
+
     try {
         XRGameBridge::GB_System& system = XRGameBridge::g_systems.at(createInfo->systemId);
         if (!system.features_enumerated) {
@@ -158,10 +160,28 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     XRGameBridge::GB_GraphicsDevice& gb_graphics_device = XRGameBridge::g_graphics_devices[gb_session.swap_chain];
 
-    auto layer1 = reinterpret_cast<const XrCompositionLayerProjection*>( frameEndInfo->layers[0]);
-    layer1->views->
+    if(frameEndInfo->layerCount == 0)
+    {
+        // TODO clear the screen when no layers are present
+    }
 
-    gb_graphics_device.PresentFrame();
+    for(uint32_t i = 0; i < frameEndInfo->layerCount; i++)
+    {
+        auto layer = reinterpret_cast<const XrCompositionLayerProjection*>( frameEndInfo->layers[i]);
+
+        // TODO use alpha bits
+        layer->layerFlags& XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+        layer->layerFlags& XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
+
+
+    }
+
+    //gb_graphics_device.PresentFrame();
+
+    // TODO fences in the proxy are borked, fix that. waitimages timeout reached
+
+    // TODO Figure out how to use all the layers and views
+    // TODO create function inside the actual swapchain render to the window
 
 
     //LOG(INFO) << "Called " << __func__;

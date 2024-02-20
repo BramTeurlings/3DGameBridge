@@ -44,6 +44,7 @@ namespace XRGameBridge {
     };
 
     // Back buffer count
+    //TODO make this const inside the class and mutable through the constructor
     static constexpr unsigned short back_buffer_count = 2;
 
     // TODO Use resources instead of creating multiple swap chains? Is that better?
@@ -58,7 +59,7 @@ namespace XRGameBridge {
         uint32_t cbc_srv_uav_descriptor_size = 0;
 
         uint32_t current_frame_index = 0;
-        ImageState current_image_state = IMAGE_STATE_RENDER_TARGET;
+        ImageState current_image_state = IMAGE_STATE_RELEASED;
         UINT64 previous_fence_value = 0;
 
         // TODO We are using fences for every image instead of every frame, test if we can use fences per frame only instead
@@ -67,20 +68,24 @@ namespace XRGameBridge {
         UINT64 fence_values[back_buffer_count];
 
     public:
+        GB_ProxySwapchain() = default;
         GB_ProxySwapchain(GB_ProxySwapchain& other) = delete;
         GB_ProxySwapchain(GB_ProxySwapchain&& other) = delete;
 
         bool CreateResources(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo);
-        bool DestroyResources();
+        void DestroyResources();
+
+        uint32_t GetBufferCount();
+        std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetBuffers();
 
         // Returns the oldest image index
-        bool AcquireNextImage(uint32_t& index);
+        XrResult AcquireNextImage(uint32_t& index);
 
         // Waits for an image that has been weaved
         XrResult WaitForImage(const XrDuration& timeout);
 
         // Make the image available for weaving
-        bool ReleaseImage();
+        XrResult ReleaseImage();
     };
 
     class GB_GraphicsDevice {
@@ -119,15 +124,15 @@ namespace XRGameBridge {
         bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
         std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetImages();
 
-        // TODO can probably all be removed
-        uint32_t GetBufferCount();
-        IDXGISwapChain3* GetSwapChain();
-        ID3D12Device* GetDevice();
-        ID3D12CommandQueue* GetCommandQueue();
-        uint32_t GetCurrentBackBufferIndex();
-        XrResult WaitForFences(const XrDuration& timeout);
-        XrResult ReleaseSwapchainImage();
-        // ~////////////
+        //// TODO can probably all be removed
+        //uint32_t GetBufferCount();
+        //IDXGISwapChain3* GetSwapChain();
+        //ID3D12Device* GetDevice();
+        //ID3D12CommandQueue* GetCommandQueue();
+        //uint32_t GetCurrentBackBufferIndex();
+        //XrResult WaitForFences(const XrDuration& timeout);
+        //XrResult ReleaseSwapchainImage();
+        //// ~////////////
 
         void AcquireNextImage();
         void ComposeImage();
