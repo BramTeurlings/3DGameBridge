@@ -178,7 +178,8 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
 
     //gb_graphics_device.PresentFrame();
 
-    // TODO fences in the proxy are borked, fix that. waitimages timeout reached
+    // TODO Debug layers complaining that the initialized resource clear color is mismatching ClearRenderTargetViewCall because the application calls it.
+    // TODO Clear resources here
 
     // TODO Figure out how to use all the layers and views
     // TODO create function inside the actual swapchain render to the window

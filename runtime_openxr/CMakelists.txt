@@ -27,7 +27,9 @@ add_library(RuntimeOpenXR SHARED
 		src/events.cpp
 		src/actions.h
 		src/actions.cpp
-		
+		src/compositor.h
+		src/compositor.cpp
+
 		../third-party/easyloggingpp/src/easylogging++.cc
 )
 

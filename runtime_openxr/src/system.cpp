@@ -135,7 +135,7 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
         view.maxSwapchainSampleCount = 2;
 
         // TODO Create 2 views here to get 2 swap chains and so a view per eye
-        //supported_views.push_back(view);
+        supported_views.push_back(view);
         supported_views.push_back(view);
 
         res = XR_SUCCESS;
@@ -185,14 +185,7 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
         sr_views = { view1 };
     }
     else if (viewLocateInfo->viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
-        // TODO For debuggin only
-        // TODO see xrEnumerateViewConfigurationViews, return 2 views there and stereo should return 2 here as well, then remove this branch
-        if (viewCapacityInput == 1) {
-            sr_views = { view1 };
-        }
-        else {
-            sr_views = { view1, view2 };
-        }
+        sr_views = { view1, view2 };
     }
 
     *viewCountOutput = sr_views.size();

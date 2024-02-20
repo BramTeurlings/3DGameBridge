@@ -273,13 +273,24 @@ namespace XRGameBridge {
             textureDesc.SampleDesc.Quality = 0;
             textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
+            //D3D12_DEPTH_STENCIL_VALUE depth_stencil_value;
+            //depth_stencil_value.Depth = 100.f;
+            //depth_stencil_value.Stencil = 0;
+
+            float clear_color[4] { 0.851f, 0.42f, 0.09f, 1.0f};
+
+            D3D12_CLEAR_VALUE clear_value{
+                static_cast<DXGI_FORMAT>(createInfo->format),
+                0.5f
+            };
+
             auto resource = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
             ThrowIfFailed(device->CreateCommittedResource(
                 &resource,
                 D3D12_HEAP_FLAG_NONE,
                 &textureDesc,
-                D3D12_RESOURCE_STATE_COPY_DEST,
-                nullptr,
+                D3D12_RESOURCE_STATE_RENDER_TARGET,
+                &clear_value,
                 IID_PPV_ARGS(&back_buffers[i])));
         }
 
@@ -364,7 +375,8 @@ namespace XRGameBridge {
         }
 
         // set current frame values to the values of the next frame
-        current_frame_index = current_frame_index++ % back_buffer_count;
+        current_frame_index++;
+        current_frame_index = current_frame_index % back_buffer_count;
         index = current_frame_index;
         current_image_state = IMAGE_STATE_ACQUIRED;
         return XR_SUCCESS;
@@ -411,7 +423,7 @@ namespace XRGameBridge {
 
         //TODO signal fence after presentation in the actual swapchain!!!! Not here
         // Schedule a Signal command in the queue. for the currently rendered frame
-        //command_queue->Signal(fence.Get(), fence_values[current_frame_index]);
+        command_queue->Signal(fence.Get(), fence_values[current_frame_index]);
 
         /// TODO (ONLY FOR SETTING TO IMAGE_STATE_WEAVING) test if this works with multi threaded rendering applications. It could be that after release, another thread will immediately call AcquireSwapchainImage, which will now return CALL_ORDER_INVALID since the weaving still has to happen on the first thread.
         // Set the image state to IMAGE_STATE_RELEASED. After this the image can be weaved. The image can also be reacquired by the application though.
@@ -611,95 +623,8 @@ namespace XRGameBridge {
         return back_buffers;
     }
 
-    //uint32_t GB_GraphicsDevice::GetBufferCount() {
-    //    return back_buffer_count;
-    //}
-
-    //IDXGISwapChain3* GB_GraphicsDevice::GetSwapChain() {
-    //    return swap_chain.Get();
-    //}
-
-    //ID3D12Device* GB_GraphicsDevice::GetDevice() {
-    //    return d3d12_device.Get();
-    //}
-
-    //ID3D12CommandQueue* GB_GraphicsDevice::GetCommandQueue() {
-    //    return command_queue.Get();
-    //}
-
-    //uint32_t GB_GraphicsDevice::GetCurrentBackBufferIndex() {
-    //    frame_index = swap_chain->GetCurrentBackBufferIndex();
-    //    return frame_index;
-    //}
-
-    //// Wait for the gpu to be done with the image so we can use it for drawing
-    //// Must only be called after GetCurrentBackBufferIndex to be sure that the image index is not in use anymore
-    //XrResult GB_GraphicsDevice::WaitForFences(const XrDuration& timeout) {
-    //    // Image state must be IMAGE_STATE_RELEASED before calling this function
-    //    // Swap chain is initialized in IMAGE_STATE_RELEASED
-    //    if (current_image_state != IMAGE_STATE_RELEASED) {
-    //        return XR_ERROR_CALL_ORDER_INVALID;
-    //    }
-
-    //    // Should always be called AFTER GetCurrentBackBufferIndex. So GetCompletedValue van be compared to the new frame fence value.
-    //    if (fence->GetCompletedValue() < fence_values[frame_index]) {
-    //        // Fire event on completion
-    //        fence->SetEventOnCompletion(fence_values[frame_index], fence_event);
-    //        // Wait for the fence to be signaled and fire the event
-    //        HRESULT res = WaitForSingleObjectEx(fence_event, ch::duration_cast<ch::milliseconds>(ch::nanoseconds(timeout)).count(), FALSE);
-    //        if (res == WAIT_TIMEOUT) {
-    //            return XR_TIMEOUT_EXPIRED;
-    //        }
-    //    }
-
-    //    // Transition the image back to render target so the application knows what state to expect.
-    //    // TODO Transitioning images state without waiting on the queue to finish, not sure this will break eventually. Maybe dx12 is synchronizing implicitly?
-    //    // TODO here we do wait after the transition though, so the application should not be affected here
-    //    TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_TRANSITION, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-    //    fence_values[frame_index] = current_fence_value;
-
-    //    // Set the image state to waiting to make sure WaitForFences and ReleaseSwapchainImage are called in the correct order
-    //    current_image_state = IMAGE_STATE_WAITING;
-
-    //    return XR_SUCCESS;
-    //}
-
-    //XrResult GB_GraphicsDevice::ReleaseSwapchainImage() {
-    //    // TODO Should release the oldest image in the swap chain according to the spec, this usually already happens implicitly when acquiring images from the swap chain.
-    //    // When Acquiring, an image is released that has already been presented, that index is then used to render a new image to.
-
-    //    // TODO We may want to add an extra buffer where the application renders to, then use that image in the weaver to render to the swap chain.
-    //    // We could the acquire (and thus release) the image from the swap chain here. When the application acquires an image with xrAcquireSwapchainImage, it would get the intermediate image.
-
-    //    // Image state must be IMAGE_STATE_WAITING before calling this. Image must have waited without timeout.
-    //    if (current_image_state != IMAGE_STATE_WAITING) {
-    //        return XR_ERROR_CALL_ORDER_INVALID;
-    //    }
-
-    //    // Save current frame fence value before we get the next frame index
-    //    current_fence_value = fence_values[frame_index];
-    //    // Schedule a Signal command in the queue. for the currently rendered frame
-    //    command_queue->Signal(fence.Get(), fence_values[frame_index]);
-
-    //    // Set the image state to waiting to make sure WaitForFences and ReleaseSwapchainImage are called in the correct order
-    //    current_image_state = IMAGE_STATE_RELEASED;
-
-    //    return XR_SUCCESS;
-    //}
-
     void GB_GraphicsDevice::AcquireNextImage() {
         // TODO get image index from the swapchain
-    }
-
-    void GB_GraphicsDevice::ComposeImage() {
-        // TODO uses the command queue and the frame struct from endframe to compose the whole frame
-        // TODO after that it executes the command list to render to the actual swapchain and set the fences on every proxy swapchain image
-    }
-
-    void GB_GraphicsDevice::Present() {
-        // TODO present the image on screen
-        // Or to the UEVR window, or both...
     }
 
     void GB_GraphicsDevice::TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after) {
@@ -724,4 +649,6 @@ namespace XRGameBridge {
 
         // barrier to render target
     }
+
+
 }

@@ -124,29 +124,14 @@ namespace XRGameBridge {
         bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
         std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetImages();
 
-        //// TODO can probably all be removed
-        //uint32_t GetBufferCount();
-        //IDXGISwapChain3* GetSwapChain();
-        //ID3D12Device* GetDevice();
-        //ID3D12CommandQueue* GetCommandQueue();
-        //uint32_t GetCurrentBackBufferIndex();
-        //XrResult WaitForFences(const XrDuration& timeout);
-        //XrResult ReleaseSwapchainImage();
-        //// ~////////////
-
         void AcquireNextImage();
-        void ComposeImage();
-        void Present();
 
         void TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
 
         void PresentFrame();
     };
 
-    void SetToRenderTarget();
-
     inline GB_Display g_display;
     inline std::unordered_map<XrSwapchain, GB_ProxySwapchain> g_application_render_targets;
-
     inline std::unordered_map<XrSwapchain, GB_GraphicsDevice> g_graphics_devices;
 }
