@@ -7,6 +7,7 @@
 #include "instance.h"
 #include "system.h"
 #include "settings.h"
+#include "compositor.h"
 
 XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session) {
     // TODO refactor local scope static variables
@@ -50,6 +51,11 @@ XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createI
 
     *session = handle;
     session_creation_count++;
+
+    // TODO Not sure where to put the compositor, it has to be initialized by the session, but you render to a system
+    // Maybe a system should own a compositor, but it is created and destroyed by the client?
+    XRGameBridge::g_compositor.Initialize(new_session.d3d12_device);
+
     return XR_SUCCESS;
 }
 
@@ -175,6 +181,11 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
 
 
     }
+
+    // TODO Don't want to keep swapchains in the swapchain anymore, either move them to the compositor, or the system.
+    // The only problem is that the number of command lists is dictated by the back buffer count, and usage by the back buffer index.
+
+    XRGameBridge::g_compositor.ComposeImage(frameEndInfo, cmd_list);
 
     //gb_graphics_device.PresentFrame();
 

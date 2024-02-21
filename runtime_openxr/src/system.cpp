@@ -11,6 +11,8 @@
 XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId) {
     //TODO The specification says basically that the system should be created before this call with a graphics api (getsystem not createsystem of course).
     //TODO Maybe during Instance creation or xrGetD3D12GraphicsRequirementsKHR
+    // This also means that at that point, SR will be loaded in the application, we should initialize it on a separate thread
+
     static uint32_t system_creation_count = 1;
 
     XrFormFactor requested_formfactor;

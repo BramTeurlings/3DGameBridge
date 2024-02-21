@@ -45,13 +45,13 @@ namespace XRGameBridge {
 
     // Back buffer count
     //TODO make this const inside the class and mutable through the constructor
-    static constexpr unsigned short back_buffer_count = 2;
+    constexpr unsigned short g_back_buffer_count = 2;
 
     // TODO Use resources instead of creating multiple swap chains? Is that better?
     // UEVR create a lot of swap chains so let's just use images....
     class GB_ProxySwapchain {
         ComPtr<ID3D12CommandQueue> command_queue;
-        std::array<ComPtr<ID3D12Resource>, back_buffer_count> back_buffers;
+        std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> back_buffers;
         ComPtr<ID3D12DescriptorHeap> rtv_heap;
         ComPtr<ID3D12DescriptorHeap> srv_heap;
 
@@ -65,7 +65,7 @@ namespace XRGameBridge {
         // TODO We are using fences for every image instead of every frame, test if we can use fences per frame only instead
         HANDLE fence_event;
         ComPtr<ID3D12Fence> fence;
-        UINT64 fence_values[back_buffer_count];
+        UINT64 fence_values[g_back_buffer_count];
 
     public:
         GB_ProxySwapchain() = default;
@@ -76,7 +76,7 @@ namespace XRGameBridge {
         void DestroyResources();
 
         uint32_t GetBufferCount();
-        std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetBuffers();
+        std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GetBuffers();
 
         // Returns the oldest image index
         XrResult AcquireNextImage(uint32_t& index);
@@ -95,7 +95,7 @@ namespace XRGameBridge {
         ComPtr<IDXGISwapChain3> swap_chain;
         ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
         ComPtr<ID3D12DescriptorHeap> m_srvHeap;
-        std::array<ComPtr<ID3D12Resource>, back_buffer_count> back_buffers;
+        std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> back_buffers;
 
         uint32_t rtv_descriptor_size = 0;
         uint32_t frame_index = 0;
@@ -103,11 +103,13 @@ namespace XRGameBridge {
         // TODO Use command allocator and lists to transition all images at the same time in an external function
         enum CommandResourceIndex { COMMAND_RESOURCE_INDEX_TRANSITION, COMMAND_RESOURCE_INDEX_PRESENT };
         std::array<ComPtr<ID3D12CommandAllocator>, 2> command_allocators;
+
+        // TODO use for transitioning the image state, this can be moved to the compositor before presenting
         std::array<ComPtr<ID3D12GraphicsCommandList>, 2 > command_lists;
 
         HANDLE fence_event;
         ComPtr<ID3D12Fence> fence;
-        UINT64 fence_values[back_buffer_count];
+        UINT64 fence_values[g_back_buffer_count];
 
         UINT64 current_fence_value = 0;
         ImageState current_image_state = IMAGE_STATE_RELEASED;
@@ -122,7 +124,7 @@ namespace XRGameBridge {
 
         // TODO swapchain is only necessary if we render to the XR Game Bridge window, otherwise we render to the back buffer of UEVR window
         bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
-        std::array<ComPtr<ID3D12Resource>, back_buffer_count> GetImages();
+        std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GetImages();
 
         void AcquireNextImage();
 

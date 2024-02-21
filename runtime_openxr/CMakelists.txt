@@ -7,6 +7,11 @@ message("3D Game Bridge Version: ${3DGameBridge_VERSION}")
 
 set(CMAKE_DEBUG_POSTFIX d)
 
+set(SHADERS
+	shaders/layering_vertex.hlsl
+	shaders/layering_pixel.hlsl
+)
+
 # Source files
 add_library(RuntimeOpenXR SHARED
 		src/main.cpp
@@ -30,8 +35,12 @@ add_library(RuntimeOpenXR SHARED
 		src/compositor.h
 		src/compositor.cpp
 
+		${SHADERS}
+
 		../third-party/easyloggingpp/src/easylogging++.cc
 )
+
+set_source_files_properties(${SHADERS} PROPERTIES VS_TOOL_OVERRIDE "None")
 
 target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_PLATFORM_WIN32)
 target_compile_definitions(RuntimeOpenXR PRIVATE XR_USE_GRAPHICS_API_D3D11)

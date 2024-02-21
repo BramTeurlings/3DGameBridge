@@ -81,6 +81,8 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     //XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_READY);
 
+
+
     return XR_SUCCESS;
 
 }
@@ -260,7 +262,7 @@ namespace XRGameBridge {
     bool GB_ProxySwapchain::CreateResources(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo) {
         command_queue = queue;
 
-        for (uint32_t i = 0; i < back_buffer_count; i++) {
+        for (uint32_t i = 0; i < g_back_buffer_count; i++) {
             // Describe and create a Texture2D.
             D3D12_RESOURCE_DESC textureDesc = {};
             textureDesc.MipLevels = 1;
@@ -298,7 +300,7 @@ namespace XRGameBridge {
         {
             // Describe and create a render target view (RTV) descriptor heap.
             D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-            rtvHeapDesc.NumDescriptors = back_buffer_count;
+            rtvHeapDesc.NumDescriptors = g_back_buffer_count;
             rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
             rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
             if (FAILED(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtv_heap)))) {
@@ -309,7 +311,7 @@ namespace XRGameBridge {
             // TODO we create an srv heap here but not srv's themselves later on
             // Describe and create a shader resource view (SRV) heap for the texture.
             D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-            srvHeapDesc.NumDescriptors = back_buffer_count;
+            srvHeapDesc.NumDescriptors = g_back_buffer_count;
             srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
             if (FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srv_heap)))) {
@@ -326,7 +328,7 @@ namespace XRGameBridge {
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(rtv_heap->GetCPUDescriptorHandleForHeapStart());
             CD3DX12_CPU_DESCRIPTOR_HANDLE srv_handle(srv_heap->GetCPUDescriptorHandleForHeapStart());
 
-            for (int32_t i = 0; i < back_buffer_count; i++) {
+            for (int32_t i = 0; i < g_back_buffer_count; i++) {
                 //std::wstringstream ss; ss << "Swap Container Resource: " << i;
                 //back_buffers[i]->SetName(ss.str().c_str());
 
@@ -353,7 +355,7 @@ namespace XRGameBridge {
     }
 
     void GB_ProxySwapchain::DestroyResources() {
-        for (int32_t i = 0; i < back_buffer_count; i++) {
+        for (int32_t i = 0; i < g_back_buffer_count; i++) {
             back_buffers[i].Reset();
         }
 
@@ -362,10 +364,10 @@ namespace XRGameBridge {
     }
 
     uint32_t GB_ProxySwapchain::GetBufferCount() {
-        return back_buffer_count;
+        return g_back_buffer_count;
     }
 
-    std::array<ComPtr<ID3D12Resource>, back_buffer_count> GB_ProxySwapchain::GetBuffers() {
+    std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GB_ProxySwapchain::GetBuffers() {
         return back_buffers;
     }
 
@@ -376,7 +378,7 @@ namespace XRGameBridge {
 
         // set current frame values to the values of the next frame
         current_frame_index++;
-        current_frame_index = current_frame_index % back_buffer_count;
+        current_frame_index = current_frame_index % g_back_buffer_count;
         index = current_frame_index;
         current_image_state = IMAGE_STATE_ACQUIRED;
         return XR_SUCCESS;
@@ -538,7 +540,7 @@ namespace XRGameBridge {
         swapChainDesc.Height = createInfo->height;
         swapChainDesc.Format = static_cast<DXGI_FORMAT>(createInfo->format);
         swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapChainDesc.BufferCount = back_buffer_count;
+        swapChainDesc.BufferCount = g_back_buffer_count;
         swapChainDesc.SampleDesc.Count = 1;
         swapChainDesc.SampleDesc.Quality = 0;
         swapChainDesc.Scaling = DXGI_SCALING_NONE;
@@ -568,7 +570,7 @@ namespace XRGameBridge {
         {
             // Describe and create a render target view (RTV) descriptor heap.
             D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-            rtvHeapDesc.NumDescriptors = back_buffer_count;
+            rtvHeapDesc.NumDescriptors = g_back_buffer_count;
             rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
             rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
             if (FAILED(d3d12_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)))) {
@@ -595,7 +597,7 @@ namespace XRGameBridge {
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
             // Create a RTV for each frame.
-            for (uint32_t i = 0; i < back_buffer_count; i++) {
+            for (uint32_t i = 0; i < g_back_buffer_count; i++) {
                 if (FAILED(swap_chain->GetBuffer(i, IID_PPV_ARGS(&back_buffers[i])))) {
                     LOG(ERROR) << "Failed to create rtv";
                     return false;
@@ -619,7 +621,7 @@ namespace XRGameBridge {
         return true;
     }
 
-    std::array<ComPtr<ID3D12Resource>, back_buffer_count> GB_GraphicsDevice::GetImages() {
+    std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GB_GraphicsDevice::GetImages() {
         return back_buffers;
     }
 

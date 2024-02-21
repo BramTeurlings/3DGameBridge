@@ -2,6 +2,7 @@
 #include <string>
 
 #include "openxr_includes.h"
+#include "compositor.h"
 
 // System
 XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId);
@@ -103,4 +104,6 @@ namespace  XRGameBridge {
         XrPath sub_action_path;
         XrPosef pose_in_action_space;
     };
+
+    inline GB_Compositor g_compositor;
 }
