@@ -8,6 +8,7 @@
 #include "system.h"
 #include "settings.h"
 #include "compositor.h"
+#include "swapchain.h"
 
 XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session) {
     // TODO refactor local scope static variables
@@ -54,7 +55,7 @@ XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createI
 
     // TODO Not sure where to put the compositor, it has to be initialized by the session, but you render to a system
     // Maybe a system should own a compositor, but it is created and destroyed by the client?
-    XRGameBridge::g_compositor.Initialize(new_session.d3d12_device);
+    new_session.compositor.Initialize(new_session.d3d12_device, new_session.command_queue, 2);
 
     return XR_SUCCESS;
 }
@@ -86,6 +87,18 @@ XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) 
     gb_session.view_configuration = beginInfo->primaryViewConfigurationType;
 
     XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_FOCUSED);
+
+    gb_session.display.CreateApplicationWindow(XRGameBridge::g_runtime_settings.hInst, true);
+
+
+    auto vectori = XRGameBridge::GetDummyScreenResolution();
+
+    XrSwapchainCreateInfo swapchain_info;
+    swapchain_info.width = vectori.x;
+    swapchain_info.height = vectori.y;
+    swapchain_info.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    gb_session.window_swapchain.Initialize(gb_session.d3d12_device, gb_session.command_queue);
+    gb_session.window_swapchain.CreateSwapChain(&swapchain_info, gb_session.display.GetWindowHandle());
 
     return XR_SUCCESS;
 }
@@ -160,34 +173,45 @@ XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeginInfo)
 
 XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     // TODO If no layers are provided then the display must be cleared.
-    //frameEndInfo->layers
-
     // Present the frame for session
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
-    XRGameBridge::GB_GraphicsDevice& gb_graphics_device = XRGameBridge::g_graphics_devices[gb_session.swap_chain];
-
-    if(frameEndInfo->layerCount == 0)
-    {
-        // TODO clear the screen when no layers are present
-    }
-
-    for(uint32_t i = 0; i < frameEndInfo->layerCount; i++)
-    {
-        auto layer = reinterpret_cast<const XrCompositionLayerProjection*>( frameEndInfo->layers[i]);
-
-        // TODO use alpha bits
-        layer->layerFlags& XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-        layer->layerFlags& XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
-
-
-    }
 
     // TODO Don't want to keep swapchains in the swapchain anymore, either move them to the compositor, or the system.
-    // The only problem is that the number of command lists is dictated by the back buffer count, and usage by the back buffer index.
+    auto& gb_graphics_device = gb_session.window_swapchain;
+    int32_t index = gb_graphics_device.AcquireNextImage();
+    auto& gb_compositor = gb_session.compositor;
+    auto& cmd_list = gb_compositor.GetCommandList(index);
+    auto& cmd_allocator = gb_compositor.GetCommandAllocator(index);
 
-    XRGameBridge::g_compositor.ComposeImage(frameEndInfo, cmd_list);
+    // Prepare command list // TODO set pipeline state when resetting command list later
+    cmd_allocator->Reset();
+    cmd_list->Reset(cmd_allocator.Get(), nullptr);
 
-    //gb_graphics_device.PresentFrame();
+    // TODO transition proxy images to unordered access/shader source (If I'm right...)
+
+    // Set render target to the swap chain
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(gb_graphics_device.GetRtvHeap()->GetCPUDescriptorHandleForHeapStart(), index, gb_graphics_device.GetRtvDescriptorSize());
+    cmd_list->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+
+    float clear_color[4] = {0,0,1,1};
+    cmd_list->ClearRenderTargetView(rtvHandle, clear_color, 0, nullptr);
+
+    // TODO copy image for now instead of composing layers
+    //// Compose and draw to the render target
+    //gb_compositor.ComposeImage(frameEndInfo, cmd_list.Get());
+
+    auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[0]);
+    auto& gb_proxy = XRGameBridge::g_application_render_targets[layer->views[0].subImage.swapchain];
+    //cmd_list->CopyResource(gb_graphics_device.GetImages()[index].Get(), gb_proxy.GetBuffers()[index].Get());
+
+
+    // TODO transition proxy images back to render target
+
+    // Execute command lists
+    gb_compositor.ExecuteCommandLists(cmd_list.Get(), frameEndInfo);
+
+    // Present to window
+    gb_graphics_device.PresentFrame();
 
     // TODO Debug layers complaining that the initialized resource clear color is mismatching ClearRenderTargetViewCall because the application calls it.
     // TODO Clear resources here
@@ -196,7 +220,9 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     // TODO create function inside the actual swapchain render to the window
 
 
-    //LOG(INFO) << "Called " << __func__;
+    // Update window
+    gb_session.display.UpdateWindow();
+
     return XR_SUCCESS;
 }
 

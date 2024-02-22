@@ -104,6 +104,4 @@ namespace  XRGameBridge {
         XrPath sub_action_path;
         XrPosef pose_in_action_space;
     };
-
-    inline GB_Compositor g_compositor;
 }

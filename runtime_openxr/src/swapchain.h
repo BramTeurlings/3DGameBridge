@@ -4,7 +4,6 @@
 #include <array>
 
 #include "openxr_includes.h"
-#include "session.h"
 
 XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t* formatCountOutput, int64_t* formats);
 XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* createInfo, XrSwapchain* swapchain);
@@ -16,6 +15,9 @@ XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitI
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo);
 
 namespace XRGameBridge {
+    // Forward declaration for GB_ProxySwapchain friend
+    class GB_Compositor;
+
     enum ImageState {
         IMAGE_STATE_WAITING,
         IMAGE_STATE_RELEASED,
@@ -26,23 +28,6 @@ namespace XRGameBridge {
         IMAGE_STATE_DONE_WEAVING
     };
 
-    class GB_Display {
-        // The main window class name.
-        std::string window_class = "Game Bridge Window";
-
-        // The string that appears in the application's title bar.
-        std::string title = "XR Game Bridge";
-
-        HWND h_wnd = 0;
-
-    public:
-        // Returns the window of the application or false if none exist
-        static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-        bool CreateApplicationWindow(HINSTANCE hInstance, int nCmdShow);
-        HWND GetWindowHandle();
-        void UpdateWindow();
-    };
-
     // Back buffer count
     //TODO make this const inside the class and mutable through the constructor
     constexpr unsigned short g_back_buffer_count = 2;
@@ -50,7 +35,9 @@ namespace XRGameBridge {
     // TODO Use resources instead of creating multiple swap chains? Is that better?
     // UEVR create a lot of swap chains so let's just use images....
     class GB_ProxySwapchain {
-        ComPtr<ID3D12CommandQueue> command_queue;
+        friend GB_Compositor;
+
+        //ComPtr<ID3D12CommandQueue> command_queue;
         std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> back_buffers;
         ComPtr<ID3D12DescriptorHeap> rtv_heap;
         ComPtr<ID3D12DescriptorHeap> srv_heap;
@@ -72,11 +59,13 @@ namespace XRGameBridge {
         GB_ProxySwapchain(GB_ProxySwapchain& other) = delete;
         GB_ProxySwapchain(GB_ProxySwapchain&& other) = delete;
 
-        bool CreateResources(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo);
+        bool CreateResources(const ComPtr<ID3D12Device>& device, const XrSwapchainCreateInfo* createInfo);
         void DestroyResources();
 
         uint32_t GetBufferCount();
         std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GetBuffers();
+        ComPtr<ID3D12DescriptorHeap>& GetRtvHeap();
+        ComPtr<ID3D12DescriptorHeap>& GetSrvHeap();
 
         // Returns the oldest image index
         XrResult AcquireNextImage(uint32_t& index);
@@ -88,6 +77,7 @@ namespace XRGameBridge {
         XrResult ReleaseImage();
     };
 
+    // TODO swapchain is only necessary if we render to the XR Game Bridge window, otherwise we render to the back buffer of UEVR window
     class GB_GraphicsDevice {
         ComPtr<ID3D12Device> d3d12_device;
         ComPtr<ID3D12CommandQueue> command_queue;
@@ -119,21 +109,21 @@ namespace XRGameBridge {
         static void GetGraphicsAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter);
 
         // Creates device
+        bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
         bool Initialize();
         bool Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue);
 
-        // TODO swapchain is only necessary if we render to the XR Game Bridge window, otherwise we render to the back buffer of UEVR window
-        bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
         std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GetImages();
+        ComPtr<ID3D12DescriptorHeap>& GetRtvHeap();
+        ComPtr<ID3D12DescriptorHeap>& GetSrvHeap();
+        uint32_t GetRtvDescriptorSize();
 
-        void AcquireNextImage();
+        uint32_t AcquireNextImage();
+        void PresentFrame();
 
         void TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
-
-        void PresentFrame();
     };
 
-    inline GB_Display g_display;
     inline std::unordered_map<XrSwapchain, GB_ProxySwapchain> g_application_render_targets;
-    inline std::unordered_map<XrSwapchain, GB_GraphicsDevice> g_graphics_devices;
+    //inline std::unordered_map<XrSwapchain, GB_GraphicsDevice> g_graphics_devices;
 }

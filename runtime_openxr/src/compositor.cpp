@@ -6,6 +6,8 @@
 
 #include "swapchain.h"
 
+
+#include "instance.h"
 namespace XRGameBridge {
     const std::string LAYERING_VERTEX = "../../runtime_openxr/shaders/layering_vertex.cso";
     const std::string LAYERING_PIXEL = "../../runtime_openxr/shaders/layering_pixel.cso";
@@ -32,7 +34,10 @@ namespace XRGameBridge {
         return buffer;
     }
 
-    void GB_Compositor::Initialize(const ComPtr<ID3D12Device>& device) {
+    void GB_Compositor::Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, uint32_t back_buffer_count) {
+
+        d3d12_device = device;
+        command_queue = queue;
 
         // Create the root signature.
         {
@@ -104,13 +109,82 @@ namespace XRGameBridge {
             ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline_state)));
             pipeline_state->SetName(L"Compositor Pipeline State");
         }
+
+        command_allocators.resize(back_buffer_count);
+        command_lists.resize(back_buffer_count);
+        for (uint32_t i = 0; i < back_buffer_count; i++) {
+            // Create present command allocator and command list resources
+            ThrowIfFailed(d3d12_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[i])));
+            // TODO use initial pipeline state here later. First check if it works without.
+            ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[i].Get(), nullptr, IID_PPV_ARGS(&command_lists[i])));
+
+            command_lists[i]->Close();
+        }
     }
 
     void GB_Compositor::ComposeImage(const XrFrameEndInfo* frameEndInfo, ID3D12GraphicsCommandList* cmd_list) {
         // TODO uses the command queue and the frame struct from endframe to compose the whole frame
         // TODO after that it executes the command list to render to the actual swapchain and set the fences on every proxy swapchain image
 
-        cmd_list->SetPipelineState(pipeline_state.Get());
-        cmd_list->DrawInstanced(4, 1, 0, 0);
+        if (frameEndInfo->layerCount == 0) {
+            // TODO clear the screen when no layers are present
+        }
+
+        for (uint32_t i = 0; i < frameEndInfo->layerCount; i++) {
+            if (frameEndInfo->layers[i]->type == XR_TYPE_COMPOSITION_LAYER_PROJECTION) {
+                auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[i]);
+
+                // TODO use alpha bits
+                layer->layerFlags& XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
+
+                // If alpha should not be blended, make the alpha completely opaque in the shader
+                uint32_t uniform_alpha = 1;
+                if ((layer->layerFlags & XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT) == 0) {
+                    uniform_alpha = 1;
+                }
+                else {
+                    uniform_alpha = 0;
+                }
+
+                auto& ref_space = g_reference_spaces[layer->space]; // pose in spaces of the view over time
+
+                layer->viewCount;
+                layer->views->subImage.imageRect;
+
+                auto& gb_swapchain = g_application_render_targets[layer->views->subImage.swapchain];
+                gb_swapchain.GetBuffers()[layer->views->subImage.imageArrayIndex]; // need srv's
+
+                //cmd_list->OMSetRenderTargets() //TODO set render target to the swapchain
+                cmd_list->SetDescriptorHeaps(1, gb_swapchain.GetSrvHeap().GetAddressOf());
+                cmd_list->SetPipelineState(pipeline_state.Get());
+                cmd_list->DrawInstanced(4, 1, 0, 0);
+            }
+            else if (frameEndInfo->layers[i]->type == XR_TYPE_COMPOSITION_LAYER_QUAD) {
+                // TODO this is for viewing 2dimensional content in VR space. We could project this in 2d to the screen perhaps...
+                // TODO maybe this is also used to display 3d videos without lookaround?
+            }
+        }
+    }
+
+    void GB_Compositor::ExecuteCommandLists(ID3D12GraphicsCommandList* cmd_list, const XrFrameEndInfo* frameEndInfo) {
+        ID3D12CommandList* lists[]{ cmd_list };
+        command_queue->ExecuteCommandLists(1, lists);
+
+        for (uint32_t i = 0; i < frameEndInfo->layerCount; i++) {
+            if (frameEndInfo->layers[i]->type == XR_TYPE_COMPOSITION_LAYER_PROJECTION) {
+                auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[i]);
+                auto& gb_swapchain = g_application_render_targets[layer->views->subImage.swapchain];
+
+                command_queue->Signal(gb_swapchain.fence.Get(), gb_swapchain.fence_values[gb_swapchain.current_frame_index]);
+            }
+        }
+    }
+
+    ComPtr<ID3D12GraphicsCommandList>& GB_Compositor::GetCommandList(uint32_t index) {
+        return command_lists[index];
+    }
+
+    ComPtr<ID3D12CommandAllocator>& GB_Compositor::GetCommandAllocator(uint32_t index) {
+        return command_allocators[index];
     }
 }

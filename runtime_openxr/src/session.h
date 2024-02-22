@@ -1,11 +1,13 @@
 #pragma once
 
-#include <string>
 #include <vector>
 #include <chrono>
 #include <mutex>
 
 #include "openxr_includes.h"
+#include "window.h"
+#include "swapchain.h"
+#include "compositor.h"
 
 XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session);
 XrResult xrDestroySession(XrSession session);
@@ -47,6 +49,11 @@ namespace XRGameBridge {
         // DirectX 12
         ComPtr<ID3D12Device> d3d12_device;
         ComPtr<ID3D12CommandQueue> command_queue;
+        GB_Compositor compositor;
+
+        // Windows
+        GB_Display display;
+        GB_GraphicsDevice window_swapchain;
     };
 
     class GB_FrameTimer {

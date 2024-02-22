@@ -56,8 +56,6 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
 
 XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* createInfo, XrSwapchain* swapchain) {
     static uint32_t swapchain_creation_count = 1;
-    // Create window
-    XRGameBridge::g_display.CreateApplicationWindow(XRGameBridge::g_runtime_settings.hInst, true);
 
     // Create handle
     XrSwapchain handle = reinterpret_cast<XrSwapchain>(swapchain_creation_count);
@@ -68,7 +66,7 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     // Create swap chain
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
 
-    if (gb_proxy.CreateResources(gb_session.d3d12_device, gb_session.command_queue, createInfo) == false) {
+    if (gb_proxy.CreateResources(gb_session.d3d12_device, createInfo) == false) {
         return XR_ERROR_RUNTIME_FAILURE;
     }
 
@@ -77,14 +75,14 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     gb_session.swap_chain = handle;
     swapchain_creation_count++;
 
+
+
+
     //TODO Is this the right place set the session state to ready?
     //XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
     XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_READY);
 
-
-
     return XR_SUCCESS;
-
 }
 
 XrResult xrDestroySwapchain(XrSwapchain swapchain) {
@@ -157,111 +155,14 @@ XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitI
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo) {
     // Basically tells the runtime that the application is done with an image
 
-    XRGameBridge::g_display.UpdateWindow();
-
     auto& gb_proxy = XRGameBridge::g_application_render_targets[swapchain];
     return gb_proxy.ReleaseImage();
 }
 
 namespace XRGameBridge {
-    void MessageLoop() {
-        // Main message loop:
-        MSG msg;
-        while (GetMessage(&msg, NULL, 0, 0)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
 
-    LRESULT CALLBACK GB_Display::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-        PAINTSTRUCT ps;
-        HDC hdc;
-        std::string greeting("Hello, Windows desktop!");
 
-        switch (message) {
-        case WM_PAINT:
-            hdc = BeginPaint(hWnd, &ps);
-
-            // Here your application is laid out.
-            // For this introduction, we just print out "Hello, Windows desktop!"
-            // in the top left corner.
-            TextOut(hdc, 5, 5, greeting.data(), (greeting.size()));
-            // End application-specific layout section.
-
-            EndPaint(hWnd, &ps);
-            break;
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            break;
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
-            break;
-        }
-
-        return 0;
-    }
-
-    bool GB_Display::CreateApplicationWindow(HINSTANCE hInstance, int nCmdShow) {
-        // TODO better window creation checking code
-        static bool window_created = false;
-        if (window_created) {
-            return false;
-        }
-
-        window_created = true;
-
-        WNDCLASSEX window_ex;
-
-        window_ex.cbSize = sizeof(WNDCLASSEX);
-        window_ex.style = CS_HREDRAW | CS_VREDRAW;
-        window_ex.lpfnWndProc = WndProc;
-        window_ex.cbClsExtra = 0;
-        window_ex.cbWndExtra = 0;
-        window_ex.hInstance = hInstance;
-        window_ex.hIcon = LoadIcon(window_ex.hInstance, IDI_APPLICATION);
-        window_ex.hCursor = LoadCursor(NULL, IDC_ARROW);
-        window_ex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-        window_ex.lpszMenuName = NULL;
-        window_ex.lpszClassName = window_class.c_str();
-        window_ex.hIconSm = LoadIcon(window_ex.hInstance, IDI_APPLICATION);
-
-        if (!RegisterClassEx(&window_ex)) {
-            MessageBox(NULL, "Call to RegisterClassEx failed!", "XR Game Bridge", NULL);
-
-            return false;
-        }
-
-        // Create window
-        h_wnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, window_class.c_str(), title.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 2560, 1440, NULL, NULL, hInstance, NULL);
-        if (!h_wnd) {
-            MessageBox(NULL, "Call to CreateWindow failed!", "XR Game Bridge", NULL);
-            return false;
-        }
-
-        // The parameters to ShowWindow explained:
-        // h_wnd: the value returned from CreateWindow
-        // nCmdShow: the fourth parameter from WinMain
-        ShowWindow(h_wnd, nCmdShow);
-
-        return true;
-    }
-
-    HWND GB_Display::GetWindowHandle() {
-        return h_wnd;
-    }
-
-    void GB_Display::UpdateWindow() {
-        // Main message loop:
-        MSG msg;
-        if (PeekMessageA(&msg, h_wnd, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
-
-    bool GB_ProxySwapchain::CreateResources(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo) {
-        command_queue = queue;
-
+    bool GB_ProxySwapchain::CreateResources(const ComPtr<ID3D12Device>& device, const XrSwapchainCreateInfo* createInfo) {
         for (uint32_t i = 0; i < g_back_buffer_count; i++) {
             // Describe and create a Texture2D.
             D3D12_RESOURCE_DESC textureDesc = {};
@@ -279,7 +180,7 @@ namespace XRGameBridge {
             //depth_stencil_value.Depth = 100.f;
             //depth_stencil_value.Stencil = 0;
 
-            float clear_color[4] { 0.851f, 0.42f, 0.09f, 1.0f};
+            float clear_color[4]{ 0.851f, 0.42f, 0.09f, 1.0f };
 
             D3D12_CLEAR_VALUE clear_value{
                 static_cast<DXGI_FORMAT>(createInfo->format),
@@ -371,6 +272,14 @@ namespace XRGameBridge {
         return back_buffers;
     }
 
+    ComPtr<ID3D12DescriptorHeap>& GB_ProxySwapchain::GetRtvHeap() {
+        return rtv_heap;
+    }
+
+    ComPtr<ID3D12DescriptorHeap>& GB_ProxySwapchain::GetSrvHeap() {
+        return srv_heap;
+    }
+
     XrResult GB_ProxySwapchain::AcquireNextImage(uint32_t& index) {
         if (current_image_state != IMAGE_STATE_RELEASED) {
             return XR_ERROR_CALL_ORDER_INVALID;
@@ -423,9 +332,10 @@ namespace XRGameBridge {
             return XR_ERROR_CALL_ORDER_INVALID;
         }
 
-        //TODO signal fence after presentation in the actual swapchain!!!! Not here
+        // TODO moved this call to compositor for now
         // Schedule a Signal command in the queue. for the currently rendered frame
-        command_queue->Signal(fence.Get(), fence_values[current_frame_index]);
+        //command_queue->Signal(fence.Get(), fence_values[current_frame_index]);
+
 
         /// TODO (ONLY FOR SETTING TO IMAGE_STATE_WEAVING) test if this works with multi threaded rendering applications. It could be that after release, another thread will immediately call AcquireSwapchainImage, which will now return CALL_ORDER_INVALID since the weaving still has to happen on the first thread.
         // Set the image state to IMAGE_STATE_RELEASED. After this the image can be weaved. The image can also be reacquired by the application though.
@@ -581,7 +491,7 @@ namespace XRGameBridge {
             // TODO we create an srv heap here but not srv's themselves later on
             // Describe and create a shader resource view (SRV) heap for the texture.
             D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-            srvHeapDesc.NumDescriptors = 1;
+            srvHeapDesc.NumDescriptors = g_back_buffer_count;
             srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
             if (FAILED(d3d12_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)))) {
@@ -597,7 +507,7 @@ namespace XRGameBridge {
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
             // Create a RTV for each frame.
-            for (uint32_t i = 0; i < g_back_buffer_count; i++) {
+            for (int32_t i = 0; i < g_back_buffer_count; i++) {
                 if (FAILED(swap_chain->GetBuffer(i, IID_PPV_ARGS(&back_buffers[i])))) {
                     LOG(ERROR) << "Failed to create rtv";
                     return false;
@@ -625,8 +535,21 @@ namespace XRGameBridge {
         return back_buffers;
     }
 
-    void GB_GraphicsDevice::AcquireNextImage() {
+    ComPtr<ID3D12DescriptorHeap>& GB_GraphicsDevice::GetRtvHeap() {
+        return m_rtvHeap;
+    }
+
+    ComPtr<ID3D12DescriptorHeap>& GB_GraphicsDevice::GetSrvHeap() {
+        return m_srvHeap;
+    }
+
+    uint32_t GB_GraphicsDevice::GetRtvDescriptorSize() {
+        return rtv_descriptor_size;
+    }
+
+    uint32_t GB_GraphicsDevice::AcquireNextImage() {
         // TODO get image index from the swapchain
+        return swap_chain->GetCurrentBackBufferIndex();
     }
 
     void GB_GraphicsDevice::TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after) {
@@ -645,7 +568,7 @@ namespace XRGameBridge {
     // Called from xrEndFrame, cause then we know the application is done with rendering this image.
     void GB_GraphicsDevice::PresentFrame() {
         // TODO Transitioning images state without waiting on the queue to finish, not sure this will break eventually. Maybe dx12 is synchronizing implicitly?
-        TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        //TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
         swap_chain->Present(1, 0);
 
 
