@@ -316,7 +316,7 @@ namespace XRGameBridge {
         // This is so we can guarantee that the image is free and in the correct state to be used by the application
         //TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_TRANSITION, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        // Remark: fence value will be incremented until the swapchain is destroyed.
+        // Remark: fence value will be incremented until the swapchain is destroyed. 
         fence_values[current_frame_index]++;
 
         // Set the image state to render target because we have waited for the image to be freed so it can be used by the application again.

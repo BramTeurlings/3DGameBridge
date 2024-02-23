@@ -22,5 +22,6 @@ namespace XRGameBridge {
 
         ComPtr<ID3D12GraphicsCommandList>& GetCommandList(uint32_t index);
         ComPtr<ID3D12CommandAllocator>& GetCommandAllocator(uint32_t index);
+        ComPtr<ID3D12PipelineState>& GetPipelineState();
     };
 }

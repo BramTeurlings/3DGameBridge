@@ -184,7 +184,7 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
 
     // Prepare command list // TODO set pipeline state when resetting command list later
     cmd_allocator->Reset();
-    cmd_list->Reset(cmd_allocator.Get(), nullptr);
+    cmd_list->Reset(cmd_allocator.Get(), gb_compositor.GetPipelineState().Get());
 
     // TODO transition proxy images to unordered access/shader source (If I'm right...)
     gb_compositor.TransitionBackBufferImage(cmd_list.Get(), gb_graphics_device.GetImages()[index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -193,16 +193,30 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(gb_graphics_device.GetRtvHeap()->GetCPUDescriptorHandleForHeapStart(), index, gb_graphics_device.GetRtvDescriptorSize());
     cmd_list->OMSetRenderTargets(1, &rtvHandle, true, nullptr);
 
+    const auto screen_vector = XRGameBridge::GetDummyScreenResolution();
+    const float width = static_cast<float>(screen_vector.x);
+    const float height = static_cast<float>(screen_vector.y);
+    D3D12_VIEWPORT view_port{ 0, 0, width, height, 0.0f, 1.0f };
+    D3D12_RECT scissor_rect {0, 0, screen_vector.x, screen_vector .y};
+
+    cmd_list->RSSetViewports(1, &view_port);
+    cmd_list->RSSetScissorRects(1, &scissor_rect);
+
+
     float clear_color[4] = {0,0,1,1};
     cmd_list->ClearRenderTargetView(rtvHandle, clear_color, 0, nullptr);
+    cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+    //auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[0]);
+    //auto& gb_proxy = XRGameBridge::g_application_render_targets[layer->views[0].subImage.swapchain];
+    //cmd_list->CopyResource(gb_graphics_device.GetImages()[index].Get(), gb_proxy.GetBuffers()[index].Get());
+
 
     // TODO copy image for now instead of composing layers
     //// Compose and draw to the render target
-    //gb_compositor.ComposeImage(frameEndInfo, cmd_list.Get());
+    gb_compositor.ComposeImage(frameEndInfo, cmd_list.Get());
 
-    auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[0]);
-    auto& gb_proxy = XRGameBridge::g_application_render_targets[layer->views[0].subImage.swapchain];
-    cmd_list->CopyResource(gb_graphics_device.GetImages()[index].Get(), gb_proxy.GetBuffers()[index].Get());
 
 
     // TODO transition proxy images back to render target

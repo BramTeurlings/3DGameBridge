@@ -98,12 +98,12 @@ namespace XRGameBridge {
             psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixel_shader.data(), pixel_shader.size());
             psoDesc.RasterizerState = rasterizerStateDesc;
             psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-            psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+            //psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
             psoDesc.SampleMask = UINT_MAX;
             psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
             psoDesc.NumRenderTargets = 1;
             psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; //TODO choose format from the client
-            psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+            //psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
             psoDesc.SampleDesc.Count = 1;
 
             ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline_state)));
@@ -116,7 +116,7 @@ namespace XRGameBridge {
             // Create present command allocator and command list resources
             ThrowIfFailed(d3d12_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[i])));
             // TODO use initial pipeline state here later. First check if it works without.
-            ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[i].Get(), nullptr, IID_PPV_ARGS(&command_lists[i])));
+            ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[i].Get(), pipeline_state.Get(), IID_PPV_ARGS(&command_lists[i])));
 
             command_lists[i]->Close();
         }
@@ -130,14 +130,12 @@ namespace XRGameBridge {
             // TODO clear the screen when no layers are present
         }
 
-        for (uint32_t i = 0; i < frameEndInfo->layerCount; i++) {
-            if (frameEndInfo->layers[i]->type == XR_TYPE_COMPOSITION_LAYER_PROJECTION) {
-                auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[i]);
+        for (uint32_t layer_num = 0; layer_num < frameEndInfo->layerCount; layer_num++) {
+            if (frameEndInfo->layers[layer_num]->type == XR_TYPE_COMPOSITION_LAYER_PROJECTION) {
+                auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[layer_num]);
+                auto& ref_space = g_reference_spaces[layer->space]; // pose in spaces of the view over time
 
-                // TODO use alpha bits
-                layer->layerFlags& XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
-
-                // If alpha should not be blended, make the alpha completely opaque in the shader
+                // TODO (UBOs may need to be updated per view) If alpha should not be blended, make the alpha completely opaque in the shader
                 uint32_t uniform_alpha = 1;
                 if ((layer->layerFlags & XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT) == 0) {
                     uniform_alpha = 1;
@@ -146,20 +144,28 @@ namespace XRGameBridge {
                     uniform_alpha = 0;
                 }
 
-                auto& ref_space = g_reference_spaces[layer->space]; // pose in spaces of the view over time
+                // TODO Use other flag for gamma correction
+                //layer->layerFlags & XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
 
-                layer->viewCount;
-                layer->views->subImage.imageRect;
+                // Render every view to the resource
+                for (uint32_t view_num = 0; view_num < layer->viewCount; view_num++) {
+                    auto& view = layer->views[view_num];
 
-                auto& gb_swapchain = g_application_render_targets[layer->views->subImage.swapchain];
-                gb_swapchain.GetBuffers()[layer->views->subImage.imageArrayIndex]; // need srv's
+                    // TODO do something with rectangles
+                    view.subImage.imageRect;
 
-                //cmd_list->OMSetRenderTargets() //TODO set render target to the swapchain
-                cmd_list->SetDescriptorHeaps(1, gb_swapchain.GetSrvHeap().GetAddressOf());
-                cmd_list->SetPipelineState(pipeline_state.Get());
-                cmd_list->DrawInstanced(4, 1, 0, 0);
+                    // TODO get srv instead of buffer to set it to the shader
+                    auto& gb_swapchain = g_application_render_targets[view.subImage.swapchain];
+                    gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
+
+                    // cmd_list->OMSetRenderTargets() //TODO set render target to the swapchain
+                    cmd_list->SetGraphicsRootSignature(root_signature.Get());
+                    cmd_list->SetDescriptorHeaps(1, gb_swapchain.GetSrvHeap().GetAddressOf());
+                    cmd_list->SetPipelineState(pipeline_state.Get());
+                    cmd_list->DrawInstanced(3, 1, 0, 0);
+                }
             }
-            else if (frameEndInfo->layers[i]->type == XR_TYPE_COMPOSITION_LAYER_QUAD) {
+            else if (frameEndInfo->layers[layer_num]->type == XR_TYPE_COMPOSITION_LAYER_QUAD) {
                 // TODO this is for viewing 2dimensional content in VR space. We could project this in 2d to the screen perhaps...
                 // TODO maybe this is also used to display 3d videos without lookaround?
             }
@@ -196,5 +202,10 @@ namespace XRGameBridge {
 
     ComPtr<ID3D12CommandAllocator>& GB_Compositor::GetCommandAllocator(uint32_t index) {
         return command_allocators[index];
+    }
+
+    ComPtr<ID3D12PipelineState>& GB_Compositor::GetPipelineState()
+    {
+        return pipeline_state;
     }
 }
