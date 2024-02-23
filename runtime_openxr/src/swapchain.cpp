@@ -235,11 +235,11 @@ namespace XRGameBridge {
 
                 // Create a RTV for each frame.
                 device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtv_handle);
-                rtv_handle.Offset(i, rtv_descriptor_size);
+                rtv_handle.Offset(1, rtv_descriptor_size);
 
                 // Create SRV for each frame
                 device->CreateShaderResourceView(back_buffers[i].Get(), nullptr, srv_handle);
-                srv_handle.Offset(i, cbc_srv_uav_descriptor_size);
+                srv_handle.Offset(1, cbc_srv_uav_descriptor_size);
             }
         }
 
@@ -301,7 +301,8 @@ namespace XRGameBridge {
         }
 
         // Should always be called AFTER GetCurrentBackBufferIndex. So GetCompletedValue van be compared to the new frame fence value.
-        if (fence->GetCompletedValue() < fence_values[current_frame_index]) {
+        uint64_t completed_value = fence->GetCompletedValue();
+        if (completed_value < fence_values[current_frame_index]) {
             // Fire event on completion
             fence->SetEventOnCompletion(fence_values[current_frame_index], fence_event);
             // Wait for the fence to be signaled and fire the event
@@ -315,7 +316,8 @@ namespace XRGameBridge {
         // This is so we can guarantee that the image is free and in the correct state to be used by the application
         //TransitionBackBufferImage(COMMAND_RESOURCE_INDEX_TRANSITION, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-        fence_values[current_frame_index] = previous_fence_value + 1;
+        // Remark: fence value will be incremented until the swapchain is destroyed.
+        fence_values[current_frame_index]++;
 
         // Set the image state to render target because we have waited for the image to be freed so it can be used by the application again.
         current_image_state = IMAGE_STATE_RENDER_TARGET;
@@ -396,51 +398,7 @@ namespace XRGameBridge {
         *ppAdapter = adapter.Detach();
     }
 
-    bool GB_GraphicsDevice::Initialize() {
-        // Create device
-        Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
-        Microsoft::WRL::ComPtr<IDXGIAdapter1> hardwareAdapter;
-        CreateDXGIFactory(&factory);
-        GetGraphicsAdapter(factory.Get(), &hardwareAdapter, true);
-
-        if (D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12_device))) {
-            LOG(ERROR) << "Failed creating d3d12 device";
-            return false;
-        }
-
-        // Create command queue
-        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-        if (d3d12_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&command_queue))) {
-            LOG(ERROR) << "Failed creating d3d12 command queue";
-            return false;
-
-        }
-
-        return true;
-    }
-
-    bool GB_GraphicsDevice::Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue) {
-        d3d12_device = device;
-        command_queue = queue;
-
-        // Create present command allocator and command list resources
-        ThrowIfFailed(d3d12_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[COMMAND_RESOURCE_INDEX_PRESENT])));
-        ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[COMMAND_RESOURCE_INDEX_PRESENT].Get(), nullptr, IID_PPV_ARGS(&command_lists[COMMAND_RESOURCE_INDEX_PRESENT])));
-
-        // Create transition command allocator and command list resources
-        ThrowIfFailed(d3d12_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocators[COMMAND_RESOURCE_INDEX_TRANSITION])));
-        ThrowIfFailed(d3d12_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocators[COMMAND_RESOURCE_INDEX_TRANSITION].Get(), nullptr, IID_PPV_ARGS(&command_lists[COMMAND_RESOURCE_INDEX_TRANSITION])));
-
-        command_lists[COMMAND_RESOURCE_INDEX_PRESENT]->Close();
-        command_lists[COMMAND_RESOURCE_INDEX_TRANSITION]->Close();
-
-        return true;
-    }
-
-    bool GB_GraphicsDevice::CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd) {
+    bool GB_GraphicsDevice::CreateSwapChain(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo, HWND hwnd) {
         // TODO On failure all objects here should be destroyed
         Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
         CreateDXGIFactory(&factory);
@@ -449,7 +407,7 @@ namespace XRGameBridge {
         swapChainDesc.Width = createInfo->width;
         swapChainDesc.Height = createInfo->height;
         swapChainDesc.Format = static_cast<DXGI_FORMAT>(createInfo->format);
-        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_BACK_BUFFER;
         swapChainDesc.BufferCount = g_back_buffer_count;
         swapChainDesc.SampleDesc.Count = 1;
         swapChainDesc.SampleDesc.Quality = 0;
@@ -464,7 +422,7 @@ namespace XRGameBridge {
 
         // Swap chain needs the queue so that it can force a flush on it.
         ComPtr<IDXGISwapChain1> swapChain;
-        if (FAILED(factory->CreateSwapChainForHwnd(command_queue.Get(), hwnd, &swapChainDesc, &fsSwapChainDesc, nullptr, &swapChain))) {
+        if (FAILED(factory->CreateSwapChainForHwnd(queue.Get(), hwnd, &swapChainDesc, &fsSwapChainDesc, nullptr, &swapChain))) {
             LOG(ERROR) << "Failed to create d3d12 swap chain";
             return false;
         }
@@ -483,7 +441,7 @@ namespace XRGameBridge {
             rtvHeapDesc.NumDescriptors = g_back_buffer_count;
             rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
             rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-            if (FAILED(d3d12_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)))) {
+            if (FAILED(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)))) {
                 LOG(ERROR) << "Failed to create d3d12 rtv descriptor heap";
                 return false;
             }
@@ -494,12 +452,12 @@ namespace XRGameBridge {
             srvHeapDesc.NumDescriptors = g_back_buffer_count;
             srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            if (FAILED(d3d12_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)))) {
+            if (FAILED(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)))) {
                 LOG(ERROR) << "Failed to create d3d12 srv descriptor heap";
                 return false;
             }
 
-            rtv_descriptor_size = d3d12_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            rtv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
         }
 
         // Create frame resources.
@@ -514,18 +472,9 @@ namespace XRGameBridge {
                 }
                 std::wstringstream ss; ss << "Swapchain Buffer " << i;
                 back_buffers[i]->SetName(ss.str().c_str());
-                d3d12_device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtvHandle);
-                rtvHandle.Offset(i, rtv_descriptor_size);
+                device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtvHandle);
+                rtvHandle.Offset(1, rtv_descriptor_size);
             }
-        }
-
-        // Create fence
-        d3d12_device->CreateFence(fence_values[frame_index], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
-        // Create an event handle to use for frame synchronization.
-        fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (fence_event == nullptr) {
-            HRESULT_FROM_WIN32(GetLastError());
-            return false;
         }
 
         return true;
@@ -552,19 +501,6 @@ namespace XRGameBridge {
         return swap_chain->GetCurrentBackBufferIndex();
     }
 
-    void GB_GraphicsDevice::TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after) {
-        // We can't know for sure whether xrWaitSwapchainImage and xrEndFrame are being called from the same thread, so we need to use multiple command allocators/lists
-
-        ThrowIfFailed(command_lists[index]->Reset(command_allocators[index].Get(), nullptr));
-
-        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(back_buffers[frame_index].Get(), state_before, state_after);
-        command_lists[index]->ResourceBarrier(1, &barrier);
-        ThrowIfFailed(command_lists[index]->Close());
-
-        ID3D12CommandList* cmd_lists[] = { command_lists[index].Get() };
-        command_queue->ExecuteCommandLists(1, cmd_lists);
-    }
-
     // Called from xrEndFrame, cause then we know the application is done with rendering this image.
     void GB_GraphicsDevice::PresentFrame() {
         // TODO Transitioning images state without waiting on the queue to finish, not sure this will break eventually. Maybe dx12 is synchronizing implicitly?
@@ -574,6 +510,4 @@ namespace XRGameBridge {
 
         // barrier to render target
     }
-
-
 }

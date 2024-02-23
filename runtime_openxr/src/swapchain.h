@@ -78,10 +78,9 @@ namespace XRGameBridge {
     };
 
     // TODO swapchain is only necessary if we render to the XR Game Bridge window, otherwise we render to the back buffer of UEVR window
+    // TODO Remark, this swapchain does not have synchronization objects, this is because we already wait for fences on proxy swapchains, which implicitly waits for this swapchains resources.
+    // TODO Make a render loop for presentation to the window/UEVR that uses it's own fences. Then proxy swapchains don't need their own fences anymore.
     class GB_GraphicsDevice {
-        ComPtr<ID3D12Device> d3d12_device;
-        ComPtr<ID3D12CommandQueue> command_queue;
-
         ComPtr<IDXGISwapChain3> swap_chain;
         ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
         ComPtr<ID3D12DescriptorHeap> m_srvHeap;
@@ -90,28 +89,12 @@ namespace XRGameBridge {
         uint32_t rtv_descriptor_size = 0;
         uint32_t frame_index = 0;
 
-        // TODO Use command allocator and lists to transition all images at the same time in an external function
-        enum CommandResourceIndex { COMMAND_RESOURCE_INDEX_TRANSITION, COMMAND_RESOURCE_INDEX_PRESENT };
-        std::array<ComPtr<ID3D12CommandAllocator>, 2> command_allocators;
-
-        // TODO use for transitioning the image state, this can be moved to the compositor before presenting
-        std::array<ComPtr<ID3D12GraphicsCommandList>, 2 > command_lists;
-
-        HANDLE fence_event;
-        ComPtr<ID3D12Fence> fence;
-        UINT64 fence_values[g_back_buffer_count];
-
-        UINT64 current_fence_value = 0;
-        ImageState current_image_state = IMAGE_STATE_RELEASED;
-
     public:
         static void CreateDXGIFactory(IDXGIFactory4** factory);
         static void GetGraphicsAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter);
 
         // Creates device
-        bool CreateSwapChain(const XrSwapchainCreateInfo* createInfo, HWND hwnd);
-        bool Initialize();
-        bool Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue);
+        bool CreateSwapChain(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& queue, const XrSwapchainCreateInfo* createInfo, HWND hwnd);
 
         std::array<ComPtr<ID3D12Resource>, g_back_buffer_count> GetImages();
         ComPtr<ID3D12DescriptorHeap>& GetRtvHeap();
@@ -120,8 +103,6 @@ namespace XRGameBridge {
 
         uint32_t AcquireNextImage();
         void PresentFrame();
-
-        void TransitionBackBufferImage(CommandResourceIndex index, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
     };
 
     inline std::unordered_map<XrSwapchain, GB_ProxySwapchain> g_application_render_targets;

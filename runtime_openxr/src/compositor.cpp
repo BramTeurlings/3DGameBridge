@@ -170,14 +170,24 @@ namespace XRGameBridge {
         ID3D12CommandList* lists[]{ cmd_list };
         command_queue->ExecuteCommandLists(1, lists);
 
-        for (uint32_t i = 0; i < frameEndInfo->layerCount; i++) {
-            if (frameEndInfo->layers[i]->type == XR_TYPE_COMPOSITION_LAYER_PROJECTION) {
-                auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[i]);
-                auto& gb_swapchain = g_application_render_targets[layer->views->subImage.swapchain];
-
-                command_queue->Signal(gb_swapchain.fence.Get(), gb_swapchain.fence_values[gb_swapchain.current_frame_index]);
+        // Go over every layer to signal all proxy swapchain fences
+        for (uint32_t layer_num = 0; layer_num < frameEndInfo->layerCount; layer_num++) {
+            if (frameEndInfo->layers[layer_num]->type == XR_TYPE_COMPOSITION_LAYER_PROJECTION) {
+                auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[layer_num]);
+                    // In every layer get every view
+                for (uint32_t view_num = 0; view_num < layer->viewCount; view_num++) {
+                    // Get the swapchain from the view and signal its fence
+                    auto& view = layer->views[view_num];
+                    auto& gb_swapchain = g_application_render_targets[view.subImage.swapchain];
+                    command_queue->Signal(gb_swapchain.fence.Get(), gb_swapchain.fence_values[gb_swapchain.current_frame_index]);
+                }
             }
         }
+    }
+
+    void GB_Compositor::TransitionBackBufferImage(ID3D12GraphicsCommandList* cmd_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after) {
+        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, state_before, state_after);
+        cmd_list->ResourceBarrier(1, &barrier);
     }
 
     ComPtr<ID3D12GraphicsCommandList>& GB_Compositor::GetCommandList(uint32_t index) {

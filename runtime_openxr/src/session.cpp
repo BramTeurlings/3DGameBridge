@@ -97,8 +97,7 @@ XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) 
     swapchain_info.width = vectori.x;
     swapchain_info.height = vectori.y;
     swapchain_info.format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    gb_session.window_swapchain.Initialize(gb_session.d3d12_device, gb_session.command_queue);
-    gb_session.window_swapchain.CreateSwapChain(&swapchain_info, gb_session.display.GetWindowHandle());
+    gb_session.window_swapchain.CreateSwapChain(gb_session.d3d12_device, gb_session.command_queue ,&swapchain_info, gb_session.display.GetWindowHandle());
 
     return XR_SUCCESS;
 }
@@ -188,10 +187,11 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     cmd_list->Reset(cmd_allocator.Get(), nullptr);
 
     // TODO transition proxy images to unordered access/shader source (If I'm right...)
+    gb_compositor.TransitionBackBufferImage(cmd_list.Get(), gb_graphics_device.GetImages()[index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    // Set render target to the swap chain
+    // Set render target to the swap chain resource
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(gb_graphics_device.GetRtvHeap()->GetCPUDescriptorHandleForHeapStart(), index, gb_graphics_device.GetRtvDescriptorSize());
-    cmd_list->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+    cmd_list->OMSetRenderTargets(1, &rtvHandle, true, nullptr);
 
     float clear_color[4] = {0,0,1,1};
     cmd_list->ClearRenderTargetView(rtvHandle, clear_color, 0, nullptr);
@@ -202,10 +202,14 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
 
     auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[0]);
     auto& gb_proxy = XRGameBridge::g_application_render_targets[layer->views[0].subImage.swapchain];
-    //cmd_list->CopyResource(gb_graphics_device.GetImages()[index].Get(), gb_proxy.GetBuffers()[index].Get());
+    cmd_list->CopyResource(gb_graphics_device.GetImages()[index].Get(), gb_proxy.GetBuffers()[index].Get());
 
 
     // TODO transition proxy images back to render target
+    gb_compositor.TransitionBackBufferImage(cmd_list.Get(), gb_graphics_device.GetImages()[index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+
+    // Close command list
+    cmd_list->Close();
 
     // Execute command lists
     gb_compositor.ExecuteCommandLists(cmd_list.Get(), frameEndInfo);

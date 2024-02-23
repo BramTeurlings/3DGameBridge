@@ -18,6 +18,8 @@ namespace XRGameBridge {
         void ComposeImage(const XrFrameEndInfo* frameEndInfo, ID3D12GraphicsCommandList* cmd_list);
         void ExecuteCommandLists(ID3D12GraphicsCommandList* cmd_list, const XrFrameEndInfo* frameEndInfo);
 
+        void TransitionBackBufferImage(ID3D12GraphicsCommandList* cmd_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
+
         ComPtr<ID3D12GraphicsCommandList>& GetCommandList(uint32_t index);
         ComPtr<ID3D12CommandAllocator>& GetCommandAllocator(uint32_t index);
     };
