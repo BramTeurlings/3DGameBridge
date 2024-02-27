@@ -5,6 +5,8 @@
 
 #include "weaver_directx_11.h"
 
+template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+
 // Function to create a shader resource view from a texture
 ID3D11ShaderResourceView* CreateShaderResourceViewFromTexture(ID3D11Device* pDevice, ID3D11Texture2D* pTexture2D) {
     ID3D11ShaderResourceView* pSRV = nullptr;
@@ -79,7 +81,7 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
                 resize_buffer_failed = true;
             }
 
-            // Set newly create buffer as input
+            // Set newly created buffer as input
             native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy);
             std::cout << "Buffer size changed" << "\n";
         }
@@ -165,6 +167,7 @@ bool DirectX11Weaver::init_weaver(ID3D11Device* dev, ID3D11DeviceContext* contex
     return weaver_initialized;
 }
 
+// Todo: We may want to change the effect_resource_desc type to ID3D11Resource or texture2D.
 bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc)
 {
     // Check if device context or render target view is null
@@ -174,7 +177,8 @@ bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_cont
     }
 
     // Get the render target texture from the render target view
-    ID3D11Resource* sourceResource = nullptr;
+    // GetResource calls AddRef() so we use a ComPtr to make sure it is released after this method finishes.
+    ComPtr<ID3D11Resource> sourceResource = nullptr;
     effect_resource_desc->GetResource(&sourceResource);
     if (!sourceResource)
     {
@@ -182,9 +186,9 @@ bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_cont
     }
 
     // Query the source texture from the render target texture
-    ID3D11Texture2D* source_texture = nullptr;
-    HRESULT hr = sourceResource->QueryInterface(IID_ID3D11Texture2D, reinterpret_cast<void**>(&source_texture));
-    sourceResource->Release();
+    // QueryInterface also calls AddRef() so we need to make sure source_texture is released at some point. This is managed by the ComPtr.
+    ComPtr<ID3D11Texture2D> source_texture = nullptr;
+    HRESULT hr = sourceResource->QueryInterface(IID_PPV_ARGS(&source_texture));
     if (FAILED(hr) || !source_texture)
     {
         return false;
@@ -193,10 +197,15 @@ bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_cont
     // Initialize the destination texture
     texture_copy = nullptr;
     D3D11_TEXTURE2D_DESC texture_desc;
+
     // Create the destination device
-    ID3D11Device* d3d11_device;
+    ComPtr<ID3D11Device> d3d11_device;
     source_texture->GetDesc(&texture_desc);
+
+    // Set the description flags so we can create a shader resource view later.
+    texture_desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
     device_context->GetDevice(&d3d11_device);
+    // Create a texture for the copy. We will use this later to make a new ShaderResourceView for the weaver.
     hr = d3d11_device->CreateTexture2D(&texture_desc, nullptr, &texture_copy);
     if (FAILED(hr) || !texture_copy)
     {
@@ -204,23 +213,12 @@ bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_cont
         return false;
     }
 
+    // Todo: I don't think this copy is necessary. I should investigate.
     // Copy the source texture to the destination texture
-    device_context->CopyResource(texture_copy, source_texture);
+    // device_context->CopyResource(texture_copy, source_texture.Get());
 
-    ID3D11Resource* pResource;
-    if(texture_copy) {
-        texture_copy->QueryInterface(__uuidof(ID3D11Resource), reinterpret_cast<void**>(&pResource));
-    } else {
-        return false;
-    }
-
-    resource_copy = CreateShaderResourceViewFromTexture(d3d11_device, texture_copy);
-//    d3d11_device->CreateShaderResourceView(pResource, D3D11_TEX2D_SRV, &resource_copy)
-//
-//
-//     Release the source and destination textures
-//    source_texture->Release();
-//    destinationTexture->Release();
+    // Create shader resource with the description from the source texture.
+    resource_copy = CreateShaderResourceViewFromTexture(d3d11_device.Get(), texture_copy);
 
     return true;
 }

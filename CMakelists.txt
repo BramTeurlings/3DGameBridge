@@ -83,7 +83,7 @@ if(BUILD_UNIT_TESTS)
 )
 endif()
 
-# Link dependancies
+# Link dependencies
 set(TARGET_DXHEADERS DirectX-Headers)
 add_subdirectory(third-party/DirectX-Headers)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
