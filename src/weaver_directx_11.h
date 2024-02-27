@@ -16,7 +16,7 @@
 #include <sr/weaver/dx11weaver.h> // Weaver
 
 // Directx
-#include <combaseapi.h>
+#include <wrl/client.h>
 #include <DirectXMath.h>
 
 struct DX11WeaverInitialize {
