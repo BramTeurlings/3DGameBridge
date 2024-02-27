@@ -19,6 +19,8 @@
 #include <wrl/client.h>
 #include <DirectXMath.h>
 
+template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+
 struct DX11WeaverInitialize {
     // SDK Params
     ID3D11Device* dev;
@@ -41,12 +43,12 @@ class DirectX11Weaver : private IGameBridgeManager {
     bool weaver_initialized = false;
     bool weaving_enabled = false; // Todo: This is only used to prevent a crash on the first frame. Can this be removed?
     bool resize_buffer_failed = false;
-    ID3D11Texture2D* texture_copy = nullptr;
-    ID3D11ShaderResourceView* resource_copy = nullptr;
+    ComPtr<ID3D11Texture2D> texture_copy = nullptr;
+    ComPtr<ID3D11ShaderResourceView> resource_copy = nullptr;
     // Todo: Do we need all of these DX objects below?
-    ID3D11Device* dx_device = nullptr;
-    ID3D11DeviceContext* dx_device_context = nullptr;
-    IDXGISwapChain* dx_swap_chain = nullptr;
+    ComPtr<ID3D11Device> dx_device = nullptr;
+    ComPtr<ID3D11DeviceContext> dx_device_context = nullptr;
+    ComPtr<IDXGISwapChain> dx_swap_chain = nullptr;
 
     void SetWeaving(bool weaving_enabled) {}
 
