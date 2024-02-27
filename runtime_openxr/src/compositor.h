@@ -6,6 +6,10 @@ namespace XRGameBridge {
         ComPtr<ID3D12RootSignature> root_signature;
         ComPtr<ID3D12PipelineState> pipeline_state;
 
+        ComPtr<ID3D12DescriptorHeap> sampler_heap;
+
+        // TODO map holding an array of descriptors for each swapchain handle
+
         ComPtr<ID3D12Device> d3d12_device;
         ComPtr<ID3D12CommandQueue> command_queue;
 
@@ -18,7 +22,12 @@ namespace XRGameBridge {
         void ComposeImage(const XrFrameEndInfo* frameEndInfo, ID3D12GraphicsCommandList* cmd_list);
         void ExecuteCommandLists(ID3D12GraphicsCommandList* cmd_list, const XrFrameEndInfo* frameEndInfo);
 
-        void TransitionBackBufferImage(ID3D12GraphicsCommandList* cmd_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
+        void TransitionImage(ID3D12GraphicsCommandList* cmd_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after);
+
+        void AddResource();
+        void RemoveResource();
+        void AddSwapchainResources();
+        void RemoveSwapchainResources();
 
         ComPtr<ID3D12GraphicsCommandList>& GetCommandList(uint32_t index);
         ComPtr<ID3D12CommandAllocator>& GetCommandAllocator(uint32_t index);

@@ -55,6 +55,8 @@ XrResult xrEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityI
 }
 
 XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* createInfo, XrSwapchain* swapchain) {
+    //TODO Get compositor from the session and create descriptor on it for the new swapchain
+
     static uint32_t swapchain_creation_count = 1;
 
     // Create handle
@@ -160,8 +162,6 @@ XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageRe
 }
 
 namespace XRGameBridge {
-
-
     bool GB_ProxySwapchain::CreateResources(const ComPtr<ID3D12Device>& device, const XrSwapchainCreateInfo* createInfo) {
         for (uint32_t i = 0; i < g_back_buffer_count; i++) {
             // Describe and create a Texture2D.

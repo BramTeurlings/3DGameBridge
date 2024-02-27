@@ -50,16 +50,16 @@ namespace XRGameBridge {
                 feature_data.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
             }
 
-            CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
+            CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
             ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
             ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
             //ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
 
-            CD3DX12_ROOT_PARAMETER1 root_parameters[4];
+            CD3DX12_ROOT_PARAMETER1 root_parameters[2];
             root_parameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
             root_parameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
             //root_parameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_VERTEX);
-            root_parameters[2].InitAsConstants(1, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+            //root_parameters[2].InitAsConstants(1, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 
             CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC root_signature_desc;
             root_signature_desc.Init_1_1(_countof(root_parameters), root_parameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
@@ -110,6 +110,26 @@ namespace XRGameBridge {
             pipeline_state->SetName(L"Compositor Pipeline State");
         }
 
+        // Describe and create a sampler descriptor heap.
+        D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {};
+        samplerHeapDesc.NumDescriptors = 1;
+        samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        ThrowIfFailed(device->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(&sampler_heap)));
+
+        // Describe and create a sampler.
+        D3D12_SAMPLER_DESC samplerDesc = {};
+        samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.MinLOD = 0;
+        samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+        samplerDesc.MipLODBias = 0.0f;
+        samplerDesc.MaxAnisotropy = 1;
+        samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        device->CreateSampler(&samplerDesc, sampler_heap->GetCPUDescriptorHandleForHeapStart());
+
         command_allocators.resize(back_buffer_count);
         command_lists.resize(back_buffer_count);
         for (uint32_t i = 0; i < back_buffer_count; i++) {
@@ -154,15 +174,38 @@ namespace XRGameBridge {
                     // TODO do something with rectangles
                     view.subImage.imageRect;
 
-                    // TODO get srv instead of buffer to set it to the shader
+                    // Transition proxy swapchain resource to pixel shader resource
                     auto& gb_swapchain = g_application_render_targets[view.subImage.swapchain];
-                    gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
+                    auto proxy_resource = gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
+                    //TransitionImage(cmd_list, proxy_resource.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+                    D3D12_RESOURCE_BARRIER BarrierDesc = {};
+                    BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                    BarrierDesc.Transition.pResource = proxy_resource.Get();
+                    BarrierDesc.Transition.Subresource = 0;
+                    BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                    BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+                    cmd_list->ResourceBarrier(1, &BarrierDesc);
 
                     // cmd_list->OMSetRenderTargets() //TODO set render target to the swapchain
                     cmd_list->SetGraphicsRootSignature(root_signature.Get());
-                    cmd_list->SetDescriptorHeaps(1, gb_swapchain.GetSrvHeap().GetAddressOf());
+
+                    std::array heaps = { gb_swapchain.GetSrvHeap().Get(), sampler_heap.Get() };
+                    cmd_list->SetDescriptorHeaps(heaps.size(), heaps.data());
+                    // Setting descriptor tables is optional if there is only a single texture. For multiple sets of textures, you want to move this index.
+                    cmd_list->SetGraphicsRootDescriptorTable(0, gb_swapchain.GetSrvHeap()->GetGPUDescriptorHandleForHeapStart()); // Set offset in the heap for the shader (descriptor tables)
+                    cmd_list->SetGraphicsRootDescriptorTable(1, sampler_heap->GetGPUDescriptorHandleForHeapStart());
                     cmd_list->SetPipelineState(pipeline_state.Get());
                     cmd_list->DrawInstanced(3, 1, 0, 0);
+
+                    BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                    BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                    //cmd_list->ResourceBarrier(1, &BarrierDesc);
+
+                    // Transition proxy swapchain resource back to render target
+                    //TransitionImage(cmd_list, proxy_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
                 }
             }
             else if (frameEndInfo->layers[layer_num]->type == XR_TYPE_COMPOSITION_LAYER_QUAD) {
@@ -191,7 +234,7 @@ namespace XRGameBridge {
         }
     }
 
-    void GB_Compositor::TransitionBackBufferImage(ID3D12GraphicsCommandList* cmd_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after) {
+    void GB_Compositor::TransitionImage(ID3D12GraphicsCommandList* cmd_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after) {
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, state_before, state_after);
         cmd_list->ResourceBarrier(1, &barrier);
     }
