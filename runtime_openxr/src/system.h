@@ -45,7 +45,7 @@ namespace  XRGameBridge {
     inline GBVector2i GetDummyScreenResolution() {
         //TODO dependent on the SR screen, hopefully we can set reset this later on runtime. It would be cool to setup everything without having to connect to the sr service since that might take some time.
         // MS docs: The width/height of the client area for a full-screen window on the primary display monitor, in pixels.
-        const uint32_t primary_display_res_x = static_cast<uint32_t>(GetSystemMetrics(SM_CXSCREEN));
+        const uint32_t primary_display_res_x = static_cast<uint32_t>(GetSystemMetrics(SM_CXSCREEN) / 2); // Divided by 2 since we render in sbs
         const uint32_t primary_display_res_y = static_cast<uint32_t>(GetSystemMetrics(SM_CYSCREEN));
         return { primary_display_res_x, primary_display_res_y };
     }

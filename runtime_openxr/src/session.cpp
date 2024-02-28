@@ -94,7 +94,7 @@ XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) 
     auto vectori = XRGameBridge::GetDummyScreenResolution();
 
     XrSwapchainCreateInfo swapchain_info;
-    swapchain_info.width = vectori.x;
+    swapchain_info.width = vectori.x * 2; // Here times 2 since dummy resolution simulates half the screen for hmd's
     swapchain_info.height = vectori.y;
     swapchain_info.format = DXGI_FORMAT_R8G8B8A8_UNORM;
     gb_session.window_swapchain.CreateSwapChain(gb_session.d3d12_device, gb_session.command_queue ,&swapchain_info, gb_session.display.GetWindowHandle());

@@ -169,36 +169,27 @@ namespace XRGameBridge {
                 //layer->layerFlags & XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
 
                 // Render every view to the resource
-                for (uint32_t view_num = 0; view_num < layer->viewCount; view_num++) {
+                for (int32_t view_num = 0; view_num < layer->viewCount; view_num++) {
                     auto& view = layer->views[view_num];
 
                     // TODO do something with rectangles
-                    view.subImage.imageRect;
+                    auto& rect = view.subImage.imageRect;
 
-                    // Transition proxy swapchain resource to pixel shader resource
                     auto& gb_swapchain = g_application_render_targets[view.subImage.swapchain];
                     auto proxy_resource = gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
-                    //TransitionImage(cmd_list, proxy_resource.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-                    const auto screen_vector = XRGameBridge::GetDummyScreenResolution();
-                    const float width = static_cast<float>(screen_vector.x);
-                    const float height = static_cast<float>(screen_vector.y);
-                    D3D12_VIEWPORT view_port{ (width / 2) * view_num, 0, width / 2, height, 0.0f, 1.0f };
-                    D3D12_RECT scissor_rect{ 0, 0, screen_vector.x, screen_vector.y };
+                    // Viewport settings
+                    const float width = static_cast<float>(rect.extent.width);
+                    const float height = static_cast<float>(rect.extent.height);
+                    D3D12_VIEWPORT view_port{ (width * view_num), 0, width, height, 0.0f, 1.0f};
+                    D3D12_RECT scissor_rect{ 0, 0, rect.extent.width*2, rect.extent.height };
                     cmd_list->RSSetViewports(1, &view_port);
                     cmd_list->RSSetScissorRects(1, &scissor_rect);
 
-                    D3D12_RESOURCE_BARRIER BarrierDesc = {};
-                    BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-                    BarrierDesc.Transition.pResource = proxy_resource.Get();
-                    BarrierDesc.Transition.Subresource = 0;
-                    BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                    BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+                    // TODO Maybe transition all buffers at once, maybe with split barriers, so we transition barriers at the same time?
+                    // Transition proxy swapchain resource to pixel shader resource
+                    TransitionImage(cmd_list, proxy_resource.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-                    cmd_list->ResourceBarrier(1, &BarrierDesc);
-
-                    // cmd_list->OMSetRenderTargets() //TODO set render target to the swapchain
                     cmd_list->SetGraphicsRootSignature(root_signature.Get());
 
                     std::array heaps = { gb_swapchain.GetSrvHeap().Get(), sampler_heap.Get() };
@@ -209,12 +200,8 @@ namespace XRGameBridge {
                     cmd_list->SetPipelineState(pipeline_state.Get());
                     cmd_list->DrawInstanced(3, 1, 0, 0);
 
-                    BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-                    BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                    cmd_list->ResourceBarrier(1, &BarrierDesc);
-
                     // Transition proxy swapchain resource back to render target
-                    //TransitionImage(cmd_list, proxy_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                    TransitionImage(cmd_list, proxy_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
                 }
             }
             else if (frameEndInfo->layers[layer_num]->type == XR_TYPE_COMPOSITION_LAYER_QUAD) {
