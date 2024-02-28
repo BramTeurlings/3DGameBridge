@@ -51,7 +51,8 @@ namespace XRGameBridge {
             }
 
             CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
-            ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+            // Remark descriptors are static now, not sure I can copy them. The data can be changed when not executing command lists
+            ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE);
             ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
             //ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
 
@@ -179,6 +180,14 @@ namespace XRGameBridge {
                     auto proxy_resource = gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
                     //TransitionImage(cmd_list, proxy_resource.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
+                    const auto screen_vector = XRGameBridge::GetDummyScreenResolution();
+                    const float width = static_cast<float>(screen_vector.x);
+                    const float height = static_cast<float>(screen_vector.y);
+                    D3D12_VIEWPORT view_port{ (width / 2) * view_num, 0, width / 2, height, 0.0f, 1.0f };
+                    D3D12_RECT scissor_rect{ 0, 0, screen_vector.x, screen_vector.y };
+                    cmd_list->RSSetViewports(1, &view_port);
+                    cmd_list->RSSetScissorRects(1, &scissor_rect);
+
                     D3D12_RESOURCE_BARRIER BarrierDesc = {};
                     BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                     BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -202,7 +211,7 @@ namespace XRGameBridge {
 
                     BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
                     BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                    //cmd_list->ResourceBarrier(1, &BarrierDesc);
+                    cmd_list->ResourceBarrier(1, &BarrierDesc);
 
                     // Transition proxy swapchain resource back to render target
                     //TransitionImage(cmd_list, proxy_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);

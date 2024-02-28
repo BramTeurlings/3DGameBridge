@@ -180,7 +180,7 @@ namespace XRGameBridge {
             //depth_stencil_value.Depth = 100.f;
             //depth_stencil_value.Stencil = 0;
 
-            float clear_color[4]{ 0.851f, 0.42f, 0.09f, 1.0f };
+            float clear_color[4]{ 0.5f, 0.5f, 0.0f, 1.0f };
 
             D3D12_CLEAR_VALUE clear_value{
                 static_cast<DXGI_FORMAT>(createInfo->format),
@@ -237,8 +237,17 @@ namespace XRGameBridge {
                 device->CreateRenderTargetView(back_buffers[i].Get(), nullptr, rtv_handle);
                 rtv_handle.Offset(1, rtv_descriptor_size);
 
+                D3D12_TEX2D_SRV tex2d{};
+                tex2d.MipLevels = 1;
+                tex2d.MostDetailedMip = 0;
+                tex2d.PlaneSlice = 0;
+                D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc {};
+                srv_desc.Format = static_cast<DXGI_FORMAT>(createInfo->format);
+                srv_desc.ViewDimension = D3D12_SRV_DIMENSION::D3D12_SRV_DIMENSION_TEXTURE2D;
+                srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                srv_desc.Texture2D = tex2d;
                 // Create SRV for each frame
-                device->CreateShaderResourceView(back_buffers[i].Get(), nullptr, srv_handle);
+                device->CreateShaderResourceView(back_buffers[i].Get(), &srv_desc, srv_handle);
                 srv_handle.Offset(1, cbc_srv_uav_descriptor_size);
             }
         }

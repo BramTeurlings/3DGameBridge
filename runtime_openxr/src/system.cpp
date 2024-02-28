@@ -176,8 +176,8 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
 
     view2.type = XR_TYPE_VIEW;
     view2.next = nullptr;
-    view2.pose = { {0.0f, 0.0f, .0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
-    view2.fov = { 90.0f, 90.0f, 90.0f, 90.0f }; // FOV angle left, right, up, down
+    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0, 0, 0} }; // Orientation, Position
+    view2.fov = { -M_PI / 4.0f, M_PI / 4.0f, M_PI / 4.0f, -M_PI / 4.0f }; // FOV angle left, right, up, down
 
     std::vector<XrView> sr_views;
 
