@@ -54,13 +54,13 @@ namespace XRGameBridge {
             // Remark descriptors are static now, not sure I can copy them. The data can be changed when not executing command lists
             ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE);
             ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
-            //ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
 
-            CD3DX12_ROOT_PARAMETER1 root_parameters[2];
+            CD3DX12_ROOT_PARAMETER1 root_parameters[3];
             root_parameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
             root_parameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
-            //root_parameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_VERTEX);
-            //root_parameters[2].InitAsConstants(1, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+            root_parameters[2].InitAsConstants(3, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
+
 
             CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC root_signature_desc;
             root_signature_desc.Init_1_1(_countof(root_parameters), root_parameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
@@ -83,7 +83,7 @@ namespace XRGameBridge {
 
 
             CD3DX12_RASTERIZER_DESC rasterizerStateDesc(D3D12_DEFAULT);
-            rasterizerStateDesc.CullMode = D3D12_CULL_MODE_NONE;
+            rasterizerStateDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
             // Define the vertex input layout.
             std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs = {
@@ -156,17 +156,7 @@ namespace XRGameBridge {
                 auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[layer_num]);
                 auto& ref_space = g_reference_spaces[layer->space]; // pose in spaces of the view over time
 
-                // TODO (UBOs may need to be updated per view) If alpha should not be blended, make the alpha completely opaque in the shader
-                uint32_t uniform_alpha = 1;
-                if ((layer->layerFlags & XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT) == 0) {
-                    uniform_alpha = 1;
-                }
-                else {
-                    uniform_alpha = 0;
-                }
 
-                // TODO Use other flag for gamma correction
-                //layer->layerFlags & XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
 
                 // Render every view to the resource
                 for (int32_t view_num = 0; view_num < layer->viewCount; view_num++) {
@@ -181,23 +171,42 @@ namespace XRGameBridge {
                     // Viewport settings
                     const float width = static_cast<float>(rect.extent.width);
                     const float height = static_cast<float>(rect.extent.height);
-                    D3D12_VIEWPORT view_port{ (width * view_num), 0, width, height, 0.0f, 1.0f};
-                    D3D12_RECT scissor_rect{ 0, 0, rect.extent.width*2, rect.extent.height };
+                    D3D12_VIEWPORT view_port{ (width * view_num), 0, width, height, 0.0f, 1.0f };
+                    D3D12_RECT scissor_rect{ 0, 0, rect.extent.width * 2, rect.extent.height };
                     cmd_list->RSSetViewports(1, &view_port);
                     cmd_list->RSSetScissorRects(1, &scissor_rect);
 
                     // TODO Maybe transition all buffers at once, maybe with split barriers, so we transition barriers at the same time?
                     // Transition proxy swapchain resource to pixel shader resource
-                    TransitionImage(cmd_list, proxy_resource.Get(),D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-                    cmd_list->SetGraphicsRootSignature(root_signature.Get());
+                    TransitionImage(cmd_list, proxy_resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
                     std::array heaps = { gb_swapchain.GetSrvHeap().Get(), sampler_heap.Get() };
                     cmd_list->SetDescriptorHeaps(heaps.size(), heaps.data());
+
+
+
+                    //struct {
+                    //    union {
+                    //        uint32_t is_opaque;
+                    //        uint32_t multiply_alpha;
+                    //        float correct_gamma;
+                    //    };
+                    //}
+                    uint32_t layering_constants[3];
+                    // Make opaque if not set
+                    layering_constants[0] = 0;  //(layer->layerFlags& XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT) != XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+                    // Multiply alpha if set
+                    layering_constants[1] = 1;  //(layer->layerFlags & XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT) == XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
+                    layering_constants[2] = 0;
+                    cmd_list->SetGraphicsRootSignature(root_signature.Get());
+                    cmd_list->SetPipelineState(pipeline_state.Get());
+                    cmd_list->SetGraphicsRoot32BitConstants(3, 3, &layering_constants, 0);
+
                     // Setting descriptor tables is optional if there is only a single texture. For multiple sets of textures, you want to move this index.
                     cmd_list->SetGraphicsRootDescriptorTable(0, gb_swapchain.GetSrvHeap()->GetGPUDescriptorHandleForHeapStart()); // Set offset in the heap for the shader (descriptor tables)
                     cmd_list->SetGraphicsRootDescriptorTable(1, sampler_heap->GetGPUDescriptorHandleForHeapStart());
-                    cmd_list->SetPipelineState(pipeline_state.Get());
+
+
                     cmd_list->DrawInstanced(3, 1, 0, 0);
 
                     // Transition proxy swapchain resource back to render target

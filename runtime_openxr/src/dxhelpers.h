@@ -2,6 +2,13 @@
 #include "openxr_includes.h"
 
 // Edited from the Microsoft documentation
+
+inline float clear_color[4]{ 0.5f, 0.5f, 0.0f, 1.0f };
+
+void CreateProxyResource(ID3D12Device* device, uint64_t width, uint64_t height, int64_t format, ID3D12Resource* resource);
+
+void CreateResource(ID3D12Device* device, D3D12_RESOURCE_DESC desc, ID3D12Resource* resource);
+
 class CDescriptorHeapWrapper {
 public:
     CDescriptorHeapWrapper() { memset(this, 0, sizeof(*this)); }
