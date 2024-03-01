@@ -183,29 +183,23 @@ namespace XRGameBridge {
                     std::array heaps = { gb_swapchain.GetSrvHeap().Get(), sampler_heap.Get() };
                     cmd_list->SetDescriptorHeaps(heaps.size(), heaps.data());
 
-
-
-                    //struct {
-                    //    union {
-                    //        uint32_t is_opaque;
-                    //        uint32_t multiply_alpha;
-                    //        float correct_gamma;
-                    //    };
-                    //}
-                    uint32_t layering_constants[3];
-                    // Make opaque if not set
-                    layering_constants[0] = 0;  //(layer->layerFlags& XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT) != XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-                    // Multiply alpha if set
-                    layering_constants[1] = 1;  //(layer->layerFlags & XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT) == XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
-                    layering_constants[2] = 0;
+                    struct {
+                        uint32_t is_opaque;
+                        uint32_t multiply_alpha;
+                        float convert_to_linear;
+                    } layering_constants;
+                    // Make opaque if XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT is not set
+                    layering_constants.is_opaque = (layer->layerFlags& XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT) != XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+                    // Multiply alpha if XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT is set
+                    layering_constants.multiply_alpha = (layer->layerFlags & XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT) == XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT;
+                    layering_constants.convert_to_linear = 0;
                     cmd_list->SetGraphicsRootSignature(root_signature.Get());
                     cmd_list->SetPipelineState(pipeline_state.Get());
-                    cmd_list->SetGraphicsRoot32BitConstants(3, 3, &layering_constants, 0);
+                    cmd_list->SetGraphicsRoot32BitConstants(2, 3, &layering_constants, 0);
 
                     // Setting descriptor tables is optional if there is only a single texture. For multiple sets of textures, you want to move this index.
                     cmd_list->SetGraphicsRootDescriptorTable(0, gb_swapchain.GetSrvHeap()->GetGPUDescriptorHandleForHeapStart()); // Set offset in the heap for the shader (descriptor tables)
                     cmd_list->SetGraphicsRootDescriptorTable(1, sampler_heap->GetGPUDescriptorHandleForHeapStart());
-
 
                     cmd_list->DrawInstanced(3, 1, 0, 0);
 
