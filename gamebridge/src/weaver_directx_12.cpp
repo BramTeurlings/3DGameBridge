@@ -5,33 +5,49 @@
 
 #include "weaver_directx_12.h"
 
+bool DirectX12Weaver::CreateEffectCopyBuffer(D3D12_RESOURCE_DESC resource_desc) {
+    // TODO return the resource somewhere?
+    // TODO Check if initialization settings are correct
+    // Create resource on the GPU
+    ID3D12Resource* intermediateResource;
+    D3D12_HEAP_PROPERTIES heapProperties{};
+    heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProperties.CreationNodeMask = 1;
+    heapProperties.VisibleNodeMask = 1;
+    device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&intermediateResource));
+
+    return true;
+}
+
 GameBridgeManagerType DirectX12Weaver::GetEventManagerType() {
     return GameBridgeManagerType::GB_MANAGER_WEAVER_DX12;
 }
 
-DirectX12Weaver::DirectX12Weaver(DX12WeaverInitialize dx12_weaver_initialize) {
-    back_buffer = dx12_weaver_initialize.in_buffer;
+DirectX12Weaver::DirectX12Weaver(DX12WeaverInitialize parameters) {
+    sr_context = nullptr;
+    native_weaver = nullptr;
 
-    //Register ourselves as a manager.
-    dx12_weaver_initialize.game_bridge->RegisterManager(this);
+    input_resource = parameters.input_resource;
+    render_target = parameters.render_target;
 
-    // Initialize event stream writer and reader.
-    // Get the event stream reader.
-    //this->event_stream_reader = dx12_weaver_initialize.game_bridge->GetEventManager().GetEventStream(EventStreamType::GB_MANAGER_EVENT_TYPE_WEAVER);
-
-    // Get the event stream writer.
-    //dx12_weaver_initialize.game_bridge->GetEventManager().CreateEventStream(EventStreamType::GB_MANAGER_EVENT_TYPE_WEAVER, &event_stream_writer);
+    parameters.game_bridge->RegisterManager(this);
+    command_queue = parameters.command_queue;
+    device = parameters.device;
+    device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocator.GetAddressOf()));
 }
 
-// Todo: D3D12_COMMAND_QUEUE_DESC could be the wrong type
-void DirectX12Weaver::Weave(D3D12_COMMAND_QUEUE_DESC swap_chain) {}
+void DirectX12Weaver::InitializeWeaver(SR::SRContext sr_context) {
+    if (native_weaver) {
+        delete native_weaver;
+    }
+    native_weaver = new SR::PredictingDX12Weaver(sr_context, device.Get(), command_allocator.Get(), command_queue.Get(), input_resource.Get(), render_target.Get());
+}
+
+void DirectX12Weaver::Weave() {
+}
 
 void DirectX12Weaver::SetLatency(int latency_in_microseconds) {
-    native_weavers[native_weaver_index]->setLatency(latency_in_microseconds);
+    native_weaver->setLatency(latency_in_microseconds);
 }
-
-void DirectX12Weaver::ReinitializeWeaver(DX12WeaverInitialize weaver_init_stuct) {}
-
-//const void *DirectX12Weaver::GetEventBuffer() {
-//    return event_stream_reader->GetEventStream();
-//}
