@@ -30,6 +30,8 @@ namespace XRGameBridge {
         case WM_DESTROY:
             PostQuitMessage(0);
             break;
+        case WM_QUIT:
+            ShowWindow(hWnd, false);
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
             break;

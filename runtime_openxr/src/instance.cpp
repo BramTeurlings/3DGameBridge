@@ -157,6 +157,13 @@ XrResult xrDestroyInstance(XrInstance instance) {
     // Delete sessions
 
     // Delete actions
+    // TODO Make the instance destroy all owned objects here as well
+
+    XRGameBridge::g_gbinstance = nullptr;
+
+    // TODO Destroy game bridge instance perhaps with all its components
+    g_game_bridge_instance = nullptr;
+
     LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }
 
