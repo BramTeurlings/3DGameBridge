@@ -63,7 +63,7 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     XrSwapchain handle = reinterpret_cast<XrSwapchain>(swapchain_creation_count);
 
     // Create entry in the list
-    XRGameBridge::GB_ProxySwapchain& gb_proxy = XRGameBridge::g_application_render_targets[handle];
+    XRGameBridge::GB_ProxySwapchain& gb_proxy = XRGameBridge::g_proxy_swapchains[handle];
 
     // Create swap chain
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
@@ -77,24 +77,27 @@ XrResult xrCreateSwapchain(XrSession session, const XrSwapchainCreateInfo* creat
     gb_session.swap_chain = handle;
     swapchain_creation_count++;
 
-
-
-
-    //TODO Is this the right place set the session state to ready?
-    //XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
+    // TODO Is this the right place set the session state to ready?
+    // Maybe the session is ready when all systems for the session are there, this would not include swapchains
+    // Whether there is something to render to is responsibility of the application.
     XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_READY);
 
     return XR_SUCCESS;
 }
 
 XrResult xrDestroySwapchain(XrSwapchain swapchain) {
-    return XR_ERROR_RUNTIME_FAILURE;
+    auto& gb_proxy = XRGameBridge::g_proxy_swapchains[swapchain];
+    gb_proxy.DestroyResources();
+
+    XRGameBridge::g_proxy_swapchains.erase(swapchain);
+
+    return XR_SUCCESS;
 }
 
 XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t* imageCountOutput, XrSwapchainImageBaseHeader* images) {
     //TODO Create actual swap chains over here
 
-    auto& gb_render_target = XRGameBridge::g_application_render_targets[swapchain];
+    auto& gb_render_target = XRGameBridge::g_proxy_swapchains[swapchain];
     uint32_t count = gb_render_target.GetBufferCount();
 
     *imageCountOutput = count;
@@ -128,7 +131,8 @@ XrResult xrEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacit
 }
 
 XrResult xrEnumerateBoundSourcesForAction(XrSession session, const XrBoundSourcesForActionEnumerateInfo* enumerateInfo, uint32_t sourceCapacityInput, uint32_t* sourceCountOutput, XrPath* sources) {
-    LOG(INFO) << "Called " << __func__;
+    // TODO don't think we need this function anytime soon
+    LOG(INFO) << "Unimplemented " << __func__;
     return XR_ERROR_RUNTIME_FAILURE;
 }
 
@@ -136,7 +140,7 @@ XrResult xrAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAc
     //TODO May only be called again AFTER xrReleaseSwapchainImage has been called. See specification.
     // return XR_ERROR_CALL_ORDER_INVALID
 
-    auto& gb_proxy = XRGameBridge::g_application_render_targets[swapchain];
+    auto& gb_proxy = XRGameBridge::g_proxy_swapchains[swapchain];
     XrResult res = gb_proxy.AcquireNextImage(*index);
     return res;
 }
@@ -149,7 +153,7 @@ XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitI
         wait_duration = waitInfo->timeout;
     }
 
-    auto& gb_proxy = XRGameBridge::g_application_render_targets[swapchain];
+    auto& gb_proxy = XRGameBridge::g_proxy_swapchains[swapchain];
 
     return gb_proxy.WaitForImage(wait_duration);
 }
@@ -157,7 +161,7 @@ XrResult xrWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitI
 XrResult xrReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo* releaseInfo) {
     // Basically tells the runtime that the application is done with an image
 
-    auto& gb_proxy = XRGameBridge::g_application_render_targets[swapchain];
+    auto& gb_proxy = XRGameBridge::g_proxy_swapchains[swapchain];
     return gb_proxy.ReleaseImage();
 }
 

@@ -105,6 +105,6 @@ namespace XRGameBridge {
         void PresentFrame();
     };
 
-    inline std::unordered_map<XrSwapchain, GB_ProxySwapchain> g_application_render_targets;
+    inline std::unordered_map<XrSwapchain, GB_ProxySwapchain> g_proxy_swapchains;
     //inline std::unordered_map<XrSwapchain, GB_GraphicsDevice> g_graphics_devices;
 }

@@ -165,7 +165,7 @@ namespace XRGameBridge {
                     // TODO do something with rectangles
                     auto& rect = view.subImage.imageRect;
 
-                    auto& gb_swapchain = g_application_render_targets[view.subImage.swapchain];
+                    auto& gb_swapchain = g_proxy_swapchains[view.subImage.swapchain];
                     auto proxy_resource = gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
 
                     // Viewport settings
@@ -226,7 +226,7 @@ namespace XRGameBridge {
                 for (uint32_t view_num = 0; view_num < layer->viewCount; view_num++) {
                     // Get the swapchain from the view and signal its fence
                     auto& view = layer->views[view_num];
-                    auto& gb_swapchain = g_application_render_targets[view.subImage.swapchain];
+                    auto& gb_swapchain = g_proxy_swapchains[view.subImage.swapchain];
                     command_queue->Signal(gb_swapchain.fence.Get(), gb_swapchain.fence_values[gb_swapchain.current_frame_index]);
                 }
             }

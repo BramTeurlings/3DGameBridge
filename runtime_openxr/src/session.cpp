@@ -152,7 +152,6 @@ XrResult xrWaitFrame(XrSession session, const XrFrameWaitInfo* frameWaitInfo, Xr
     frameState->predictedDisplayTime = display_time.count();
     frameState->shouldRender = true;
 
-    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
@@ -166,7 +165,6 @@ XrResult xrBeginFrame(XrSession session, const XrFrameBeginInfo* frameBeginInfo)
 
     gb_session.wait_frame_state = XRGameBridge::FrameState::NewFrameAllowed;
 
-    //LOG(INFO) << "Called " << __func__;
     return XR_SUCCESS;
 }
 
@@ -189,6 +187,7 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     // TODO transition proxy images to unordered access/shader source (If I'm right...)
     gb_compositor.TransitionImage(cmd_list.Get(), gb_graphics_device.GetImages()[index].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+    // Todo setting render target to any buffer
     // Set render target to the swap chain resource
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(gb_graphics_device.GetRtvHeap()->GetCPUDescriptorHandleForHeapStart(), index, gb_graphics_device.GetRtvDescriptorSize());
     cmd_list->OMSetRenderTargets(1, &rtvHandle, true, nullptr);
@@ -197,17 +196,8 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     cmd_list->ClearRenderTargetView(rtvHandle, clear_color, 0, nullptr);
     cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-
-    //auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[0]);
-    //auto& gb_proxy = XRGameBridge::g_application_render_targets[layer->views[0].subImage.swapchain];
-    //cmd_list->CopyResource(gb_graphics_device.GetImages()[index].Get(), gb_proxy.GetBuffers()[index].Get());
-
-
-    // TODO copy image for now instead of composing layers
-    //// Compose and draw to the render target
+    // Compose and draw to the render target
     gb_compositor.ComposeImage(frameEndInfo, cmd_list.Get());
-
-
 
     // TODO transition proxy images back to render target
     gb_compositor.TransitionImage(cmd_list.Get(), gb_graphics_device.GetImages()[index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -220,13 +210,6 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
 
     // Present to window
     gb_graphics_device.PresentFrame();
-
-    // TODO Debug layers complaining that the initialized resource clear color is mismatching ClearRenderTargetViewCall because the application calls it.
-    // TODO Clear resources here
-
-    // TODO Figure out how to use all the layers and views
-    // TODO create function inside the actual swapchain render to the window
-
 
     // Update window
     gb_session.display.UpdateWindow();

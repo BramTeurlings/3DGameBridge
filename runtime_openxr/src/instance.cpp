@@ -153,6 +153,10 @@ XrResult xrGetInstanceProperties(XrInstance instance, XrInstanceProperties* inst
 }
 
 XrResult xrDestroyInstance(XrInstance instance) {
+
+    // Delete sessions
+
+    // Delete actions
     LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
 }
 
