@@ -26,6 +26,8 @@ add_library(3DGameBridge SHARED
 		src/hotkey_manager.cpp
 		src/platform_manager.cpp
 		src/hotkey_windows_impl.cpp
+		src/weaver_interface.h
+		src/weaver_interface.cpp
 )
 
 # Library exporting
@@ -77,7 +79,7 @@ if(BUILD_UNIT_TESTS)
 endif()
 
 # Link dependancies
-target_link_libraries(${PROJECT_NAME} PRIVATE ${TARGET_DXHEADERS})
+target_include_directories(${PROJECT_NAME} PRIVATE ../third-party/DirectX-Headers/include/DirectX-Headers/include)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
