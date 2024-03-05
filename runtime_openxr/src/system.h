@@ -81,5 +81,6 @@ namespace  XRGameBridge {
 
     //XrSystemProperties GetDummySystemProperties();
 
+    GetSystemResolution
     XrSystemProperties GetSystemProperties(XrSystemId system_id, bool halved_screen_width);
 }

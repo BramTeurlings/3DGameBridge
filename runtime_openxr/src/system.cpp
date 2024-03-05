@@ -120,7 +120,8 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
         XrViewConfigurationView view{};
         view.type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
-        view.recommendedImageRectWidth = screen_resolution.x;
+        // recommended is half width, max is full width?
+        view.recommendedImageRectWidth = sr_screen.
         view.maxImageRectWidth = screen_resolution.x;
         view.recommendedImageRectHeight = screen_resolution.y;
         view.maxImageRectHeight = screen_resolution.y;
