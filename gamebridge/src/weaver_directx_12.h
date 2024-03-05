@@ -14,7 +14,7 @@
 
 template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-struct DX12WeaverInitialize{
+struct GAME_BRIDGE_API DX12WeaverInitialize{
     GameBridge* game_bridge;
     ID3D12Device* device;
     ID3D12CommandQueue* command_queue;
@@ -24,7 +24,7 @@ struct DX12WeaverInitialize{
     WeaverFlags flags;
 };
 
-class DirectX12Weaver : private GameBridgeWeaver {
+class GAME_BRIDGE_API DirectX12Weaver : private GameBridgeWeaver {
     SR::SRContext *sr_context;
     SR::PredictingDX12Weaver* native_weaver;
 
@@ -36,6 +36,8 @@ class DirectX12Weaver : private GameBridgeWeaver {
     ComPtr<ID3D12CommandQueue> command_queue;
     ComPtr<ID3D12CommandAllocator> command_allocator;
 
+    HWND window;
+
     // Todo Add event stream
 
     void SetWeaving(bool weaving_enabled) {}
@@ -44,16 +46,16 @@ class DirectX12Weaver : private GameBridgeWeaver {
 public:
     GameBridgeManagerType GetEventManagerType() override;
 
-    DirectX12Weaver(DX12WeaverInitialize parameters);
+    explicit DirectX12Weaver(DX12WeaverInitialize parameters);
 
-    void InitializeWeaver(SR::SRContext sr_context) override;
+    void InitializeWeaver(SR::SRContext* sr_context) override;
     //void InitializeWeaver(SR::SRContext, WeaverFlags flags);
     //void InitializeWeaver(SR::SRContext, DX12WeaverInitialize params);
 
     // Todo Maybe not necessary
     //void DestroyWeaver(DX12WeaverInitialize params);
 
-    void Weave();
+    void Weave(ID3D12GraphicsCommandList* commandList, unsigned int width, unsigned int height, unsigned int xOffset, unsigned int yOffset);
 
     void SetLatency(int latency_in_microseconds);
 

@@ -36,16 +36,18 @@ DirectX12Weaver::DirectX12Weaver(DX12WeaverInitialize parameters) {
     command_queue = parameters.command_queue;
     device = parameters.device;
     device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(command_allocator.GetAddressOf()));
+    window = parameters.window;
 }
 
-void DirectX12Weaver::InitializeWeaver(SR::SRContext sr_context) {
+void DirectX12Weaver::InitializeWeaver(SR::SRContext* sr_context) {
     if (native_weaver) {
         delete native_weaver;
     }
-    native_weaver = new SR::PredictingDX12Weaver(sr_context, device.Get(), command_allocator.Get(), command_queue.Get(), input_resource.Get(), render_target.Get());
+    native_weaver = new SR::PredictingDX12Weaver(*sr_context, device.Get(), command_allocator.Get(), command_queue.Get(), input_resource.Get(), render_target.Get(), window, render_target->GetDesc().Format);
 }
 
-void DirectX12Weaver::Weave() {
+void DirectX12Weaver::Weave(ID3D12GraphicsCommandList* commandList, unsigned int width, unsigned int height, unsigned int xOffset, unsigned int yOffset) {
+    native_weaver->weave(commandList, width, height, xOffset, yOffset);
 }
 
 void DirectX12Weaver::SetLatency(int latency_in_microseconds) {
