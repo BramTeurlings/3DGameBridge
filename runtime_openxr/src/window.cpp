@@ -49,10 +49,13 @@ namespace XRGameBridge {
 
         window_created = true;
 
+        // Create window
+        uint32_t window_style = WS_POPUP | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+
         WNDCLASSEX window_ex;
 
         window_ex.cbSize = sizeof(WNDCLASSEX);
-        window_ex.style = CS_HREDRAW | CS_VREDRAW;
+        window_ex.style = CS_HREDRAW | CS_VREDRAW;// | window_style;
         window_ex.lpfnWndProc = WndProc;
         window_ex.cbClsExtra = 0;
         window_ex.cbWndExtra = 0;
@@ -70,12 +73,15 @@ namespace XRGameBridge {
             return false;
         }
 
-        // Create window
-        h_wnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, window_class.c_str(), title.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 2560, 1440, NULL, NULL, hInstance, NULL);
+        int w = GetSystemMetrics(SM_CXSCREEN);
+        int h = GetSystemMetrics(SM_CYSCREEN);
+        h_wnd = CreateWindowEx(0, window_class.c_str(), title.c_str(), WS_POPUP, CW_USEDEFAULT, CW_USEDEFAULT, w, h, NULL, NULL, hInstance, NULL);
         if (!h_wnd) {
             MessageBox(NULL, "Call to CreateWindow failed!", "XR Game Bridge", NULL);
             return false;
         }
+
+        SetWindowLongPtr(h_wnd, GWL_STYLE, window_style); //3d argument=style
 
         // The parameters to ShowWindow explained:
         // h_wnd: the value returned from CreateWindow

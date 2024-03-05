@@ -38,6 +38,8 @@ add_library(RuntimeOpenXR SHARED
 		src/window.cpp
 		src/dxhelpers.h
 		src/dxhelpers.cpp
+		src/srhelpers.h
+		src/srhelpers.cpp
 
 		${SHADERS}
 

@@ -2,10 +2,10 @@
 #include <string>
 
 #include "openxr_includes.h"
-#include "compositor.h"
+#include "platform_manager.h"
 
 // System
-XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId);
+XrResult xrGeSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId);
 XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties);
 XrResult xrEnumerateEnvironmentBlendModes(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t environmentBlendModeCapacityInput, uint32_t* environmentBlendModeCountOutput, XrEnvironmentBlendMode* environmentBlendModes);
 
@@ -42,38 +42,6 @@ namespace  XRGameBridge {
         uint32_t y;
     };
 
-    inline GBVector2i GetDummyScreenResolution() {
-        //TODO dependent on the SR screen, hopefully we can set reset this later on runtime. It would be cool to setup everything without having to connect to the sr service since that might take some time.
-        // MS docs: The width/height of the client area for a full-screen window on the primary display monitor, in pixels.
-        const uint32_t primary_display_res_x = static_cast<uint32_t>(GetSystemMetrics(SM_CXSCREEN) / 2); // Divided by 2 since we render in sbs
-        const uint32_t primary_display_res_y = static_cast<uint32_t>(GetSystemMetrics(SM_CYSCREEN));
-        return { primary_display_res_x, primary_display_res_y };
-    }
-
-    inline XrSystemProperties get_dummy_system_properties() {
-        auto screen_resolution = XRGameBridge::GetDummyScreenResolution();
-
-        XrSystemGraphicsProperties g_props{};
-        g_props.maxLayerCount = 1;
-        g_props.maxSwapchainImageWidth = screen_resolution.x;
-        g_props.maxSwapchainImageHeight = screen_resolution.y;
-
-        XrSystemTrackingProperties t_props{};
-        t_props.positionTracking = false;
-        t_props.orientationTracking = false;
-
-        XrSystemProperties sys_props{
-            XR_TYPE_SYSTEM_PROPERTIES,
-            nullptr,
-            1,
-            0x354B, // USB Vendor ID
-            "SR Monitor",
-            g_props,
-            t_props
-        };
-        return sys_props;
-    }
-
     enum class SRDisplay {
         SR_DISPLAY
     };
@@ -81,11 +49,15 @@ namespace  XRGameBridge {
     struct GB_System {
         XrInstance instance;
         XrSystemId id;
-        XrFormFactor requested_formfactor;
+        std::array<XrFormFactor, 2> supported_formfactors;
+        XrFormFactor form_factor;
         SRDisplay sr_device;
         D3D_FEATURE_LEVEL feature_level;
         bool features_enumerated = false;
         GraphicsBackend active_graphics_backend;
+
+        SR::Screen* sr_screen;
+        SR::SwitchableLensHint* lens_hint;
     };
 
     // Spaces are basically transformation matrices.
@@ -104,4 +76,10 @@ namespace  XRGameBridge {
         XrPath sub_action_path;
         XrPosef pose_in_action_space;
     };
+
+    //GBVector2i GetDummyScreenResolution();
+
+    //XrSystemProperties GetDummySystemProperties();
+
+    XrSystemProperties GetSystemProperties(XrSystemId system_id, bool halved_screen_width);
 }

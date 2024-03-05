@@ -9,6 +9,7 @@
 #include "openxr_functions.h"
 #include "swapchain.h"
 #include "game_bridge_structs.h"
+#include "system.h"
 
 //class OpenXRContainers {
 //public:
@@ -137,6 +138,14 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
     *instance = reinterpret_cast<XrInstance>(g_gbinstance);
 
     InitializeGameBridge();
+
+    // Create sr context
+    g_gbinstance->sr_context = CreateSrContext();
+    if (g_gbinstance->sr_context == nullptr){
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    InitializeSystems(*instance);
 
     LOG(INFO) << "New GameBridge Instance created";
     return XR_SUCCESS;
@@ -441,8 +450,7 @@ XrResult xrSuggestInteractionProfileBindings(XrInstance instance, const XrIntera
     return XR_SUCCESS;
 }
 
-XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData)
-{
+XrResult xrPollEvent(XrInstance instance, XrEventDataBuffer* eventData) {
     auto& event_manager = g_game_bridge_instance->GetEventManager();
 
     uint32_t event_type;
@@ -480,4 +488,19 @@ void XRGameBridge::InitializeGameBridge() {
 
         //g_openxr_event_stream_writer->SubmitEvent(XR_TYPE_EVENT_DATA_EVENTS_LOST, 200, nullptr);
     }
+}
+
+void XRGameBridge::InitializeSystems(XrInstance instance) {
+    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
+
+    // Create system
+    GB_System system;
+    system.id = g_systems.size();
+    system.instance = instance;
+    system.supported_formfactors = { XR_FORM_FACTOR_HANDHELD_DISPLAY, XR_FORM_FACTOR_HANDHELD_DISPLAY};
+    system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
+    system.sr_screen = SR::Screen::create(*gb_instance->sr_context);
+    system.lens_hint = SR::SwitchableLensHint::create(*gb_instance->sr_context);
+
+    g_systems.insert({ system.id, system });
 };

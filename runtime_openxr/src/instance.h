@@ -10,6 +10,7 @@
 
 #include "game_bridge.h"
 #include "event_manager.h"
+#include "platform_manager.h"
 
 //TODO fix versioning
 #define RUNTIME_VERSION_MAYOR 0
@@ -67,6 +68,7 @@ namespace XRGameBridge {
         const std::string runtime_name = "XR Game Bridge";
         const uint64_t runtime_version = XR_MAKE_VERSION(RUNTIME_VERSION_MAYOR, RUNTIME_VERSION_MINOR, RUNTIME_VERSION_PATCH);
         GraphicsBackend active_graphics_backend;
+        SR::SRContext* sr_context;
 
         // Currently not being used
         XrInteractionProfileSuggestedBinding suggested_bindings;
@@ -87,7 +89,11 @@ namespace XRGameBridge {
         std::string localized_name;
     };
 
+    ///! \brief Initialize Game Bridge
     void InitializeGameBridge();
+
+    ///! \brief Initialize XR Systems
+    void InitializeSystems(XrInstance instance);
 
     // Hash class
     inline std::hash<std::string> string_hasher;
@@ -96,6 +102,8 @@ namespace XRGameBridge {
     inline GameBridge* g_game_bridge_instance = nullptr;
     inline std::shared_ptr<EventStreamWriter> g_openxr_event_stream_writer;
     inline std::shared_ptr<EventStreamReader> g_openxr_event_stream_reader;
+
+    inline PlatformManager* g_platform_manager = nullptr;
 
     // Data
     // The key is the string hash of an action set path. The same hash is being used for action set handles

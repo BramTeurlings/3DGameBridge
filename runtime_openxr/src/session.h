@@ -9,6 +9,9 @@
 #include "swapchain.h"
 #include "compositor.h"
 
+#include "srhelpers.h"
+#include "weaver_directx_12.h"
+
 XrResult xrCreateSession(XrInstance instance, const XrSessionCreateInfo* createInfo, XrSession* session);
 XrResult xrDestroySession(XrSession session);
 
@@ -50,10 +53,15 @@ namespace XRGameBridge {
         ComPtr<ID3D12Device> d3d12_device;
         ComPtr<ID3D12CommandQueue> command_queue;
         GB_Compositor compositor;
+        GB_ProxySwapchain intermediate_resource;
 
         // Windows
         GB_Display display;
         GB_GraphicsDevice window_swapchain;
+
+        // SR
+        XrSRContext sr_context;
+        DirectX12Weaver* d3d12weaver;
     };
 
     class GB_FrameTimer {

@@ -9,50 +9,40 @@
 #include "session.h"
 
 XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSystemId* systemId) {
-    //TODO The specification says basically that the system should be created before this call with a graphics api (getsystem not createsystem of course).
-    //TODO Maybe during Instance creation or xrGetD3D12GraphicsRequirementsKHR
-    // This also means that at that point, SR will be loaded in the application, we should initialize it on a separate thread
+    // Check if the requested form factor is supported
+    bool found = false;
+    bool available = false;
+    for (auto it = XRGameBridge::g_systems.begin(); it != XRGameBridge::g_systems.end(); it++) {
+        found = std::find(it->second.supported_formfactors.begin(), it->second.supported_formfactors.end(), getInfo->formFactor) != it->second.supported_formfactors.end();
+        if (found) {
+            *systemId = it->second.id;
+            it->second.form_factor = getInfo->formFactor;
 
-    static uint32_t system_creation_count = 1;
+            if (it->second.sr_screen != nullptr) {
+                available = true;
+            }
+            break;
+        }
+    }
 
-    XrFormFactor requested_formfactor;
-    switch (getInfo->formFactor) {
-    case XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY:
-        requested_formfactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
-        break;
-    case XR_FORM_FACTOR_HANDHELD_DISPLAY:
-        requested_formfactor = XR_FORM_FACTOR_HANDHELD_DISPLAY;
-        break;
-    default:
+    if (!found) {
         return XR_ERROR_FORM_FACTOR_UNSUPPORTED;
     }
 
-    *systemId = system_creation_count;
+    if (!available) {
+        return XR_ERROR_FORM_FACTOR_UNAVAILABLE;
+    }
 
-    XRGameBridge::GB_System system;
-    system.id = *systemId;
-    system.instance = instance;
-    system.requested_formfactor = requested_formfactor;
-    system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
-
-    XRGameBridge::g_systems.insert({ *systemId, system });
-
-    //system_creation_count++; // OpenXR supports only a single system?
     return XR_SUCCESS;
 }
 
 XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties) {
-    try {
-        XRGameBridge::GB_System& system = XRGameBridge::g_systems.at(systemId);
-    }
-    catch (std::out_of_range& e) {
-        return XR_ERROR_SYSTEM_INVALID;
-    }
-    catch (std::exception& e) {
-        return XR_ERROR_RUNTIME_FAILURE;
-    }
 
-    *properties = XRGameBridge::get_dummy_system_properties();
+    XRGameBridge::GB_System& system = XRGameBridge::g_systems[systemId];
+
+    // Always half basically
+    bool use_halved_width = system.form_factor == XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY || system.form_factor == XR_FORM_FACTOR_HANDHELD_DISPLAY;
+    *properties = XRGameBridge::GetSystemProperties(systemId, use_halved_width);
 
     return XR_SUCCESS;
 }
@@ -123,7 +113,8 @@ XrResult xrGetViewConfigurationProperties(XrInstance instance, XrSystemId system
 XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrViewConfigurationView* views) {
     XrResult res = XR_ERROR_RUNTIME_FAILURE;
 
-    auto screen_resolution = XRGameBridge::GetDummyScreenResolution();
+    XRGameBridge::GB_System gb_system = XRGameBridge::g_systems[systemId];
+    SR::Screen* sr_screen = gb_system.sr_screen;
     std::vector<XrViewConfigurationView> supported_views;
 
     if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
@@ -172,7 +163,7 @@ XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo
     view1.type = XR_TYPE_VIEW;
     view1.next = nullptr;
     view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {-0.2f, 0, 0} }; // Orientation, Position
-    view1.fov = { -M_PI/4.0f, M_PI / 4.0f, M_PI / 4.0f, -M_PI / 4.0f }; // FOV angle left, right, up, down
+    view1.fov = { -M_PI / 4.0f, M_PI / 4.0f, M_PI / 4.0f, -M_PI / 4.0f }; // FOV angle left, right, up, down
 
     view2.type = XR_TYPE_VIEW;
     view2.next = nullptr;
@@ -297,8 +288,7 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
     location->locationFlags;
 
     // TODO Application may ask for a velocity of the tracked object
-    if(location->next != nullptr)
-    {
+    if (location->next != nullptr) {
         XrSpaceVelocity* velocity = static_cast<XrSpaceVelocity*>(location->next);
         velocity->velocityFlags;
     }
@@ -306,8 +296,7 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
     // For Reference spaces
     XRGameBridge::GB_ReferenceSpace& gb_space = XRGameBridge::g_reference_spaces[space];
     XRGameBridge::GB_ReferenceSpace& gb_base_space = XRGameBridge::g_reference_spaces[baseSpace];
-    if(gb_space.session != nullptr)
-    {
+    if (gb_space.session != nullptr) {
         // TODO, Transform to base space? just returning it for now, in the test the local space is 0 anyways
         // Telling the application the view position is valid but never being tracked
         location->pose = gb_space.pose_in_reference_space;
@@ -329,11 +318,73 @@ XrResult xrLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLoc
 
     // TODO Actions are never located now, might be what we want anyways
     // Application is told the actions are never being tracked this way
-    location->pose = XrPosef{0.f};
+    location->pose = XrPosef{ 0.f };
     location->locationFlags = 0;
     return XR_SUCCESS;
 }
 
 XrResult xrDestroySpace(XrSpace space) {
     LOG(INFO) << "Called " << __func__; return XR_ERROR_RUNTIME_FAILURE;
+}
+
+//XRGameBridge::GBVector2i XRGameBridge::GetDummyScreenResolution() {
+//    //TODO dependent on the SR screen, hopefully we can set reset this later on runtime. It would be cool to setup everything without having to connect to the sr service since that might take some time.
+//    // MS docs: The width/height of the client area for a full-screen window on the primary display monitor, in pixels.
+//    const uint32_t primary_display_res_x = static_cast<uint32_t>(GetSystemMetrics(SM_CXSCREEN) / 2); // Divided by 2 since we render in sbs
+//    const uint32_t primary_display_res_y = static_cast<uint32_t>(GetSystemMetrics(SM_CYSCREEN));
+//    return { primary_display_res_x, primary_display_res_y };
+//}
+//
+//XrSystemProperties XRGameBridge::GetDummySystemProperties() {
+//    auto screen_resolution = XRGameBridge::GetDummyScreenResolution();
+//
+//    XrSystemGraphicsProperties g_props{};
+//    g_props.maxLayerCount = 1;
+//    g_props.maxSwapchainImageWidth = screen_resolution.x;
+//    g_props.maxSwapchainImageHeight = screen_resolution.y;
+//
+//    XrSystemTrackingProperties t_props{};
+//    t_props.positionTracking = false;
+//    t_props.orientationTracking = false;
+//
+//    XrSystemProperties sys_props{
+//        XR_TYPE_SYSTEM_PROPERTIES,
+//        nullptr,
+//        1,
+//        0x354B, // USB Vendor ID
+//        "SR Monitor",
+//        g_props,
+//        t_props
+//    };
+//    return sys_props;
+//}
+
+XrSystemProperties XRGameBridge::GetSystemProperties(XrSystemId system_id, bool halved_screen_width) {
+    GB_System& system = g_systems[system_id];
+    uint32_t width = system.sr_screen->getPhysicalResolutionWidth();
+    uint32_t height = system.sr_screen->getPhysicalResolutionWidth();
+
+    if (halved_screen_width) {
+        width /= 2;
+    }
+
+    XrSystemGraphicsProperties g_props{};
+    g_props.maxLayerCount = 1;
+    g_props.maxSwapchainImageWidth = width;
+    g_props.maxSwapchainImageHeight = height;
+
+    XrSystemTrackingProperties t_props{};
+    t_props.positionTracking = false;
+    t_props.orientationTracking = false;
+
+    XrSystemProperties sys_props{
+        XR_TYPE_SYSTEM_PROPERTIES,
+        nullptr,
+        1,
+        0x354B, // USB Vendor ID
+        "SR Monitor",
+        g_props,
+        t_props
+    };
+    return sys_props;
 }
