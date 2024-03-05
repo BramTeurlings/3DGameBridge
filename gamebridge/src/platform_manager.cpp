@@ -9,11 +9,11 @@
 
 #include "platform_manager.h"
 
-PlatformManager::PlatformManager(SRPlatformManagerInitialize parameters) {
+PlatformManager::PlatformManager(SRPlatformManagerInitialize parameters) : sr_context(nullptr), lens_hint(nullptr) {
 
 }
 
-SR::SRContext *PlatformManager::GetContext() {
+SR::SRContext* PlatformManager::GetContext() {
     return sr_context;
 }
 
@@ -38,18 +38,26 @@ GameBridgeManagerType PlatformManager::GetEventManagerType() {
     return GameBridgeManagerType::GB_MANAGER_PLATFORM;
 }
 
-bool PlatformManager::InitializeSRContext()
-{
+bool PlatformManager::InitializeSRContext() {
     // Todo retry mechanism
     if (sr_context == nullptr) {
         try {
-            sr_context = new SR::SRContext;
+            sr_context = new SR::SRContext(false);
         }
         catch (SR::ServerNotAvailableException& ex) {
             // Unable to construct SR Context.
             return false;
         }
+        screen = SR::Screen::create(*sr_context);
         lens_hint = SR::SwitchableLensHint::create(*sr_context);
         sr_context->initialize();
     }
+}
+
+SR::Screen* PlatformManager::GetScreen() {
+    return screen;
+}
+
+SR::SwitchableLensHint* PlatformManager::GetLensHint() {
+    return lens_hint;
 }

@@ -2,8 +2,10 @@
 
 #include "game_bridge.h"
 #include <sr/management/srcontext.h>
+#include <sr/sense/display/switchablehint.h>
+#include "sr/world/display/screen.h"
 
-enum class SRPlatformManagerInitializeFlags {
+enum GAME_BRIDGE_API SRPlatformManagerInitializeFlags {
     SRGB_DISABLE_SERVICE_RECONNECTION,
     SRGB_DISABLE_AUTOMATIC_LENS_SWITCHING
 };
@@ -32,27 +34,34 @@ enum class WeaverType {
 //    // Todo: Implement more members if necessary.
 //};
 
-struct SRPlatformManagerInitialize {
+// Todo: Perhaps we want to wrap the context in a way that it can always be created and used.
+// Whether it has a connection shouldn't matter and can be handled internally.
+
+struct GAME_BRIDGE_API SRPlatformManagerInitialize {
     SR::SRContext *sr_context = nullptr; //Optional
     SRPlatformManagerInitializeFlags flags;
-    GameBridge game_bridge;
+    GameBridge* game_bridge;
     WeaverType weaver_type;
 };
 
-class PlatformManager : private IGameBridgeManager {
+class GAME_BRIDGE_API PlatformManager : private IGameBridgeManager {
 public:
     WeaverType weaver_type;
     // Todo Create event stream
 
     SR::SRContext* sr_context;
+    SR::Screen* screen;
     SR::SwitchableLensHint* lens_hint;
 
     explicit PlatformManager(SRPlatformManagerInitialize parameters);
 
     SR::SRContext* GetContext();
     GameBridgeManagerType GetEventManagerType() override;
+    bool InitializeSRContext();
+
+    SR::Screen* GetScreen();
+    SR::SwitchableLensHint* GetLensHint();
 
 private:
-    bool InitializeSRContext();
     void SwitchLens(bool enable);
 };

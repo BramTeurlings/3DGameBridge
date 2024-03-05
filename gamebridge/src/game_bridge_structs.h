@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 // TODO Move all the export definitions in the project to an common header file for internal use only (if that works)
 #include <cstddef>
