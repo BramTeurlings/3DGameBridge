@@ -1,0 +1,8 @@
+{
+    "file_format_version": "1.0.0",
+    "runtime": 
+    {
+        "library_path": "./build/runtime_openxr/Debug/RuntimeOpenXRd.dll",
+        "name": "SR - GameBridge"
+    }
+}
