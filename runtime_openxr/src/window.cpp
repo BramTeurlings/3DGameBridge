@@ -40,7 +40,7 @@ namespace XRGameBridge {
         return 0;
     }
 
-    bool GB_Display::CreateApplicationWindow(HINSTANCE hInstance, int nCmdShow) {
+    bool GB_Display::CreateApplicationWindow(HINSTANCE hInstance, uint32_t width, uint32_t height, int nCmdShow, bool fullscreen) {
         // TODO better window creation checking code
         static bool window_created = false;
         if (window_created) {
@@ -50,7 +50,16 @@ namespace XRGameBridge {
         window_created = true;
 
         // Create window
-        uint32_t window_style = WS_POPUP | WS_THICKFRAME | WS_CAPTION | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+        uint32_t window_style = 0;
+        uint32_t borderless_fullscreen = WS_POPUP;
+        uint32_t windowed = WS_OVERLAPPEDWINDOW;
+
+        if (fullscreen) {
+            window_style = borderless_fullscreen;
+        }
+        else {
+            window_style = windowed;
+        }
 
         WNDCLASSEX window_ex;
 
@@ -73,20 +82,29 @@ namespace XRGameBridge {
             return false;
         }
 
-        int w = GetSystemMetrics(SM_CXSCREEN);
-        int h = GetSystemMetrics(SM_CYSCREEN);
-        h_wnd = CreateWindowEx(0, window_class.c_str(), title.c_str(), WS_POPUP, CW_USEDEFAULT, CW_USEDEFAULT, w, h, NULL, NULL, hInstance, NULL);
+        const long w = static_cast<long>(width);
+        const long h = static_cast<long>(height);
+        h_wnd = CreateWindowEx(0, window_class.c_str(), title.c_str(), window_style, CW_USEDEFAULT, CW_USEDEFAULT, w, h, NULL, NULL, hInstance, NULL);
         if (!h_wnd) {
             MessageBox(NULL, "Call to CreateWindow failed!", "XR Game Bridge", NULL);
             return false;
         }
 
-        SetWindowLongPtr(h_wnd, GWL_STYLE, window_style); //3d argument=style
+        //SetWindowLongPtr(h_wnd, GWL_STYLE, window_style); //3d argument=style
+
+        SetWindowPos(
+            h_wnd,
+            HWND_TOPMOST,
+            0,
+            0,
+            width,
+            height,
+            SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
         // The parameters to ShowWindow explained:
         // h_wnd: the value returned from CreateWindow
         // nCmdShow: the fourth parameter from WinMain
-        ShowWindow(h_wnd, nCmdShow);
+        ShowWindow(h_wnd, SW_MAXIMIZE);
 
         return true;
     }

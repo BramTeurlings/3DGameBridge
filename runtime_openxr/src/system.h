@@ -81,6 +81,8 @@ namespace  XRGameBridge {
 
     //XrSystemProperties GetDummySystemProperties();
 
-    GetSystemResolution
-    XrSystemProperties GetSystemProperties(XrSystemId system_id, bool halved_screen_width);
+    GBVector2i GetSystemResolution(const GB_System& gb_system, XrFormFactor form_factor);
+    GBVector2i GetNativeSystemResolution(const GB_System& gb_system);
+    GBVector2i GetScaledSystemResolutionMainDisplay();
+    XrSystemProperties GetSystemProperties(const GB_System& gb_system);
 }

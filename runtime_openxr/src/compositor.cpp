@@ -9,8 +9,13 @@
 
 #include "instance.h"
 namespace XRGameBridge {
+#ifdef _DEBUG
     const std::string LAYERING_VERTEX = "../../runtime_openxr/shaders/layering_vertex.cso";
     const std::string LAYERING_PIXEL = "../../runtime_openxr/shaders/layering_pixel.cso";
+#else
+    const std::string LAYERING_VERTEX = "./layering_vertex.cso";
+    const std::string LAYERING_PIXEL = "./layering_pixel.cso";
+#endif
 
     std::vector<char> LoadBinaryFile(std::string path) {
         std::filesystem::path file_path(path);
@@ -156,8 +161,6 @@ namespace XRGameBridge {
                 auto layer = reinterpret_cast<const XrCompositionLayerProjection*>(frameEndInfo->layers[layer_num]);
                 auto& ref_space = g_reference_spaces[layer->space]; // pose in spaces of the view over time
 
-
-
                 // Render every view to the resource
                 for (int32_t view_num = 0; view_num < layer->viewCount; view_num++) {
                     auto& view = layer->views[view_num];
@@ -169,10 +172,10 @@ namespace XRGameBridge {
                     auto proxy_resource = gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
 
                     // Viewport settings
-                    const float width = static_cast<float>(rect.extent.width);
-                    const float height = static_cast<float>(rect.extent.height);
+                    const float width = static_cast<float>(g_platform_manager->GetScreen()->getPhysicalResolutionWidth() *0.5);
+                    const float height = static_cast<float>(g_platform_manager->GetScreen()->getPhysicalResolutionHeight());
                     D3D12_VIEWPORT view_port{ (width * view_num), 0, width, height, 0.0f, 1.0f };
-                    D3D12_RECT scissor_rect{ 0, 0, rect.extent.width * 2, rect.extent.height };
+                    D3D12_RECT scissor_rect{ 0, 0, g_platform_manager->GetScreen()->getPhysicalResolutionWidth(), g_platform_manager->GetScreen()->getPhysicalResolutionHeight() };
                     cmd_list->RSSetViewports(1, &view_port);
                     cmd_list->RSSetScissorRects(1, &scissor_rect);
 

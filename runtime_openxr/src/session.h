@@ -60,7 +60,7 @@ namespace XRGameBridge {
         GB_GraphicsDevice window_swapchain;
 
         // SR
-        XrSRContext sr_context;
+        SR::SRContext* sr_context;
         DirectX12Weaver* d3d12weaver;
     };
 

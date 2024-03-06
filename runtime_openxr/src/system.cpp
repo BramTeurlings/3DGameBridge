@@ -38,11 +38,8 @@ XrResult xrGetSystem(XrInstance instance, const XrSystemGetInfo* getInfo, XrSyst
 
 XrResult xrGetSystemProperties(XrInstance instance, XrSystemId systemId, XrSystemProperties* properties) {
 
-    XRGameBridge::GB_System& system = XRGameBridge::g_systems[systemId];
-
-    // Always half basically
-    bool use_halved_width = system.form_factor == XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY || system.form_factor == XR_FORM_FACTOR_HANDHELD_DISPLAY;
-    *properties = XRGameBridge::GetSystemProperties(systemId, use_halved_width);
+    XRGameBridge::GB_System& gb_system = XRGameBridge::g_systems[systemId];
+    *properties = XRGameBridge::GetSystemProperties(gb_system);
 
     return XR_SUCCESS;
 }
@@ -114,17 +111,19 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     XrResult res = XR_ERROR_RUNTIME_FAILURE;
 
     XRGameBridge::GB_System gb_system = XRGameBridge::g_systems[systemId];
-    SR::Screen* sr_screen = gb_system.sr_screen;
-    std::vector<XrViewConfigurationView> supported_views;
+    XRGameBridge::GBVector2i form_factor_resolution = GetSystemResolution(gb_system, gb_system.form_factor);
+    XRGameBridge::GBVector2i native_resolution = GetNativeSystemResolution(gb_system);
+    XRGameBridge::GBVector2i scaled_resolution = XRGameBridge::GetScaledSystemResolutionMainDisplay();
 
-    if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO || viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
+    std::vector<XrViewConfigurationView> supported_views;
+    if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
         XrViewConfigurationView view{};
         view.type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
         // recommended is half width, max is full width?
-        view.recommendedImageRectWidth = sr_screen.
-        view.maxImageRectWidth = screen_resolution.x;
-        view.recommendedImageRectHeight = screen_resolution.y;
-        view.maxImageRectHeight = screen_resolution.y;
+        view.recommendedImageRectWidth = scaled_resolution.x/2;
+        view.maxImageRectWidth = scaled_resolution.x;
+        view.recommendedImageRectHeight = scaled_resolution.y;
+        view.maxImageRectHeight = scaled_resolution.y;
         view.recommendedSwapchainSampleCount = 2; //TODO idk what this means
         view.maxSwapchainSampleCount = 2;
 
@@ -133,6 +132,9 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
         supported_views.push_back(view);
 
         res = XR_SUCCESS;
+    }
+    else if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_MONO) {
+
     }
     else {
         res = XR_ERROR_VIEW_CONFIGURATION_TYPE_UNSUPPORTED;
@@ -160,16 +162,18 @@ constexpr auto M_PI = 3.14159265358979323846;
 XrResult xrLocateViews(XrSession session, const XrViewLocateInfo* viewLocateInfo, XrViewState* viewState, uint32_t viewCapacityInput, uint32_t* viewCountOutput, XrView* views) {
     // TODO Dummy implementation for locate views, only returning views with a hardcoded offset hoping these are the eye locations
 
+    float fov = M_PI / 3.5f;
+
     XrView view1, view2;
     view1.type = XR_TYPE_VIEW;
     view1.next = nullptr;
-    view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {-0.2f, 0, 0} }; // Orientation, Position
-    view1.fov = { -M_PI / 4.0f, M_PI / 4.0f, M_PI / 4.0f, -M_PI / 4.0f }; // FOV angle left, right, up, down
+    view1.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {-0.060f, 0, 0} }; // Orientation, Position
+    view1.fov = { -fov, fov, fov, -fov }; // FOV angle left, right, up, down
 
     view2.type = XR_TYPE_VIEW;
     view2.next = nullptr;
-    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0.2f, 0, 0} }; // Orientation, Position
-    view2.fov = { -M_PI / 4.0f, M_PI / 4.0f, M_PI / 4.0f, -M_PI / 4.0f }; // FOV angle left, right, up, down
+    view2.pose = { {0.0f, 0.0f, 0.0f, 0.0f}, {0.060f, 0, 0} }; // Orientation, Position
+    view2.fov = { -fov, fov, fov, -fov }; // FOV angle left, right, up, down
 
     std::vector<XrView> sr_views;
 
@@ -360,19 +364,35 @@ XrResult xrDestroySpace(XrSpace space) {
 //    return sys_props;
 //}
 
-XrSystemProperties XRGameBridge::GetSystemProperties(XrSystemId system_id, bool halved_screen_width) {
-    GB_System& system = g_systems[system_id];
-    uint32_t width = system.sr_screen->getPhysicalResolutionWidth();
-    uint32_t height = system.sr_screen->getPhysicalResolutionWidth();
+XRGameBridge::GBVector2i XRGameBridge::GetSystemResolution(const GB_System& gb_system, XrFormFactor form_factor) {
+    bool use_halved_width = form_factor == XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY || form_factor == XR_FORM_FACTOR_HANDHELD_DISPLAY;
+    uint32_t width = static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionWidth());
+    uint32_t height = static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionHeight());
 
-    if (halved_screen_width) {
+    if (use_halved_width) {
         width /= 2;
     }
 
+    return GBVector2i{ width ,height };
+}
+
+XRGameBridge::GBVector2i XRGameBridge::GetNativeSystemResolution(const GB_System& gb_system) {
+    return GBVector2i{ static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionWidth()) ,static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionHeight()) };
+}
+
+XRGameBridge::GBVector2i XRGameBridge::GetScaledSystemResolutionMainDisplay() {
+    size_t width = GetSystemMetrics(SM_CXSCREEN);
+    size_t height = GetSystemMetrics(SM_CYSCREEN);
+    return GBVector2i{ static_cast<uint32_t>(width) ,static_cast<uint32_t>(height) };
+}
+
+XrSystemProperties XRGameBridge::GetSystemProperties(const GB_System& gb_system) {
+    GBVector2i native_resolution = GetNativeSystemResolution(gb_system);
+
     XrSystemGraphicsProperties g_props{};
     g_props.maxLayerCount = 1;
-    g_props.maxSwapchainImageWidth = width;
-    g_props.maxSwapchainImageHeight = height;
+    g_props.maxSwapchainImageWidth = native_resolution.x;
+    g_props.maxSwapchainImageHeight = native_resolution.y;
 
     XrSystemTrackingProperties t_props{};
     t_props.positionTracking = false;
