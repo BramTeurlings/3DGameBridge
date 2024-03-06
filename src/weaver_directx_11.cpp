@@ -171,6 +171,7 @@ bool DirectX11Weaver::init_weaver(ID3D11Device* dev, ID3D11DeviceContext* contex
         return false;
     }
 
+    weaving_enabled = true;
     weaver_initialized = true;
     return weaver_initialized;
 }
