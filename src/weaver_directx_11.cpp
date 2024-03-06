@@ -8,13 +8,13 @@
 template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 // Function to create a shader resource view from a texture
-ID3D11ShaderResourceView* CreateShaderResourceViewFromTexture(ID3D11Device* pDevice, ID3D11Texture2D* pTexture2D) {
+ID3D11ShaderResourceView* CreateShaderResourceViewFromTexture(ComPtr<ID3D11Device> p_device, ComPtr<ID3D11Texture2D> p_texture2D) {
     ID3D11ShaderResourceView* pSRV = nullptr;
 
-    if (pDevice && pTexture2D) {
+    if (p_device && p_texture2D) {
         // Get the format from the input texture.
         D3D11_TEXTURE2D_DESC pDesc;
-        pTexture2D->GetDesc(&pDesc);
+        p_texture2D->GetDesc(&pDesc);
 
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = pDesc.Format;
@@ -22,7 +22,7 @@ ID3D11ShaderResourceView* CreateShaderResourceViewFromTexture(ID3D11Device* pDev
         srvDesc.Texture2D.MipLevels = -1; // Use all mip levels
 
         // Create the shader resource view
-        HRESULT hr = pDevice->CreateShaderResourceView(pTexture2D, &srvDesc, &pSRV);
+        HRESULT hr = p_device->CreateShaderResourceView(p_texture2D.Get(), &srvDesc, &pSRV);
         if (FAILED(hr)) {
             // Handle error (e.g., log error message, cleanup resources, etc.)
             std::cout << "Error while creating shader resource view from texture." << "\n";
@@ -62,7 +62,10 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
 
     // Create RTV from back buffer.
     ComPtr<ID3D11RenderTargetView> rtv = nullptr;
-    HRESULT hr = d3d11device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(back_buffer), nullptr, &rtv);
+    ComPtr<ID3D11Texture2D> current_back_buffer = reinterpret_cast<ID3D11Texture2D*>(back_buffer);
+
+    // Create the RTV with the back_buffer which we will copy for the weaver later
+    HRESULT hr = d3d11device->CreateRenderTargetView(current_back_buffer.Get(), nullptr, &rtv);
 
     if (weaver_initialized) {
         if (FAILED(hr)) {
@@ -71,19 +74,20 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
             return;
         }
 
+        // Todo: Only do this for the modded call
         //Check texture size
         if (swapChainDesc.BufferDesc.Width != effect_frame_copy_x || swapChainDesc.BufferDesc.Height != effect_frame_copy_y) {
-            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
+            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             texture_copy->Release();
             texture_copy = nullptr;
             resource_copy->Release();
             resource_copy = nullptr;
-            if (!create_effect_copy_buffer(dx_device_context.Get(), rtv.Get()) && !resize_buffer_failed) {
+            if (!create_effect_copy_buffer(dx_device, current_back_buffer) && !resize_buffer_failed) {
                 std::cout << "Couldn't create effect copy buffer, trying again next frame" << "\n";
                 resize_buffer_failed = true;
             }
 
-            // Set newly created buffer as input
+            // Set newly copied buffer as the input for the weaver to weave on
             native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy.Get());
             std::cout << "Buffer size changed" << "\n";
         }
@@ -92,7 +96,7 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
 
             if (weaving_enabled) {
                 // Copy resource
-                create_effect_copy_buffer(dx_device_context.Get(), rtv.Get());
+                create_effect_copy_buffer(dx_device, current_back_buffer);
 
                 // Bind back buffer as render target
                 dx_device_context->OMSetRenderTargets(1, &rtv, 0);
@@ -103,7 +107,9 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
         }
     }
     else {
-        create_effect_copy_buffer(dx_device_context.Get(), rtv.Get());
+        texture_copy->Release();
+        texture_copy = nullptr;
+        create_effect_copy_buffer(dx_device, current_back_buffer);
         if (init_weaver(d3d11device.Get(), dx_device_context.Get(), swap_chain)) {
             // Set context and input frame buffer again to make sure they are correct.
             native_weavers[native_weaver_index]->setContext(dx_device_context.Get());
@@ -169,58 +175,36 @@ bool DirectX11Weaver::init_weaver(ID3D11Device* dev, ID3D11DeviceContext* contex
     return weaver_initialized;
 }
 
-// Todo: We may want to change the effect_resource_desc type to ID3D11Resource or texture2D.
-bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc)
+// Todo: We may want to change the current_back_buffer type to ID3D11Resource or current_back_buffer.
+// Todo: We should make a separate call to this only for modding and also have a different minimal weave call.
+bool DirectX11Weaver::create_effect_copy_buffer(ComPtr<ID3D11Device> p_device, ComPtr<ID3D11Texture2D> p_current_back_buffer)
 {
     // Check if device context or render target view is null
-    if (!device_context || !effect_resource_desc)
+    if (!p_device || !p_current_back_buffer)
     {
         return false;
     }
 
-    // Get the render target texture from the render target view
-    // GetResource calls AddRef() so we use a ComPtr to make sure it is released after this method finishes.
-    ComPtr<ID3D11Resource> sourceResource = nullptr;
-    effect_resource_desc->GetResource(&sourceResource);
-    if (!sourceResource)
-    {
-        return false;
-    }
-
-    // Query the source texture from the render target texture
-    // QueryInterface also calls AddRef() so we need to make sure source_texture is released at some point. This is managed by the ComPtr.
-    ComPtr<ID3D11Texture2D> source_texture = nullptr;
-    HRESULT hr = sourceResource->QueryInterface(IID_PPV_ARGS(&source_texture));
-    if (FAILED(hr) || !source_texture)
-    {
-        return false;
-    }
-
-    // Initialize the destination texture
-    texture_copy = nullptr;
-    D3D11_TEXTURE2D_DESC texture_desc;
-
-    // Create the destination device
-    ComPtr<ID3D11Device> d3d11_device;
-    source_texture->GetDesc(&texture_desc);
-
-    // Set the description flags so we can create a shader resource view later.
-    texture_desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-    device_context->GetDevice(&d3d11_device);
+    // Todo: We don't have to create a new texture every frame
     // Create a texture for the copy. We will use this later to make a new ShaderResourceView for the weaver.
-    hr = d3d11_device->CreateTexture2D(&texture_desc, nullptr, &texture_copy);
-    if (FAILED(hr) || !texture_copy)
-    {
-        source_texture->Release();
-        return false;
-    }
+    if (texture_copy == nullptr) {
+        // Initialize the destination texture
+        D3D11_TEXTURE2D_DESC texture_desc;
+        p_current_back_buffer->GetDesc(&texture_desc);
 
-    // Todo: I don't think this copy is necessary. I should investigate.
-    // Copy the source texture to the destination texture
-    // device_context->CopyResource(texture_copy, source_texture.Get());
+        // Set the description flags, so we can create a shader resource view later.
+        texture_desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+
+        HRESULT hr = p_device->CreateTexture2D(&texture_desc, nullptr, &texture_copy);
+
+        if (FAILED(hr) || !texture_copy)
+        {
+            return false;
+        }
+    }
 
     // Create shader resource with the description from the source texture.
-    resource_copy = CreateShaderResourceViewFromTexture(d3d11_device.Get(), texture_copy.Get());
+    resource_copy = CreateShaderResourceViewFromTexture(p_device, texture_copy);
 
     return true;
 }

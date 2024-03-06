@@ -52,7 +52,7 @@ class DirectX11Weaver : private IGameBridgeManager {
 
     void SetWeaving(bool weaving_enabled) {}
 
-    bool create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc);
+    bool create_effect_copy_buffer(ComPtr<ID3D11Device> p_device, ComPtr<ID3D11Texture2D> p_current_back_buffer);
 
     bool init_weaver(ID3D11Device* dev, ID3D11DeviceContext* context, IDXGISwapChain* swap_chain);
 
