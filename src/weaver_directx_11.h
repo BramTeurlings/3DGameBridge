@@ -26,7 +26,7 @@ struct DX11WeaverInitialize {
     ID3D11Device* dev;
     ID3D11DeviceContext* context;
     IDXGISwapChain* swap_chain; // Todo: Do we want to ask this or instead ask for the window handle directly?
-    void** in_buffer; // Todo: We should document that this needs to be a handle to ID3D11RenderTargetView.
+    void** in_buffer; // Todo: We should document that this needs to be a handle to ID3D11Texture2D.
     void** out_buffer;
     WeaverFlags flags;
     GameBridge* game_bridge;
@@ -54,7 +54,7 @@ class DirectX11Weaver : private IGameBridgeManager {
 
     bool create_sr_context();
 
-    bool create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc);
+    bool create_effect_copy_buffer(ComPtr<ID3D11Device> p_device, ComPtr<ID3D11Texture2D> p_current_back_buffer);
 
     bool init_weaver(ID3D11Device* dev, ID3D11DeviceContext* context, IDXGISwapChain* swap_chain);
 
