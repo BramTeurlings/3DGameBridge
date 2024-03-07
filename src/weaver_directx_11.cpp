@@ -5,6 +5,8 @@
 
 #include "weaver_directx_11.h"
 
+#include <sr/utility/exception.h>
+
 template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 // Function to create a shader resource view from a texture
@@ -48,6 +50,9 @@ DirectX11Weaver::DirectX11Weaver(DX11WeaverInitialize dx11_weaver_initialize) {
     dx_device = dx11_weaver_initialize.dev;
     dx_device_context = dx11_weaver_initialize.context;
     dx_swap_chain = dx11_weaver_initialize.swap_chain;
+
+    create_sr_context();
+    weaving_enabled = true;
 }
 
 GameBridgeManagerType DirectX11Weaver::GetEventManagerType() {
@@ -56,29 +61,30 @@ GameBridgeManagerType DirectX11Weaver::GetEventManagerType() {
 
 void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
-    swap_chain->GetDesc(&swapChainDesc);
-    ComPtr<ID3D11Device> d3d11device;
-    swap_chain->GetDevice(__uuidof(ID3D11Device), reinterpret_cast<void**>(d3d11device.GetAddressOf()));
+    HRESULT hr = swap_chain->GetDesc(&swapChainDesc);
+    if (FAILED(hr)) {
+        // Handle error
+        std::cout << "Unable to get description from swap chain" << "\n";
+        return;
+    }
 
-    // Create RTV from back buffer.
-    ComPtr<ID3D11RenderTargetView> rtv = nullptr;
-    HRESULT hr = d3d11device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(back_buffer), nullptr, &rtv);
+    // Convert RTV from back buffer.
+    auto rtv = reinterpret_cast<ID3D11RenderTargetView*>(back_buffer);
 
     if (weaver_initialized) {
-        if (FAILED(hr)) {
-            // Handle error
-            std::cout << "Unable to create render target view from back buffer!" << "\n";
-            return;
-        }
-
+        // Todo: We don't want to keep track of buffers. It is not our responsibility. Nor is the resize event. We could make a second weave() call without this and the copy_effect_frame_buffer called safeWeave(). We should also keep this call for when developers want a quick weave function with less control.
         //Check texture size
         if (swapChainDesc.BufferDesc.Width != effect_frame_copy_x || swapChainDesc.BufferDesc.Height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
-            texture_copy->Release();
-            texture_copy = nullptr;
-            resource_copy->Release();
-            resource_copy = nullptr;
-            if (!create_effect_copy_buffer(dx_device_context.Get(), rtv.Get()) && !resize_buffer_failed) {
+            effect_frame_copy_x = swapChainDesc.BufferDesc.Width;
+            effect_frame_copy_y = swapChainDesc.BufferDesc.Height;
+            if (texture_copy) {
+                texture_copy->Release();
+            }
+            if (resource_copy) {
+                resource_copy->Release();
+            }
+            if (!create_effect_copy_buffer(dx_device_context.Get(), rtv) && !resize_buffer_failed) {
                 std::cout << "Couldn't create effect copy buffer, trying again next frame" << "\n";
                 resize_buffer_failed = true;
             }
@@ -92,10 +98,12 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
 
             if (weaving_enabled) {
                 // Copy resource
-                create_effect_copy_buffer(dx_device_context.Get(), rtv.Get());
+                // Todo: Make this a separate function.
+                // Todo: We should only do this once and on resize, move this function elsewhere.
+                // create_effect_copy_buffer(dx_device_context.Get(), rtv);
 
                 // Bind back buffer as render target
-                dx_device_context->OMSetRenderTargets(1, &rtv, 0);
+                dx_device_context->OMSetRenderTargets(1, &rtv, nullptr);
 
                 // Weave to back buffer
                 native_weavers[native_weaver_index]->weave(swapChainDesc.BufferDesc.Width, swapChainDesc.BufferDesc.Height);
@@ -103,8 +111,8 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
         }
     }
     else {
-        create_effect_copy_buffer(dx_device_context.Get(), rtv.Get());
-        if (init_weaver(d3d11device.Get(), dx_device_context.Get(), swap_chain)) {
+        create_effect_copy_buffer(dx_device_context.Get(), rtv);
+        if (init_weaver(dx_device.Get(), dx_device_context.Get(), swap_chain)) {
             // Set context and input frame buffer again to make sure they are correct.
             native_weavers[native_weaver_index]->setContext(dx_device_context.Get());
             native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy.Get());
@@ -169,6 +177,19 @@ bool DirectX11Weaver::init_weaver(ID3D11Device* dev, ID3D11DeviceContext* contex
     return weaver_initialized;
 }
 
+bool DirectX11Weaver::create_sr_context() {
+    if (sr_context == nullptr) {
+        try {
+            sr_context = new SR::SRContext();
+            return true;
+        }
+        catch (SR::ServerNotAvailableException& e) {
+            std::cout << "Server not available, trying again later." << std::endl;
+        }
+    }
+    return false;
+}
+
 // Todo: We may want to change the effect_resource_desc type to ID3D11Resource or texture2D.
 bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_context, ID3D11RenderTargetView* effect_resource_desc)
 {
@@ -197,7 +218,9 @@ bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_cont
     }
 
     // Initialize the destination texture
-    texture_copy = nullptr;
+    if (texture_copy == nullptr) {
+        texture_copy.Reset();
+    }
     D3D11_TEXTURE2D_DESC texture_desc;
 
     // Create the destination device
@@ -208,7 +231,7 @@ bool DirectX11Weaver::create_effect_copy_buffer(ID3D11DeviceContext* device_cont
     texture_desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
     device_context->GetDevice(&d3d11_device);
     // Create a texture for the copy. We will use this later to make a new ShaderResourceView for the weaver.
-    hr = d3d11_device->CreateTexture2D(&texture_desc, nullptr, &texture_copy);
+    hr = d3d11_device->CreateTexture2D(&texture_desc, nullptr, texture_copy.GetAddressOf());
     if (FAILED(hr) || !texture_copy)
     {
         source_texture->Release();
