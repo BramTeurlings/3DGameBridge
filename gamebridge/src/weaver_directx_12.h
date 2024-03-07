@@ -6,9 +6,6 @@
 #include "game_bridge_structs.h"
 #include "weaver_interface.h"
 
-#include <sr/weaver/dx12weaver.h>
-#include <sr/management/srcontext.h>
-
 #include <wrl/client.h>
 #include <directx/d3d12.h>
 

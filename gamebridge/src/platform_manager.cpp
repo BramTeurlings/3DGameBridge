@@ -2,11 +2,6 @@
 // Created by Bram on 15/06/2023.
 //
 
-#include "sr/sense/display/switchablehint.h"
-#include "sr/sense/core/inputstream.h"
-#include "sr/utility/exception.h"
-#include "sr/types.h"
-
 #include "platform_manager.h"
 
 PlatformManager::PlatformManager(SRPlatformManagerInitialize parameters) : sr_context(nullptr), lens_hint(nullptr) {
