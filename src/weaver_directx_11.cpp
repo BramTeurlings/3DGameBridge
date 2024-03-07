@@ -82,6 +82,9 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
         // Todo: Only do this for the modded call
         //Check texture size
         if (swapChainDesc.BufferDesc.Width != effect_frame_copy_x || swapChainDesc.BufferDesc.Height != effect_frame_copy_y) {
+            // Update the frame copy width/height
+            effect_frame_copy_x = swapChainDesc.BufferDesc.Width;
+            effect_frame_copy_y = swapChainDesc.BufferDesc.Height;
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             texture_copy.Reset();
             resource_copy.Reset();
