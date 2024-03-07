@@ -1,9 +1,8 @@
 #pragma once
 
 #include "game_bridge.h"
-#include <sr/management/srcontext.h>
-#include <sr/sense/display/switchablehint.h>
-#include "sr/world/display/screen.h"
+#include "sr_platform_includes.h"
+#include "srloader.h"
 
 enum GAME_BRIDGE_API SRPlatformManagerInitializeFlags {
     SRGB_DISABLE_SERVICE_RECONNECTION,

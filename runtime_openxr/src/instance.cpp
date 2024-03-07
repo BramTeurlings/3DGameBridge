@@ -106,9 +106,10 @@ XrResult xrCreateInstance(const XrInstanceCreateInfo* createInfo, XrInstance* in
         return XR_ERROR_NAME_INVALID;
     }
 
-    if (app_info.apiVersion != XR_CURRENT_API_VERSION) {
-        return XR_ERROR_API_VERSION_UNSUPPORTED;
-    }
+    // Todo doing this wrong
+    //if (app_info.apiVersion != XR_CURRENT_API_VERSION) {
+    //    return XR_ERROR_API_VERSION_UNSUPPORTED;
+    //}
 
     // Check api layers
     const char* const* api_layers = createInfo->enabledApiLayerNames;

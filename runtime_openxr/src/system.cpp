@@ -378,6 +378,8 @@ XrSystemId XRGameBridge::CreateXrGameBridgeSystem(XrInstance instance)
     system.physical_resolution = GBVector2i{ static_cast<uint64_t>(system.sr_screen->getPhysicalResolutionWidth()), static_cast<uint64_t>(system.sr_screen->getPhysicalResolutionHeight()) };
 
     g_systems.insert({ system.id, system });
+
+    return system.id;
 }
 
 XRGameBridge::GBVector2i XRGameBridge::GetSystemResolution(const GB_System& gb_system, XrFormFactor form_factor) {

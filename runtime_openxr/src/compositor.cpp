@@ -5,17 +5,18 @@
 #include <filesystem>
 
 #include "swapchain.h"
+#include "settings.h"
 
 
 #include "instance.h"
 namespace XRGameBridge {
-#ifdef _DEBUG
-    const std::string LAYERING_VERTEX = "../../runtime_openxr/shaders/layering_vertex.cso";
-    const std::string LAYERING_PIXEL = "../../runtime_openxr/shaders/layering_pixel.cso";
-#else
-    const std::string LAYERING_VERTEX = "./layering_vertex.cso";
-    const std::string LAYERING_PIXEL = "./layering_pixel.cso";
-#endif
+
+    const std::string LAYERING_VERTEX_DEBUG = "../../runtime_openxr/shaders/layering_vertex.cso";
+    const std::string LAYERING_PIXEL_DEBUG = "../../runtime_openxr/shaders/layering_pixel.cso";
+
+    const std::string LAYERING_VERTEX_NAME = "layering_vertex.cso";
+    const std::string LAYERING_PIXEL_NAME = "layering_pixel.cso";
+
 
     std::vector<char> LoadBinaryFile(std::string path) {
         std::filesystem::path file_path(path);
@@ -79,13 +80,24 @@ namespace XRGameBridge {
 
         // Create the pipeline state, which includes loading shaders.
         {
-            //UINT8* pVertexShaderData;
-            //UINT vertexShaderDataLength;
-            auto vertex_shader = LoadBinaryFile(LAYERING_VERTEX);
-            auto pixel_shader = LoadBinaryFile(LAYERING_PIXEL);
+            std::vector<char>vertex_shader;
+            std::vector<char>pixel_shader;
 
-            //ThrowIfFailed(ReadDataFromFile(GetAssetFullPath(L"shader_mesh_simple_vert.cso").c_str(), &pVertexShaderData, &vertexShaderDataLength));
+            fs::path shader_dir = fs::path(runtime_path).parent_path();
+            if (fs::exists(shader_dir / LAYERING_VERTEX_NAME)) {
+                fs::path vertex = shader_dir / LAYERING_VERTEX_NAME;
+                fs::path pixel = shader_dir / LAYERING_PIXEL_NAME;
+                vertex_shader = LoadBinaryFile(vertex.string());
+                pixel_shader = LoadBinaryFile(pixel.string());
 
+                if (vertex_shader.empty()) {
+                    LOG(ERROR) << "Couldn't find shaders";
+                }
+            }
+            else {
+                vertex_shader = LoadBinaryFile(LAYERING_VERTEX_DEBUG);
+                pixel_shader = LoadBinaryFile(LAYERING_PIXEL_DEBUG);
+            }
 
             CD3DX12_RASTERIZER_DESC rasterizerStateDesc(D3D12_DEFAULT);
             rasterizerStateDesc.CullMode = D3D12_CULL_MODE_FRONT;

@@ -1,6 +1,5 @@
 #pragma once
-#include <sr/management/srcontext.h>
-#include "game_bridge_manager_interface.h"
+#include "srloader.h"
 
 class GameBridgeWeaver : public IGameBridgeManager
 {

@@ -28,7 +28,26 @@ add_library(3DGameBridge SHARED
 		src/hotkey_windows_impl.cpp
 		src/weaver_interface.h
 		src/weaver_interface.cpp
+		src/srloader.h
+		src/srloader.cpp
+		src/sr_platform_includes.h
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+		simulatedreality
+		srDirectX::srDirectX
+)
+
+# Option to build unit tests project
+option(BUILD_UNIT_TESTS "Enabled the unit_tests project")
+if(BUILD_UNIT_TESTS)
+	message("Building unit tests")
+	add_subdirectory(unit_tests)
+endif()
+
+# Link dependancies
+target_include_directories(${PROJECT_NAME} PRIVATE ../third-party/DirectX-Headers/include/DirectX-Headers/include)
+
 
 # Library exporting
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
@@ -69,19 +88,4 @@ install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/GameBridgeConfigVersion.cmake
   DESTINATION lib/cmake/3DGameBridge
-)
-
-# Option to build unit tests project
-option(BUILD_UNIT_TESTS "Enabled the unit_tests project")
-if(BUILD_UNIT_TESTS)
-	message("Building unit tests")
-	add_subdirectory(unit_tests)
-endif()
-
-# Link dependancies
-target_include_directories(${PROJECT_NAME} PRIVATE ../third-party/DirectX-Headers/include/DirectX-Headers/include)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE
-		simulatedreality
-		srDirectX::srDirectX
 )
