@@ -26,14 +26,14 @@ struct DX11WeaverInitialize {
     ID3D11Device* dev;
     ID3D11DeviceContext* context;
     IDXGISwapChain* swap_chain; // Todo: Do we want to ask this or instead ask for the window handle directly?
-    void** in_buffer;
+    void** in_buffer; // Todo: We should document that this needs to be a handle to ID3D11Texture2D.
     void** out_buffer;
     WeaverFlags flags;
     GameBridge* game_bridge;
 };
 
 class DirectX11Weaver : private IGameBridgeManager {
-    SR::SRContext *sr_context;
+    SR::SRContext *sr_context = nullptr;
     SR::PredictingDX11Weaver* native_weavers[2] = { {}, {}};
     int native_weaver_index = 0;
     std::shared_ptr<EventStreamWriter> event_stream_writer;
@@ -52,21 +52,23 @@ class DirectX11Weaver : private IGameBridgeManager {
 
     void SetWeaving(bool weaving_enabled) {}
 
+    bool create_sr_context();
+
     bool create_effect_copy_buffer(ComPtr<ID3D11Device> p_device, ComPtr<ID3D11Texture2D> p_current_back_buffer);
 
     bool init_weaver(ID3D11Device* dev, ID3D11DeviceContext* context, IDXGISwapChain* swap_chain);
 
 public:
-    GameBridgeManagerType GetEventManagerType() override;
+    GAME_BRIDGE_API GameBridgeManagerType GetEventManagerType() override;
 
-    DirectX11Weaver(DX11WeaverInitialize dx11_weaver_initialize);
+    GAME_BRIDGE_API DirectX11Weaver(DX11WeaverInitialize dx11_weaver_initialize);
 
     // Todo: IDXGISwapChain could be the wrong type
-    void Weave(IDXGISwapChain* swap_chain);
+    GAME_BRIDGE_API void Weave(IDXGISwapChain* swap_chain);
 
-    void SetLatency(int latency_in_microseconds);
+    GAME_BRIDGE_API void SetLatency(int latency_in_microseconds);
 
-    void ReinitializeWeaver(DX11WeaverInitialize weaver_init_stuct);
+    GAME_BRIDGE_API void ReinitializeWeaver(DX11WeaverInitialize weaver_init_stuct);
 
     // Not sure we want this
     //const void* GetEventBuffer();

@@ -5,6 +5,8 @@
 
 #include "weaver_directx_11.h"
 
+#include <sr/utility/exception.h>
+
 template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 // Function to create a shader resource view from a texture
@@ -48,6 +50,9 @@ DirectX11Weaver::DirectX11Weaver(DX11WeaverInitialize dx11_weaver_initialize) {
     dx_device = dx11_weaver_initialize.dev;
     dx_device_context = dx11_weaver_initialize.context;
     dx_swap_chain = dx11_weaver_initialize.swap_chain;
+
+    create_sr_context();
+    weaving_enabled = true;
 }
 
 GameBridgeManagerType DirectX11Weaver::GetEventManagerType() {
@@ -78,10 +83,8 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
         //Check texture size
         if (swapChainDesc.BufferDesc.Width != effect_frame_copy_x || swapChainDesc.BufferDesc.Height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
-            texture_copy->Release();
-            texture_copy = nullptr;
-            resource_copy->Release();
-            resource_copy = nullptr;
+            texture_copy.Reset();
+            resource_copy.Reset();
             if (!create_effect_copy_buffer(dx_device, current_back_buffer) && !resize_buffer_failed) {
                 std::cout << "Couldn't create effect copy buffer, trying again next frame" << "\n";
                 resize_buffer_failed = true;
@@ -107,8 +110,7 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
         }
     }
     else {
-        texture_copy->Release();
-        texture_copy = nullptr;
+        texture_copy.Reset();
         create_effect_copy_buffer(dx_device, current_back_buffer);
         if (init_weaver(d3d11device.Get(), dx_device_context.Get(), swap_chain)) {
             // Set context and input frame buffer again to make sure they are correct.
@@ -117,7 +119,7 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
         }
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
-            texture_copy->Release();
+            texture_copy.Reset();
             std::cout << "Failed to initialize weaver." << "\n";
             return;
         }
@@ -171,9 +173,21 @@ bool DirectX11Weaver::init_weaver(ID3D11Device* dev, ID3D11DeviceContext* contex
         return false;
     }
 
-    weaving_enabled = true;
     weaver_initialized = true;
     return weaver_initialized;
+}
+
+bool DirectX11Weaver::create_sr_context() {
+    if (sr_context == nullptr) {
+        try {
+            sr_context = new SR::SRContext();
+            return true;
+        }
+        catch (SR::ServerNotAvailableException& e) {
+            std::cout << "Server not available, trying again later." << std::endl;
+        }
+    }
+    return false;
 }
 
 // Todo: We may want to change the current_back_buffer type to ID3D11Resource or current_back_buffer.
