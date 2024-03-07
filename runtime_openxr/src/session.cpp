@@ -84,6 +84,8 @@ XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) 
     // TODO, move SESSION_READY logic to here, check here whether all components are initialized for the session to be put on READY.
 
     XRGameBridge::GB_Session& gb_session = XRGameBridge::g_sessions[session];
+    XRGameBridge::GB_System gb_system = XRGameBridge::g_systems[gb_session.system];
+
     if (gb_session.session_state == XR_SESSION_STATE_IDLE) {
         LOG(ERROR) << "Session not ready";
         return XR_ERROR_SESSION_NOT_READY;
@@ -97,13 +99,11 @@ XrResult xrBeginSession(XrSession session, const XrSessionBeginInfo* beginInfo) 
 
     XRGameBridge::ChangeSessionState(gb_session, XR_SESSION_STATE_FOCUSED);
 
-
     // Create debug window
-    auto scaled_resolution = XRGameBridge::GetScaledSystemResolutionMainDisplay();
-    gb_session.display.CreateApplicationWindow(XRGameBridge::g_runtime_settings.hInst, scaled_resolution.x, scaled_resolution.y, true, true);
+    auto native_resolution = XRGameBridge::GetNativeSystemResolution(gb_system);
+    gb_session.display.CreateApplicationWindow(XRGameBridge::g_runtime_settings.hInst, native_resolution.x, native_resolution.y, true, true);
 
     // Create swapchain info
-    auto native_resolution = XRGameBridge::GetNativeSystemResolution(XRGameBridge::g_systems[gb_session.system]);
     XrSwapchainCreateInfo swapchain_info;
     swapchain_info.width = native_resolution.x;
     swapchain_info.height = native_resolution.y;
@@ -236,7 +236,6 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     cmd_list->OMSetRenderTargets(1, &back_buffer_rtv_handle, true, nullptr);
 
     // Set viewport for rendering to the final rtv
-    auto scaled_resolution = XRGameBridge::GetScaledSystemResolutionMainDisplay();
     auto native_resolution = XRGameBridge::GetNativeSystemResolution(XRGameBridge::g_systems[gb_session.system]);
     D3D12_VIEWPORT view_port{ 0, 0, static_cast<float>(native_resolution.x) , static_cast<float>(native_resolution.y), 0.0f, 1.0f };
     D3D12_RECT scissor_rect{ 0, 0, native_resolution.x , native_resolution.y };
@@ -244,7 +243,7 @@ XrResult xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     cmd_list->RSSetScissorRects(1, &scissor_rect);
 
     // Do weaving
-    gb_session.d3d12weaver->Weave(cmd_list.Get(), scaled_resolution.x, scaled_resolution.y, 0, 0);
+    gb_session.d3d12weaver->Weave(cmd_list.Get(), native_resolution.x, native_resolution.y, 0, 0);
 
     // Transition swapchain to present
     gb_compositor.TransitionImage(cmd_list.Get(), gb_graphics_device.GetImages()[index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);

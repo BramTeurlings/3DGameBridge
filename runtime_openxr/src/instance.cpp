@@ -491,16 +491,5 @@ void XRGameBridge::InitializeGameBridge() {
 }
 
 void XRGameBridge::InitializeSystems(XrInstance instance) {
-    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
-
-    // Create system
-    GB_System system;
-    system.id = g_systems.size() + 1; // 0 is NULL_SYSTEM_HANDLE
-    system.instance = instance;
-    system.supported_formfactors = { XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY, XR_FORM_FACTOR_HANDHELD_DISPLAY};
-    system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
-    system.sr_screen = SR::Screen::create(*gb_instance->sr_context);
-    system.lens_hint = SR::SwitchableLensHint::create(*gb_instance->sr_context);
-
-    g_systems.insert({ system.id, system });
+    CreateXrGameBridgeSystem(instance);
 };

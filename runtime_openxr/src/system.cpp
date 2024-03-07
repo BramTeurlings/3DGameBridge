@@ -113,17 +113,16 @@ XrResult xrEnumerateViewConfigurationViews(XrInstance instance, XrSystemId syste
     XRGameBridge::GB_System gb_system = XRGameBridge::g_systems[systemId];
     XRGameBridge::GBVector2i form_factor_resolution = GetSystemResolution(gb_system, gb_system.form_factor);
     XRGameBridge::GBVector2i native_resolution = GetNativeSystemResolution(gb_system);
-    XRGameBridge::GBVector2i scaled_resolution = XRGameBridge::GetScaledSystemResolutionMainDisplay();
 
     std::vector<XrViewConfigurationView> supported_views;
     if (viewConfigurationType == XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO) {
         XrViewConfigurationView view{};
         view.type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
         // recommended is half width, max is full width?
-        view.recommendedImageRectWidth = scaled_resolution.x/2;
-        view.maxImageRectWidth = scaled_resolution.x;
-        view.recommendedImageRectHeight = scaled_resolution.y;
-        view.maxImageRectHeight = scaled_resolution.y;
+        view.recommendedImageRectWidth = form_factor_resolution.x;
+        view.maxImageRectWidth = native_resolution.x;
+        view.recommendedImageRectHeight = form_factor_resolution.y;
+        view.maxImageRectHeight = native_resolution.y;
         view.recommendedSwapchainSampleCount = 2; //TODO idk what this means
         view.maxSwapchainSampleCount = 2;
 
@@ -364,20 +363,36 @@ XrResult xrDestroySpace(XrSpace space) {
 //    return sys_props;
 //}
 
+XrSystemId XRGameBridge::CreateXrGameBridgeSystem(XrInstance instance)
+{
+    GB_Instance* gb_instance = reinterpret_cast<GB_Instance*>(instance);
+
+    // Create system
+    GB_System system;
+    system.id = g_systems.size() + 1; // 0 is NULL_SYSTEM_HANDLE
+    system.instance = instance;
+    system.supported_formfactors = { XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY, XR_FORM_FACTOR_HANDHELD_DISPLAY };
+    system.sr_device = XRGameBridge::SRDisplay::SR_DISPLAY;
+    system.sr_screen = SR::Screen::create(*gb_instance->sr_context);
+    system.lens_hint = SR::SwitchableLensHint::create(*gb_instance->sr_context);
+    system.physical_resolution = GBVector2i{ static_cast<uint64_t>(system.sr_screen->getPhysicalResolutionWidth()), static_cast<uint64_t>(system.sr_screen->getPhysicalResolutionHeight()) };
+
+    g_systems.insert({ system.id, system });
+}
+
 XRGameBridge::GBVector2i XRGameBridge::GetSystemResolution(const GB_System& gb_system, XrFormFactor form_factor) {
     bool use_halved_width = form_factor == XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY || form_factor == XR_FORM_FACTOR_HANDHELD_DISPLAY;
-    uint32_t width = static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionWidth());
-    uint32_t height = static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionHeight());
 
+    GBVector2i physical_res = gb_system.physical_resolution;
     if (use_halved_width) {
-        width /= 2;
+        physical_res.x /= 2;
     }
 
-    return GBVector2i{ width ,height };
+    return physical_res;
 }
 
 XRGameBridge::GBVector2i XRGameBridge::GetNativeSystemResolution(const GB_System& gb_system) {
-    return GBVector2i{ static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionWidth()) ,static_cast<uint32_t>(gb_system.sr_screen->getPhysicalResolutionHeight()) };
+    return gb_system.physical_resolution;
 }
 
 XRGameBridge::GBVector2i XRGameBridge::GetScaledSystemResolutionMainDisplay() {
