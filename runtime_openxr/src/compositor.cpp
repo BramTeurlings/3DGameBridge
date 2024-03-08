@@ -184,8 +184,8 @@ namespace XRGameBridge {
                     auto proxy_resource = gb_swapchain.GetBuffers()[view.subImage.imageArrayIndex];
 
                     // Viewport settings
-                    const float width = static_cast<float>(g_platform_manager->GetScreen()->getPhysicalResolutionWidth() *0.5);
-                    const float height = static_cast<float>(g_platform_manager->GetScreen()->getPhysicalResolutionHeight());
+                    const float width = static_cast<float>(rect.extent.width);
+                    const float height = static_cast<float>(rect.extent.height);
                     D3D12_VIEWPORT view_port{ (width * view_num), 0, width, height, 0.0f, 1.0f };
                     D3D12_RECT scissor_rect{ 0, 0, g_platform_manager->GetScreen()->getPhysicalResolutionWidth(), g_platform_manager->GetScreen()->getPhysicalResolutionHeight() };
                     cmd_list->RSSetViewports(1, &view_port);
