@@ -2,7 +2,7 @@
 // Created by Bram on 31/08/2023.
 //
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 class EventSystemTests : public ::testing::Test {
 

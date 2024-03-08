@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 project (unit_tests VERSION 0.1)
-# Update this every time gtest is updated.
-add_subdirectory(lib/googletest-1.14.0)
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+
+set (CMAKE_CXX_STANDARD 20)
 
 add_executable(unit_tests
         test_event_system.cpp
@@ -11,11 +10,17 @@ add_executable(unit_tests
         test_platform_system.cpp
 )
 
-set_target_properties(unit_tests PROPERTIES LINKER_LANGUAGE CXX)
+# Add gtest submodule
+# target_include_directories(unit_tests PRIVATE ${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include)
 
 target_link_libraries(unit_tests PRIVATE 3DGameBridge)
 
 # Gtest
 target_link_libraries(unit_tests PRIVATE gtest gtest_main)
 
-target_link_libraries(unit_tests PRIVATE 3DGameBridge)
+# Copy dependancies
+add_custom_command(
+    TARGET unit_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:3DGameBridge>" "$<TARGET_FILE_DIR:unit_tests>"
+	DEPENDS 3DGameBridge
+)
