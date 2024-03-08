@@ -7,7 +7,7 @@
 #include <algorithm>
 
 HotkeyManager::HotkeyManager(HotkeyManagerInitialize initialize) : implementation(initialize.implementation) {
-    event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(GameBridgeEventManagerType::GB_MANAGER_EVENT_TYPE_HOTKEY, 100, 0);
+    event_stream_writer = initialize.game_bridge.GetEventManager().CreateEventStream(EventStreamType::GB_EVENT_STREAM_TYPE_HOTKEY, 100, 0);
 }
 
 // Polls the hotkeys using the current implementation of the IHotkeys interface. (Currently defaults to the Windows Implementation).

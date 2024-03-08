@@ -18,7 +18,6 @@ struct GAME_BRIDGE_API DX12WeaverInitialize{
     ID3D12Resource* input_resource;
     ID3D12Resource* render_target;
     HWND window;
-    WeaverFlags flags;
 };
 
 class GAME_BRIDGE_API DirectX12Weaver : private GameBridgeWeaver {

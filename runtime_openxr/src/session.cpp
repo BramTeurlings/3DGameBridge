@@ -269,7 +269,7 @@ void XRGameBridge::ChangeSessionState(GB_Session& session, XrSessionState state)
     session.session_state = state;
     EventManager& event_manager = g_game_bridge_instance->GetEventManager();
 
-    event_manager.PrepareForEventStreamWriting();
+    event_manager.PrepareForEventStreamSubmission();
     if (state == XR_SESSION_STATE_READY) {
         XrEventDataSessionStateChanged state_change;
         state_change.type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED;
@@ -277,7 +277,7 @@ void XRGameBridge::ChangeSessionState(GB_Session& session, XrSessionState state)
         state_change.state = XR_SESSION_STATE_READY;
         state_change.time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - session.session_epoch).count();
         g_openxr_event_stream_writer->SubmitEvent(XR_SESSION_STATE_READY, sizeof(XrEventDataSessionStateChanged), &state_change);
-        event_manager.PrepareForEventStreamReading();// TODO FOR DEBUG PURPOSES SHOULD BE REMOVED ASAP
+        event_manager.PrepareForEventStreamProcessing();// TODO FOR DEBUG PURPOSES SHOULD BE REMOVED ASAP
     }
     else if (state == XR_SESSION_STATE_FOCUSED) {
         XrEventDataSessionStateChanged state_change;
@@ -286,6 +286,6 @@ void XRGameBridge::ChangeSessionState(GB_Session& session, XrSessionState state)
         state_change.state = XR_SESSION_STATE_FOCUSED;
         state_change.time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - session.session_epoch).count();
         g_openxr_event_stream_writer->SubmitEvent(XR_SESSION_STATE_FOCUSED, sizeof(XrEventDataSessionStateChanged), &state_change);
-        event_manager.PrepareForEventStreamReading();// TODO FOR DEBUG PURPOSES SHOULD BE REMOVED ASAP
+        event_manager.PrepareForEventStreamProcessing();// TODO FOR DEBUG PURPOSES SHOULD BE REMOVED ASAP
     }
 }

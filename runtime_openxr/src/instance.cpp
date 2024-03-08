@@ -483,8 +483,8 @@ void XRGameBridge::InitializeGameBridge() {
     if (g_game_bridge_instance == nullptr) {
         g_game_bridge_instance = new GameBridge(EventManager());
         auto& event_manager = g_game_bridge_instance->GetEventManager();
-        g_openxr_event_stream_writer = event_manager.CreateEventStream(SRGB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE, 300, XR_MAX_EVENT_DATA_SIZE);
-        g_openxr_event_stream_reader = event_manager.GetEventStreamReader(SRGB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE);
+        g_openxr_event_stream_writer = event_manager.CreateEventStream(GB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE, 300, XR_MAX_EVENT_DATA_SIZE);
+        g_openxr_event_stream_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE);
 
 
         //g_openxr_event_stream_writer->SubmitEvent(XR_TYPE_EVENT_DATA_EVENTS_LOST, 200, nullptr);
