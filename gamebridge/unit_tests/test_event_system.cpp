@@ -175,11 +175,8 @@ TEST_F(EventSystemTests, GetNextEvent) {
 
     // Read events from stream
     uint32_t eventidx = 0;
-
     uint32_t event_type;
-    size_t extra_data_size = 0;
-    void* event_data = nullptr;
-    while (platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data)) {
+    while (platform_event_reader->GetNextEvent(event_type)) {
         switch (event_type) {
             case TEST_1:
             {
@@ -259,7 +256,6 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
 
     // Test ClearStream for a EventStreamReader
     uint32_t event_type;
-    size_t extra_data_size = 0;
     void* event_data = nullptr;
 
     for (int i = 0; i < 5; i++) {
@@ -267,7 +263,8 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
     }
 
     for (int i = 0; i < 5; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, TEST_1) << "Event not equal to TEST_1";
     }
 
     platform_event_writer->ClearStream();
@@ -277,9 +274,14 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
     platform_event_writer->ClearStream();
     platform_event_reader->ResetEventIndexPointer();
     // Test 3 times to make sure the index pointer is not moving
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL) << "Event not equal to TEST_NULL";
+
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL) << "Event not equal to TEST_NULL";
+
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL) << "Event not equal to TEST_NULL";
 }
 
 TEST_F(EventSystemTests, ResetEventIndexPointer) {
@@ -299,24 +301,27 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
 
     // Test all events in buffer
     uint32_t event_type;
-    size_t extra_data_size = 0;
     void* event_data = nullptr;
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL)
         << "Final event should be TEST_NULL";
 
     // Reset the pointer and test all events again
     platform_event_reader->ResetEventIndexPointer();
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL)
     << "Final event should be TEST_NULL";
 }
 
@@ -357,10 +362,10 @@ TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
 
     // Test all events in buffer
     uint32_t event_type;
-    size_t extra_data_size = 0;
     void* event_data = nullptr;
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
 
@@ -369,11 +374,13 @@ TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
 
     // Can process events again
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL)
         << "Final event should be TEST_NULL";
 }
 // Basically a full system test that also uses PrepareForEventStreamSubmission and PrepareForEventStreamProcessing
@@ -443,9 +450,7 @@ TEST_F(EventSystemTests, FullTest)
 
         // Test reading all events as expected
         uint32_t event_type;
-        size_t extra_data_size = 0;
-        void* event_data = nullptr;
-        while (platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data)) {
+        while (platform_event_reader->GetNextEvent(event_type)) {
             switch (event_type) {
             case TEST_1:
             {

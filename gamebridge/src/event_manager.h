@@ -51,11 +51,9 @@ public:
     /**
     * \brief Gets the next event for the user to process
     * @param event_type Type of the next event
-    * @param size Size of the next event
-    * @param data Pointer to the data of the event
-    * \return Event type enum.
+    * \return pointer to the event, nullptr if event_type is GB_NULL_EVENT
     */
-    GB_EVENT GetNextEvent(uint32_t& event_type, size_t& size, void* data);
+    void* GetNextEvent(uint32_t& event_type);
 
     /**
      * \brief Sets the read index back to the beginning of the buffer.
