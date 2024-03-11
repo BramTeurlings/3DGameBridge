@@ -5,10 +5,6 @@ set (CMAKE_CXX_STANDARD 20)
 project (GameBridge VERSION 0.1)
 message("Game Bridge Version: ${3DGameBridge_VERSION}")
 
-# Set DirectX headers include
-set(TARGET_DXHEADERS DirectX-Headers)
-add_subdirectory(third-party/DirectX-Headers)
-
 # Todo Don't really like that we add a submodule here for unit tests, in gamebridge/unit_tests. Maybe use CPM for this?
 # Option to build unit tests project
 option(BUILD_UNIT_TESTS "Enabled the unit_tests project")

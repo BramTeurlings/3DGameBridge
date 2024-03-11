@@ -46,7 +46,7 @@ if(BUILD_UNIT_TESTS)
 endif()
 
 # Link dependancies
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/third-party/DirectX-Headers/include/DirectX-Headers/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ../third-party/DirectX-Headers/include/DirectX-Headers/include)
 
 # Library exporting
 target_compile_definitions(3DGameBridge PUBLIC GAME_BRIDGE_API_EXPORTS)
