@@ -59,7 +59,45 @@ GameBridgeManagerType DirectX11Weaver::GetEventManagerType() {
     return GameBridgeManagerType::SRGB_MANAGER_WEAVER_DX11;
 }
 
-void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
+bool DirectX11Weaver::ResizeIfBufferSizeChanged(DXGI_SWAP_CHAIN_DESC swap_chain_desc, ComPtr<ID3D11Texture2D> current_back_buffer) {
+    if (swap_chain_desc.BufferDesc.Width != effect_frame_copy_x || swap_chain_desc.BufferDesc.Height != effect_frame_copy_y) {
+        // Update the frame copy width/height
+        effect_frame_copy_x = swap_chain_desc.BufferDesc.Width;
+        effect_frame_copy_y = swap_chain_desc.BufferDesc.Height;
+        //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
+        texture_copy.Reset();
+        resource_copy.Reset();
+        if (!create_effect_copy_buffer(dx_device, current_back_buffer) && !resize_buffer_failed) {
+            std::cout << "Couldn't create effect copy buffer, trying again next frame" << "\n";
+            resize_buffer_failed = true;
+        }
+
+        // Set newly copied buffer as the input for the weaver to weave on
+        native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy.Get());
+        std::cout << "Buffer size changed" << "\n";
+        return true;
+    }
+
+    return false;
+}
+
+void DirectX11Weaver::DoWeave(ComPtr<ID3D11Texture2D> current_back_buffer, ComPtr<ID3D11RenderTargetView> rtv, DXGI_SWAP_CHAIN_DESC swap_chain_desc, bool use_copy_buffer) {
+    if (weaving_enabled) {
+        // Copy resource
+        // Todo: Check if we should only do this once and on resize, then move this function elsewhere.
+        if (use_copy_buffer) {
+            create_effect_copy_buffer(dx_device, current_back_buffer);
+        }
+
+        // Bind back buffer as render target
+        dx_device_context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+
+        // Weave to back buffer
+        native_weavers[native_weaver_index]->weave(swap_chain_desc.BufferDesc.Width, swap_chain_desc.BufferDesc.Height);
+    }
+}
+
+void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain, bool use_copy_buffer_and_handle_resize) {
     DXGI_SWAP_CHAIN_DESC swapChainDesc;
     swap_chain->GetDesc(&swapChainDesc);
     ComPtr<ID3D11Device> d3d11device;
@@ -79,51 +117,40 @@ void DirectX11Weaver::Weave(IDXGISwapChain* swap_chain) {
             return;
         }
 
-        // Todo: Only do this for the modded call
-        //Check texture size
-        if (swapChainDesc.BufferDesc.Width != effect_frame_copy_x || swapChainDesc.BufferDesc.Height != effect_frame_copy_y) {
-            // Update the frame copy width/height
-            effect_frame_copy_x = swapChainDesc.BufferDesc.Width;
-            effect_frame_copy_y = swapChainDesc.BufferDesc.Height;
-            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
-            texture_copy.Reset();
-            resource_copy.Reset();
-            if (!create_effect_copy_buffer(dx_device, current_back_buffer) && !resize_buffer_failed) {
-                std::cout << "Couldn't create effect copy buffer, trying again next frame" << "\n";
-                resize_buffer_failed = true;
-            }
+        // Check if we need to copy the buffer
+        if (use_copy_buffer_and_handle_resize) {
+            // Check texture size, if it hasn't changed then do the standard weaving behavior
+            if (!ResizeIfBufferSizeChanged(swapChainDesc, current_back_buffer)) {
+                // No resize occurred
+                resize_buffer_failed = false;
 
-            // Set newly copied buffer as the input for the weaver to weave on
-            native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy.Get());
-            std::cout << "Buffer size changed" << "\n";
+                // Weave logic
+                DoWeave(current_back_buffer, rtv, swapChainDesc, true);
+            }
         }
-        else {
-            resize_buffer_failed = false;
-
-            if (weaving_enabled) {
-                // Copy resource
-                // Todo: Make this a separate function.
-                // Todo: We should only do this once and on resize, move this function elsewhere.
-                create_effect_copy_buffer(dx_device, current_back_buffer);
-
-                // Bind back buffer as render target
-                dx_device_context->OMSetRenderTargets(1, &rtv, nullptr);
-
-                // Weave to back buffer
-                native_weavers[native_weaver_index]->weave(swapChainDesc.BufferDesc.Width, swapChainDesc.BufferDesc.Height);
-            }
+        else if (weaving_enabled) {
+            // Weave logic
+            DoWeave(current_back_buffer, rtv, swapChainDesc, true);
         }
     }
     else {
-        texture_copy.Reset();
-        create_effect_copy_buffer(dx_device, current_back_buffer);
+        bool effect_copy_buffer_succeeded = false;
+        if (use_copy_buffer_and_handle_resize) {
+            texture_copy.Reset();
+            if (create_effect_copy_buffer(dx_device, current_back_buffer)) {
+                effect_copy_buffer_succeeded = true;
+            }
+        }
+
         if (init_weaver(d3d11device.Get(), dx_device_context.Get(), swap_chain)) {
             // Set context and input frame buffer again to make sure they are correct.
             native_weavers[native_weaver_index]->setContext(dx_device_context.Get());
-            native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy.Get());
+            if (use_copy_buffer_and_handle_resize) {
+                native_weavers[native_weaver_index]->setInputFrameBuffer(resource_copy.Get());
+            }
         }
-        else {
-            // When buffer creation succeeds and this fails, delete the created buffer
+        else if (use_copy_buffer_and_handle_resize && effect_copy_buffer_succeeded) {
+            // When buffer creation succeeds and weaver initalization fails, delete the created buffer
             texture_copy.Reset();
             std::cout << "Failed to initialize weaver." << "\n";
             return;
@@ -165,7 +192,6 @@ bool DirectX11Weaver::init_weaver(ID3D11Device* dev, ID3D11DeviceContext* contex
 
         native_weavers[native_weaver_index] = new SR::PredictingDX11Weaver(*sr_context, dev, context, swapChainDesc.BufferDesc.Width, swapChainDesc.BufferDesc.Height, swapChainDesc.OutputWindow);
         native_weavers[native_weaver_index]->setContext(context);
-        native_weavers[native_weaver_index]->setInputFrameBuffer((ID3D11ShaderResourceView*)back_buffer); //resourceview of the buffer
         sr_context->initialize();
         std::cout <<  "Initialized weaver" << "\n";
     }

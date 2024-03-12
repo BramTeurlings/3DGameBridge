@@ -58,13 +58,30 @@ class DirectX11Weaver : private IGameBridgeManager {
 
     bool init_weaver(ID3D11Device* dev, ID3D11DeviceContext* context, IDXGISwapChain* swap_chain);
 
+    /// \brief Checks if the size buffer inside the swap chain has been changed since the last frame we checked. If so, we resize our own buffers to match.
+    /// @param swap_chain_desc the description that we use to read the buffer size from
+    /// @param current_back_buffer the back buffer we copy when we find out that a resize has happened
+    /// @return true if a resize has occured, false otherwise.
+    bool ResizeIfBufferSizeChanged(DXGI_SWAP_CHAIN_DESC swap_chain_desc, ComPtr<ID3D11Texture2D> current_back_buffer);
+
+    // Todo: Behavior if use_copy_buffer is false is not tested and probably not working yet!
+    /// \brief This method checks if weaving is enabled internally and calls the SR SDK to weave the image to the provided back_buffer.
+    /// @param current_back_buffer pointer to the texture representing the swap chain's back buffer
+    /// @param rtv pointer representing the render target view
+    /// @param swap_chain_desc description of the current swap chain
+    /// @param use_copy_buffer bool representing if this call should copy the back buffer before weaving or not.
+    void DoWeave(ComPtr<ID3D11Texture2D> current_back_buffer, ComPtr<ID3D11RenderTargetView> rtv,DXGI_SWAP_CHAIN_DESC swap_chain_desc, bool use_copy_buffer);
+
 public:
     GAME_BRIDGE_API GameBridgeManagerType GetEventManagerType() override;
 
     GAME_BRIDGE_API DirectX11Weaver(DX11WeaverInitialize dx11_weaver_initialize);
 
     // Todo: IDXGISwapChain could be the wrong type
-    GAME_BRIDGE_API void Weave(IDXGISwapChain* swap_chain);
+    /// \brief Weaves using the SR SDK
+    /// @param swap_chain The swap chain that holds the back buffer we want to weave to
+    /// @param use_copy_buffer_and_handle_resize A boolean representing wether or not we should copy the back buffer into another texture before we weave. It also resizes this internal buffer on back_buffer resize.
+    GAME_BRIDGE_API void Weave(IDXGISwapChain* swap_chain, bool use_copy_buffer_and_handle_resize = false);
 
     GAME_BRIDGE_API void SetLatency(int latency_in_microseconds);
 
