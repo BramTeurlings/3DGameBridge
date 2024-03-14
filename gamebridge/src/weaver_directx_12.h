@@ -55,6 +55,8 @@ public:
 
     void SetLatency(int latency_in_microseconds);
 
+    void SetInputFrameBuffer(ID3D12Resource* resource, DXGI_FORMAT format);
+
 
     //Not sure we want this
     //const void* GetEventBuffer();

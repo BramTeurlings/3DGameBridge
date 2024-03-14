@@ -53,3 +53,8 @@ void DirectX12Weaver::Weave(ID3D12GraphicsCommandList* commandList, unsigned int
 void DirectX12Weaver::SetLatency(int latency_in_microseconds) {
     native_weaver->setLatency(latency_in_microseconds);
 }
+
+void DirectX12Weaver::SetInputFrameBuffer(ID3D12Resource* resource, DXGI_FORMAT format)
+{
+    native_weaver->setInputFrameBuffer(resource, format);
+}
