@@ -90,7 +90,8 @@ void DirectX11Weaver::DoWeave(ComPtr<ID3D11Texture2D> current_back_buffer, ComPt
         }
 
         // Bind back buffer as render target
-        dx_device_context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+        // Todo: I don't think the wrapper is supposed to do this.
+        //dx_device_context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
 
         // Weave to back buffer
         native_weavers[native_weaver_index]->weave(swap_chain_desc.BufferDesc.Width, swap_chain_desc.BufferDesc.Height);
