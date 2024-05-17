@@ -4,3 +4,9 @@
 [submodule "third-party/DirectX-Headers"]
 	path = third-party/DirectX-Headers
 	url = https://github.com/microsoft/DirectX-Headers.git
+[submodule "third-party/zydis"]
+	path = third-party/zydis
+	url = https://github.com/zyantific/zydis.git
+[submodule "third-party/safetyhook"]
+	path = third-party/safetyhook
+	url = https://github.com/cursey/safetyhook.git

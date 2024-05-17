@@ -31,11 +31,17 @@ add_library(3DGameBridge SHARED
 		src/srloader.h
 		src/srloader.cpp
 		src/sr_platform_includes.h
+		src/hooks.h
+		src/hooks.cpp
 )
+
+
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
 		srDirectX::srDirectX
+		Zydis
+		safetyhook
 )
 
 # Option to build unit tests project

@@ -6,7 +6,6 @@
 #include <memory>
 #include "game_bridge_manager_interface.h"
 #include "game_bridge_structs.h"
-#include <variant>
 
 #define DEFAULT_MESSAGE_SIZE 0
 #define DEFAULT_MESSAGE_COUNT 300

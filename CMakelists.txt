@@ -16,5 +16,9 @@ endif()
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 
+# Other dependencies
+add_subdirectory(third-party/zydis)
+add_subdirectory(third-party/safetyhook)
+
 # Add projects
 add_subdirectory(gamebridge)
