@@ -3,7 +3,7 @@
 //
 
 #include <algorithm>
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "hotkey_manager.h"
 #include "hotkey_windows_impl.h"
 #include "windows.h"

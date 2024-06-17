@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 // TODO Move all the export definitions in the project to an common header file for internal use only (if that works)
 #include <cstddef>
@@ -32,10 +33,11 @@ enum GAME_BRIDGE_API GameBridgeHotkeyManagerInitialize {
 };
 
 // Event manager types
-enum GAME_BRIDGE_API GameBridgeEventManagerType {
-    GB_MANAGER_EVENT_TYPE_HOTKEY,
-    GB_MANAGER_EVENT_TYPE_PLATFORM,
-    GB_MANAGER_EVENT_TYPE_WEAVER
+enum GAME_BRIDGE_API EventStreamType {
+    GB_EVENT_STREAM_TYPE_HOTKEY,
+    GB_EVENT_STREAM_TYPE_PLATFORM,
+    GB_EVENT_STREAM_TYPE_WEAVER,
+    GB_EVENT_STREAM_TYPE_XR_GAME_BRIDGE
 };
 
 // Messages
@@ -43,7 +45,12 @@ enum GAME_BRIDGE_API GameBridgeEventManagerType {
 constexpr size_t GB_EVENT_NULL = 0;
 
 enum GAME_BRIDGE_API GameBridgeHotKeyEvent {
-    GB_EVENT_HOTKEY_TOGGLE_LENS = 1
+    GB_EVENT_HOTKEY_TOGGLE_LENS = 1,
+    GB_EVENT_HOTKEY_TOGGLE_WEAVING = 2,
+    GB_EVENT_HOTKEY_INCREASE_SEPARATION = 3,
+    GB_EVENT_HOTKEY_DECREASE_SEPARATION = 4,
+    GB_EVENT_HOTKEY_INCREASE_CONVERGENCE = 5,
+    GB_EVENT_HOTKEY_DECREASE_CONVERGENCE = 6
 };
 
 enum GAME_BRIDGE_API GameBridgePlatformEvent {
