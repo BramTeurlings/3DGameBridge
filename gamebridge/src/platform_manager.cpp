@@ -47,6 +47,7 @@ bool PlatformManager::InitializeSRContext() {
         lens_hint = SR::SwitchableLensHint::create(*sr_context);
         sr_context->initialize();
     }
+    return true;
 }
 
 SR::Screen* PlatformManager::GetScreen() {
