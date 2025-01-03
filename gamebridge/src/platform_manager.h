@@ -44,21 +44,21 @@ struct GAME_BRIDGE_API SRPlatformManagerInitialize {
 };
 
 class GAME_BRIDGE_API PlatformManager : private IGameBridgeManager {
-public:
     WeaverType weaver_type;
     // Todo Create event stream
 
     SR::SRContext* sr_context;
-    SR::Screen* screen;
+    SR::Display* display;
     SR::SwitchableLensHint* lens_hint;
 
+public:
     explicit PlatformManager(SRPlatformManagerInitialize parameters);
 
     SR::SRContext* GetContext();
     GameBridgeManagerType GetEventManagerType() override;
     bool InitializeSRContext();
 
-    SR::Screen* GetScreen();
+    SR::Display* GetDisplay();
     SR::SwitchableLensHint* GetLensHint();
 
 private:

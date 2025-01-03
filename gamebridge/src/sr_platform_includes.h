@@ -8,3 +8,4 @@
 #include <sr/weaver/dx12weaver.h>
 #include <sr/sense/core/inputstream.h>
 #include <sr/world/display/screen.h>
+#include <sr/world/display/display.h>

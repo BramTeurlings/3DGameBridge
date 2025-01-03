@@ -43,15 +43,15 @@ bool PlatformManager::InitializeSRContext() {
             // Unable to construct SR Context.
             return false;
         }
-        screen = SR::Screen::create(*sr_context);
+        display = SR::Display::create(*sr_context);
         lens_hint = SR::SwitchableLensHint::create(*sr_context);
         sr_context->initialize();
     }
     return true;
 }
 
-SR::Screen* PlatformManager::GetScreen() {
-    return screen;
+SR::Display* PlatformManager::GetDisplay() {
+    return display;
 }
 
 SR::SwitchableLensHint* PlatformManager::GetLensHint() {
