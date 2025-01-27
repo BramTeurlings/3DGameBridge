@@ -13,15 +13,15 @@ template <typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 struct GAME_BRIDGE_API DX12WeaverInitialize{
     GameBridge* game_bridge;
-    ID3D12Device* device;
-    ID3D12CommandQueue* command_queue;
-    ID3D12Resource* input_resource;
-    ID3D12Resource* render_target;
+    ComPtr <ID3D12Device> device;
+    ComPtr <ID3D12CommandQueue> command_queue;
+    ComPtr <ID3D12Resource> input_resource;
+    ComPtr <ID3D12Resource> render_target;
     HWND window;
 };
 
 class GAME_BRIDGE_API DirectX12Weaver : private GameBridgeWeaver {
-    SR::SRContext *sr_context;
+    SR::SRContext* sr_context;
     SR::PredictingDX12Weaver* native_weaver;
 
     ComPtr<ID3D12Resource> input_resource;
@@ -40,6 +40,8 @@ class GAME_BRIDGE_API DirectX12Weaver : private GameBridgeWeaver {
 
     bool CreateEffectCopyBuffer(D3D12_RESOURCE_DESC resource_desc);
 public:
+
+    ~DirectX12Weaver();
     GameBridgeManagerType GetEventManagerType() override;
 
     explicit DirectX12Weaver(DX12WeaverInitialize parameters);

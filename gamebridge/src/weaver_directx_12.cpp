@@ -21,6 +21,10 @@ bool DirectX12Weaver::CreateEffectCopyBuffer(D3D12_RESOURCE_DESC resource_desc) 
     return true;
 }
 
+DirectX12Weaver::~DirectX12Weaver() {
+    delete native_weaver;
+}
+
 GameBridgeManagerType DirectX12Weaver::GetEventManagerType() {
     return GameBridgeManagerType::GB_MANAGER_WEAVER_DX12;
 }
@@ -43,6 +47,7 @@ void DirectX12Weaver::InitializeWeaver(SR::SRContext* sr_context) {
     if (native_weaver) {
         delete native_weaver;
     }
+    // Todo add try catch
     native_weaver = new SR::PredictingDX12Weaver(*sr_context, device.Get(), command_allocator.Get(), command_queue.Get(), input_resource.Get(), render_target.Get(), window, render_target->GetDesc().Format);
 }
 

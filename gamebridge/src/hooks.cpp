@@ -7,12 +7,12 @@ inline SafetyHookInline safe_hook_PeekMessageA {};
 inline SafetyHookInline safe_hook_PeekMessageW {};
 
 BOOL HookFunc_PeekMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) {
-    std::cout << "Hooked A";
+    std::cout << "Hooked A" << std::endl;
     return safe_hook_PeekMessageA.call<BOOL>(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
 }
 
 BOOL HookFunc_PeekMessageW(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) {
-    std::cout << "Hooked W";
+    std::cout << "Hooked W" << std::endl;
     return safe_hook_PeekMessageW.call<BOOL>(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg);
 }
 
