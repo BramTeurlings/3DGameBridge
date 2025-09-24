@@ -12,6 +12,19 @@ if(BUILD_UNIT_TESTS)
 	add_subdirectory(third-party/googletest)
 endif()
 
+#  link with LeiaSR SDK
+if(DEFINED LEIASR_SDKROOT)
+	message("LeiaSR SDK found in ${LEIASR_SDKROOT}")
+elseif(DEFINED ENV{LEIASR_SDKROOT})
+	set(LEIASR_SDKROOT $ENV{LEIASR_SDKROOT})
+	message("LeiaSR SDK found with environment variable ${LEIASR_SDKROOT}")
+else()
+	message(FATAL_ERROR "LEIASR_SDKROOT not found, either set it or add it as an environment variable.")
+endif()
+
+list(APPEND CMAKE_PREFIX_PATH "${LEIASR_SDKROOT}/lib/cmake")
+
+
 # Include SR
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
