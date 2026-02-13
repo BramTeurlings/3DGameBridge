@@ -9,21 +9,21 @@ EventStreamReader::EventStreamReader(EventStream stream) : event_stream(stream) 
 
 // TODO Reserve data at the start of the buffer containing a boolean saying the stream is allowed to be read.
 // TODO this way we can tell whether an EOS message has been written so it's safe to read
-GB_EVENT EventStreamReader::GetNextEvent(GB_EVENT& event_type, size_t &size, void *data) {
+void* EventStreamReader::GetNextEvent(GB_EVENT& event_type) {
     EventHeader const* header = reinterpret_cast<EventHeader*>(next);
-    size = header->size;
+    size_t size = header->size;
     event_type = header->event_type;
 
     // If event type is GB_EVENT_NULL, let the next pointer point to this event
     if (event_type == GB_EVENT_NULL) {
-        return event_type;
+        return nullptr;
     }
 
     // TODO Data is never read after assignment here.
-    data = next + sizeof(EventHeader);
+    void* data = next + sizeof(EventHeader);
     next = next + sizeof(EventHeader) + size;
 
-    return event_type;
+    return data;
 }
 
 void EventStreamReader::ResetEventIndexPointer() {
@@ -79,10 +79,10 @@ size_t EventStreamWriter::GetUsedBytes()
 }
 
 // EventManager
-std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(GameBridgeEventManagerType event_manager_type) {
+std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(EventStreamType event_stream_type) {
     // TODO Use indirection array to get stream readers and writers?
     try {
-        EventStream const& stream = event_streams.at(event_manager_type);
+        EventStream const& stream = event_streams.at(event_stream_type);
         std::shared_ptr<EventStreamReader> reader = std::make_shared<EventStreamReader>(EventStreamReader(stream));
         stream_readers.push_back(reader);
         return reader;
@@ -99,14 +99,14 @@ std::shared_ptr<EventStreamReader> EventManager::GetEventStreamReader(GameBridge
 
 // TODO maybe use error codes?
 // TODO Only one event stream can exists per manager, the existing stream will be returned or nullptr?
-std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(GameBridgeEventManagerType event_manager_type, uint32_t max_event_count, size_t extra_event_data_size)
+std::shared_ptr<EventStreamWriter> EventManager::CreateEventStream(EventStreamType event_stream_type, uint32_t max_event_count, size_t extra_event_data_size)
 {
     size_t message_size = sizeof(EventHeader) + extra_event_data_size;
     size_t buffer_size = message_size * (max_event_count + 1); // +1 to event count for end of buffer message
 
     std::shared_ptr<char[]> ptr(new char[buffer_size]);
-    EventStream stream{ buffer_size, buffer_size - sizeof(EventHeader),static_cast<uint32_t>(event_manager_type), ptr};
-    event_streams.insert({ event_manager_type, stream });
+    EventStream stream{ buffer_size, buffer_size - sizeof(EventHeader),static_cast<uint32_t>(event_stream_type), ptr};
+    event_streams.insert({ event_stream_type, stream });
 
     std::shared_ptr<EventStreamWriter> writer = std::make_shared<EventStreamWriter>(EventStreamWriter(stream));
     stream_writers.push_back(writer);

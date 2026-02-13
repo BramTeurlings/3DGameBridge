@@ -13,7 +13,7 @@
 struct GAME_BRIDGE_API HotkeyManagerInitialize {
     std::shared_ptr<IHotkeys> implementation;
     GameBridgeHotkeyManagerInitialize flags;
-    GameBridge game_bridge;
+    GameBridge* game_bridge;
 };
 
 struct HotkeyContainer {

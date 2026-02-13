@@ -18,7 +18,7 @@ bool GameBridge::RegisterManager(IGameBridgeManager *manager) {
     return false;
 }
 
-EventManager GameBridge::GetEventManager() {
+EventManager& GameBridge::GetEventManager() {
     return event_manager;
 }
 

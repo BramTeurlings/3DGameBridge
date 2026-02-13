@@ -2,7 +2,7 @@
 // Created by Bram on 31/08/2023.
 //
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "event_manager.h"
 
 #define TEST_EVENT_COUNT 500
@@ -11,7 +11,7 @@ class EventSystemTests : public ::testing::Test {
 
 protected:
     virtual void SetUp() {
-        platform_event_writer = event_manager.CreateEventStream(GB_MANAGER_EVENT_TYPE_PLATFORM, TEST_EVENT_COUNT, 0);
+        platform_event_writer = event_manager.CreateEventStream(GB_EVENT_STREAM_TYPE_PLATFORM, TEST_EVENT_COUNT, 0);
     }
 
     void FillEventStreams()
@@ -57,7 +57,7 @@ protected:
 };
 
 TEST_F(EventSystemTests, CreateEventStream) {
-    auto stream_writer = event_manager.CreateEventStream(GB_MANAGER_EVENT_TYPE_WEAVER, 300, 0);
+    auto stream_writer = event_manager.CreateEventStream(GB_EVENT_STREAM_TYPE_WEAVER, 300, 0);
     EventStream stream = stream_writer->GetEventStream();
 
     ASSERT_EQ(stream_writer->GetUsedBytes(), 0)
@@ -76,7 +76,7 @@ TEST_F(EventSystemTests, CreateEventStream) {
         << "Unexpected buffer size";
 
     // Check stream id
-    ASSERT_EQ(stream.stream_id, GB_MANAGER_EVENT_TYPE_WEAVER)
+    ASSERT_EQ(stream.stream_id, GB_EVENT_STREAM_TYPE_WEAVER)
         << "Stream id should correspond to the manager type the stream was initialized with";
 
     // TODO test with extra data
@@ -84,7 +84,7 @@ TEST_F(EventSystemTests, CreateEventStream) {
 
 TEST_F(EventSystemTests, GetEventStreamReader) {
     // Check platform event
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
     ASSERT_TRUE(platform_event_reader);
 
     // Check if the object is valid by calling a function
@@ -98,7 +98,7 @@ TEST_F(EventSystemTests, GetEventStreamReader) {
         << "weaver_event_reader not empty, can't continue test";
 
     // Manager should not exist
-    hotkey_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_HOTKEY);
+    hotkey_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_HOTKEY);
     ASSERT_EQ(hotkey_event_reader, nullptr)
         << "Hotkey manager should be empty";
 
@@ -150,7 +150,7 @@ TEST_F(EventSystemTests, GetUsedBytes)
 
 TEST_F(EventSystemTests, GetNextEvent) {
     // Get event stream reader
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
 
     // Write 499 mock events to stream
     for (uint32_t i = 0; i < TEST_EVENT_COUNT-1; i++) {
@@ -175,11 +175,8 @@ TEST_F(EventSystemTests, GetNextEvent) {
 
     // Read events from stream
     uint32_t eventidx = 0;
-
     uint32_t event_type;
-    size_t extra_data_size = 0;
-    void* event_data = nullptr;
-    while (platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data)) {
+    while (platform_event_reader->GetNextEvent(event_type)) {
         switch (event_type) {
             case TEST_1:
             {
@@ -216,7 +213,7 @@ TEST_F(EventSystemTests, GetNextEvent) {
 }
 
 TEST_F(EventSystemTests, ClearStream_StreamWriter) {
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
     auto buffer = platform_event_writer->GetEventStream().buffer;
 
     // Pointer to first event in the stream
@@ -255,11 +252,10 @@ TEST_F(EventSystemTests, ClearStream_StreamWriter) {
 }
 
 TEST_F(EventSystemTests, ClearStream_StreamReader) {
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
 
     // Test ClearStream for a EventStreamReader
     uint32_t event_type;
-    size_t extra_data_size = 0;
     void* event_data = nullptr;
 
     for (int i = 0; i < 5; i++) {
@@ -267,7 +263,8 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
     }
 
     for (int i = 0; i < 5; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_1) << "Event not equal to TEST_1";
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, TEST_1) << "Event not equal to TEST_1";
     }
 
     platform_event_writer->ClearStream();
@@ -277,13 +274,18 @@ TEST_F(EventSystemTests, ClearStream_StreamReader) {
     platform_event_writer->ClearStream();
     platform_event_reader->ResetEventIndexPointer();
     // Test 3 times to make sure the index pointer is not moving
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL) << "Event not equal to TEST_NULL";
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL) << "Event not equal to TEST_NULL";
+
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL) << "Event not equal to TEST_NULL";
+
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL) << "Event not equal to TEST_NULL";
 }
 
 TEST_F(EventSystemTests, ResetEventIndexPointer) {
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
 
     // Fill buffer
     platform_event_writer->SubmitEvent(TEST_1);
@@ -299,31 +301,34 @@ TEST_F(EventSystemTests, ResetEventIndexPointer) {
 
     // Test all events in buffer
     uint32_t event_type;
-    size_t extra_data_size = 0;
     void* event_data = nullptr;
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL)
         << "Final event should be TEST_NULL";
 
     // Reset the pointer and test all events again
     platform_event_reader->ResetEventIndexPointer();
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL)
     << "Final event should be TEST_NULL";
 }
 
 TEST_F(EventSystemTests, PrepareForEventStreamSubmission)
 {
     // Get event stream reader
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
 
     // Make sure all streams are cleared and reader pointers are reset
     event_manager.PrepareForEventStreamSubmission();
@@ -342,7 +347,7 @@ TEST_F(EventSystemTests, PrepareForEventStreamSubmission)
 
 TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
 {
-    platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+    platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
 
     // Fill buffer
     platform_event_writer->SubmitEvent(TEST_1);
@@ -357,10 +362,10 @@ TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
 
     // Test all events in buffer
     uint32_t event_type;
-    size_t extra_data_size = 0;
     void* event_data = nullptr;
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
 
@@ -369,11 +374,13 @@ TEST_F(EventSystemTests, PrepareForEventStreamProcessing)
 
     // Can process events again
     for (int i = 1; i <= 9; i++) {
-        ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), i)
+        event_data = platform_event_reader->GetNextEvent(event_type);
+        ASSERT_EQ(event_type, i)
             << "Event not equal to " << i;
     }
     // Final event should be TEST_NULL
-    ASSERT_EQ(platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data), TEST_NULL)
+    event_data = platform_event_reader->GetNextEvent(event_type);
+    ASSERT_EQ(event_type, TEST_NULL)
         << "Final event should be TEST_NULL";
 }
 // Basically a full system test that also uses PrepareForEventStreamSubmission and PrepareForEventStreamProcessing
@@ -381,7 +388,7 @@ TEST_F(EventSystemTests, FullTest)
 {
     for (int redo = 0; redo < 5; redo++) {
         // Get event stream reader
-        platform_event_reader = event_manager.GetEventStreamReader(GB_MANAGER_EVENT_TYPE_PLATFORM);
+        platform_event_reader = event_manager.GetEventStreamReader(GB_EVENT_STREAM_TYPE_PLATFORM);
 
         // Make sure all streams are cleared and reader pointers are reset
         event_manager.PrepareForEventStreamSubmission();
@@ -443,9 +450,7 @@ TEST_F(EventSystemTests, FullTest)
 
         // Test reading all events as expected
         uint32_t event_type;
-        size_t extra_data_size = 0;
-        void* event_data = nullptr;
-        while (platform_event_reader->GetNextEvent(event_type, extra_data_size, event_data)) {
+        while (platform_event_reader->GetNextEvent(event_type)) {
             switch (event_type) {
             case TEST_1:
             {

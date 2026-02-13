@@ -26,7 +26,7 @@ public:
     // Registers the provided manager on the event_manager and saves the IGameBridgeManager inside the game_bridge_manager list.
     bool RegisterManager(IGameBridgeManager* manager);
 
-    EventManager GetEventManager();
+    EventManager& GetEventManager();
 
     // Unregisters the current event_manager.
     bool DeregisterManager();

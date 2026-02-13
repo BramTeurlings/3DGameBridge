@@ -1,4 +1,0 @@
-add_library(${TARGET_DXHEADERS} INTERFACE)
-target_include_directories(${TARGET_DXHEADERS} INTERFACE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-)
